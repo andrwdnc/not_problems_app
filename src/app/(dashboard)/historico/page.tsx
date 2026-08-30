@@ -1,0 +1,89 @@
+import { obtenerHistorico } from '@/server-actions/historico-queries';
+
+export const dynamic = 'force-dynamic';
+import { Card } from '@/components/ui/Card';
+import { Badge } from '@/components/ui/Badge';
+import { formatCurrency } from '@/lib/formatters/currency';
+import { nombreMes } from '@/lib/formatters/date';
+import Link from 'next/link';
+import { Info, ChevronRight } from 'lucide-react';
+
+export default async function HistoricoPage() {
+  const historico = await obtenerHistorico();
+
+  return (
+    <div className="space-y-4">
+      <h1 className="text-xl font-bold text-brand-navy">Histórico</h1>
+
+      <div className="flex items-start gap-2 rounded-xl bg-brand-pale p-3 text-xs text-brand-navy">
+        <Info size={16} className="mt-0.5 shrink-0" />
+        <p>
+          Solo el mes más reciente admite altas nuevas hasta el día 5. Los meses
+          anteriores quedan congelados.
+        </p>
+      </div>
+
+      {historico.length === 0 ? (
+        <Card>
+          <p className="text-sm text-brand-muted">
+            Aún no hay meses cerrados.
+          </p>
+        </Card>
+      ) : (
+        <div className="space-y-3">
+          {historico.map((h) => {
+            const conDeficit = h.ahorro < 0;
+            const estado =
+              h.permisos.estado === 'editable'
+                ? { texto: 'En curso', tone: 'primary' as const }
+                : h.permisos.estado === 'gracia'
+                  ? { texto: 'Editable hasta el 5', tone: 'amber' as const }
+                  : { texto: 'Cerrado', tone: 'muted' as const };
+
+            return (
+              <Link key={h.mes.id} href={`/historico/${h.mes.id}`} className="block">
+                <Card className="transition-colors hover:border-brand-primary/40">
+                  <div className="flex items-center justify-between">
+                    <h2 className="font-semibold text-brand-navy">
+                      {nombreMes(h.mes.mes)} {h.mes.anio}
+                    </h2>
+                    <Badge tone={estado.tone}>{estado.texto}</Badge>
+                  </div>
+
+                  <div className="mt-3 grid grid-cols-3 gap-2 text-center">
+                    <div>
+                      <p className="text-xs text-brand-muted">Aportado</p>
+                      <p className="font-mono text-sm font-semibold text-brand-primary">
+                        {formatCurrency(h.aportado)}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-brand-muted">Gastado</p>
+                      <p className="font-mono text-sm font-semibold text-financial-negative">
+                        {formatCurrency(h.gastado)}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-brand-muted">
+                        {conDeficit ? 'Déficit' : 'Ahorro'}
+                      </p>
+                      <p
+                        className={`font-mono text-sm font-semibold ${conDeficit ? 'text-financial-negative' : 'text-financial-positive'}`}
+                      >
+                        {formatCurrency(Math.abs(h.ahorro))}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="mt-3 flex items-center justify-end text-sm text-brand-muted">
+                    Ver detalle <ChevronRight size={16} />
+                  </div>
+                </Card>
+              </Link>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
