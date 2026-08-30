@@ -1,0 +1,27 @@
+@import "tailwindcss";
+
+@theme {
+  --color-brand-navy: #0B3D66;
+  --color-brand-primary: #1B6FD1;
+  --color-brand-sky: #6FB1F0;
+  --color-brand-pale: #DCEBFB;
+  --color-brand-bg: #EEF4FA;
+  --color-brand-surface: #FFFFFF;
+  --color-brand-ink: #12293F;
+  --color-brand-muted: #6B8299;
+  --color-brand-border: #D7E4F0;
+
+  --color-financial-positive: #1F9E6D;
+  --color-financial-positiveBg: #E4F5EE;
+  --color-financial-negative: #E2574C;
+  --color-financial-negativeBg: #FCEAE8;
+  --color-financial-amber: #D98E1B;
+}
+
+* {
+  @apply border-brand-border;
+}
+
+body {
+  @apply bg-brand-bg text-brand-ink font-sans;
+}
