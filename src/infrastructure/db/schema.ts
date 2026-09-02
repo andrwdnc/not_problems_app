@@ -1,5 +1,4 @@
-import { pgEnum, pgTable, uuid, text, integer, numeric, timestamp, date, boolean, jsonb } from 'drizzle-orm/pg-core';
-
+import { pgEnum, pgTable, uuid, text, integer, numeric, timestamp, date, boolean, jsonb, uniqueIndex } from 'drizzle-orm/pg-core';
 export const categoriaEnum = pgEnum('categoria_enum', [
   'Vivienda',
   'Suministros',
@@ -12,8 +11,11 @@ export const categoriaEnum = pgEnum('categoria_enum', [
 
 export const usuarios = pgTable('usuarios', {
   id: uuid('id').primaryKey().defaultRandom(),
-  nombre: text('nombre').notNull(),
-});
+  username: text('username').notNull(),
+  passwordHash: text('password_hash').notNull(),
+}, (table) => [
+  uniqueIndex('usuarios_username_unique').on(table.username),
+]);
 
 export const meses = pgTable('meses', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -23,7 +25,9 @@ export const meses = pgTable('meses', {
   porcentajeFijadoPor: uuid('porcentaje_fijado_por').references(() => usuarios.id),
   porcentajeFechaRegistro: timestamp('porcentaje_fecha_registro'),
   fechaApertura: timestamp('fecha_apertura').defaultNow().notNull(),
-});
+}, (table) => [
+  uniqueIndex('meses_anio_mes_unique').on(table.anio, table.mes),
+]);
 
 export const aportaciones = pgTable('aportaciones', {
   id: uuid('id').primaryKey().defaultRandom(),

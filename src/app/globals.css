@@ -24,4 +24,8 @@
 
 body {
   @apply bg-brand-bg text-brand-ink font-sans;
+  /* Recorta el desbordamiento horizontal sin activar scroll ni crear un
+     containing block que rompería el menú inferior fijo (fixed). */
+  overflow-x: clip;
+  overscroll-behavior-x: none;
 }

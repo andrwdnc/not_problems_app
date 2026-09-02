@@ -14,7 +14,7 @@ export default async function InicioPage() {
   const resumen = mes ? await obtenerResumenMes(mes.id) : null;
   const ultimosGastos = mes ? (await gastoRepository.findByMes(mes.id)).slice(0, 3) : [];
   const usuarios = await usuarioRepository.findAll();
-  const usuarioPorId = new Map(usuarios.map((u) => [u.id, u.nombre]));
+  const usuarioPorId = new Map(usuarios.map((u) => [u.id, u.username]));
 
   return (
     <div className="space-y-5">
@@ -37,7 +37,7 @@ export default async function InicioPage() {
             </p>
           </Card>
 
-          <div className="flex gap-3">
+          <div className="flex min-w-0 flex-wrap gap-2 sm:flex-nowrap sm:gap-3">
             <TarjetaEstado
               variante="aportado"
               etiqueta="Aportado"
@@ -76,7 +76,7 @@ export default async function InicioPage() {
             ) : (
               <div className="space-y-2">
                 {ultimosGastos.map((g) => (
-                  <Card key={g.id} className="flex items-center justify-between">
+                  <Card key={g.id} className="flex min-w-0 items-center justify-between">
                     <div className="min-w-0">
                       <p className="truncate text-sm font-medium text-brand-ink">
                         {g.detalle}
@@ -85,7 +85,7 @@ export default async function InicioPage() {
                         {g.categoria} · {usuarioPorId.get(g.creadoPor) ?? '—'}
                       </p>
                     </div>
-                    <span className="ml-4 font-mono text-sm font-semibold text-financial-negative">
+                    <span className="ml-4 shrink-0 font-mono text-sm font-semibold text-financial-negative">
                       {formatCurrency(g.importe)}
                     </span>
                   </Card>

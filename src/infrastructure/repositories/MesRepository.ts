@@ -23,7 +23,14 @@ export interface MesRepository {
   findByAnioAndMes(anio: number, mes: number): Promise<Mes | null>;
   getMesesAnteriores(limit: number): Promise<Mes[]>;
   create(data: CrearMesInput): Promise<Mes>;
+  findOrCreate(data: CrearMesInput): Promise<ResultadoFindOrCreate>;
   update(id: string, data: Partial<Mes>): Promise<Mes>;
+}
+
+export interface ResultadoFindOrCreate {
+  mes: Mes;
+  /** true si este llamador creó el mes; false si ya existía. */
+  creado: boolean;
 }
 
 export class MesDrizzleRepository implements MesRepository {
@@ -61,6 +68,37 @@ export class MesDrizzleRepository implements MesRepository {
       })
       .returning();
     return result as Mes;
+  }
+
+  /**
+   * Crea el mes de forma atómica: si ya existe (año+mes), lo devuelve. Si no,
+   * lo inserta. En caso de carrera concurrente (varios workers intentando crear
+   * el mismo mes), solo uno gana el INSERT; el resto recibe el mes existente.
+   */
+  async findOrCreate(data: CrearMesInput): Promise<ResultadoFindOrCreate> {
+    const [resultado] = await db
+      .insert(meses)
+      .values({
+        anio: data.anio,
+        mes: data.mes,
+        porcentaje: data.porcentaje ?? null,
+        porcentajeFijadoPor: null,
+        porcentajeFechaRegistro: null,
+      })
+      .onConflictDoNothing()
+      .returning();
+
+    if (resultado) {
+      return { mes: resultado as Mes, creado: true };
+    }
+
+    const existente = await this.findByAnioAndMes(data.anio, data.mes);
+    if (!existente) {
+      throw new Error(
+        `No se pudo crear ni recuperar el mes ${data.anio}-${data.mes}`,
+      );
+    }
+    return { mes: existente, creado: false };
   }
 
   async update(id: string, data: Partial<Mes>): Promise<Mes> {

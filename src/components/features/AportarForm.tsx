@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { fijarSueldo, fijarPorcentaje } from '@/server-actions/aportaciones-actions';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -21,6 +22,7 @@ export function AportarForm({
   usuarios,
   aportaciones,
 }: AportarFormProps) {
+  const router = useRouter();
   const [mensaje, setMensaje] = useState<string | null>(null);
   const [porcentajeValor, setPorcentajeValor] = useState('');
 
@@ -30,21 +32,36 @@ export function AportarForm({
 
   async function guardarSueldo(usuarioId: string, formData: FormData) {
     const sueldo = formData.get('sueldo') as string;
-    const resultado = await fijarSueldo({
-      mesId: mes.id,
-      usuarioId,
-      sueldo,
-    });
-    if (!resultado.ok) {
-      setMensaje(resultado.error);
+    setMensaje(null);
+    try {
+      const resultado = await fijarSueldo({
+        mesId: mes.id,
+        usuarioId,
+        sueldo,
+      });
+      if (!resultado.ok) {
+        setMensaje(resultado.error);
+        return;
+      }
+      router.refresh();
+    } catch {
+      setMensaje('Error al guardar el sueldo. Inténtalo de nuevo.');
     }
   }
 
   async function guardarPorcentaje(formData: FormData) {
     const porcentaje = formData.get('porcentaje') as string;
-    const resultado = await fijarPorcentaje({ mesId: mes.id, porcentaje });
-    if (!resultado.ok) {
-      setMensaje(resultado.error);
+    setMensaje(null);
+    try {
+      const resultado = await fijarPorcentaje({ mesId: mes.id, porcentaje });
+      if (!resultado.ok) {
+        setMensaje(resultado.error);
+        return;
+      }
+      setPorcentajeValor('');
+      router.refresh();
+    } catch {
+      setMensaje('Error al fijar el porcentaje. Inténtalo de nuevo.');
     }
   }
 
@@ -52,15 +69,15 @@ export function AportarForm({
     <div className="space-y-4">
       {usuarios.map((usuario) => {
         const aportacion = aportacionPorUsuario.get(usuario.id);
-        const fijado = aportacion?.importeAportado != null;
+        const fijado = aportacion?.sueldo != null;
         return (
           <Card key={usuario.id}>
             <div className="mb-3 flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-full bg-brand-pale text-lg font-bold text-brand-navy">
-                {usuario.nombre.charAt(0).toUpperCase()}
+                {usuario.username.charAt(0).toUpperCase()}
               </div>
               <div className="flex-1">
-                <p className="font-semibold text-brand-ink">{usuario.nombre}</p>
+                <p className="font-semibold text-brand-ink">{usuario.username}</p>
               </div>
               {fijado ? (
                 <Badge tone="muted">
@@ -82,7 +99,9 @@ export function AportarForm({
                 <div>
                   <p className="text-xs text-brand-muted">Importe aportado</p>
                   <p className="font-mono text-lg font-semibold text-brand-primary">
-                    {formatCurrency(aportacion.importeAportado ?? 0)}
+                    {aportacion.importeAportado != null
+                      ? formatCurrency(aportacion.importeAportado)
+                      : '— pendiente de porcentaje'}
                   </p>
                 </div>
               </div>

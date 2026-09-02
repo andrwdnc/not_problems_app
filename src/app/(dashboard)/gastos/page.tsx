@@ -8,7 +8,7 @@ export default async function GastosPage() {
   const mes = await obtenerMesActual();
   const gastos = mes ? await gastoRepository.findByMes(mes.id) : [];
   const usuarios = await usuarioRepository.findAll();
-  const usuarioPorId = new Map(usuarios.map((u) => [u.id, u.nombre]));
+  const usuarioPorId = new Map(usuarios.map((u) => [u.id, u.username]));
 
   return (
     <div className="space-y-4">

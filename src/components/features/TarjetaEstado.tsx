@@ -35,17 +35,29 @@ export function TarjetaEstado({
   etiqueta,
   importe,
 }: TarjetaEstadoProps) {
-  const estilo = estilos[variante];
+  // "Disponible" es verde mientras haya saldo positivo; en cuanto se gasta más
+  // de lo ingresado (negativo), pasa a rojo para indicar déficit.
+  const esNegativo = importe < 0;
+  const estilo =
+    variante === 'disponible' && esNegativo
+      ? estilos.gastado
+      : estilos[variante];
+
   return (
     <div
       className={cn(
-        'flex-1 rounded-2xl border px-4 py-3',
+        'min-w-0 flex-1 rounded-2xl border px-2 py-3 sm:px-4',
         estilo.fondo,
         estilo.borde,
       )}
     >
-      <p className="text-xs font-medium text-brand-muted">{etiqueta}</p>
-      <p className={cn('mt-1 font-mono text-xl font-bold tabular-nums', estilo.texto)}>
+      <p className="truncate text-xs font-medium text-brand-muted">{etiqueta}</p>
+      <p
+        className={cn(
+          'mt-1 min-w-0 break-words font-mono text-lg font-bold tabular-nums sm:text-xl',
+          estilo.texto,
+        )}
+      >
         {formatCurrency(importe)}
       </p>
     </div>

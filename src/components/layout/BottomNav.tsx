@@ -17,11 +17,11 @@ export function BottomNav() {
 
   return (
     <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-brand-border bg-brand-surface pb-[env(safe-area-inset-bottom)]">
-      <ul className="mx-auto flex max-w-md items-stretch justify-around">
+      <ul className="mx-auto flex w-full max-w-md items-stretch justify-around">
         {items.map(({ href, label, icon: Icon }) => {
           const activo = pathname === href || pathname.startsWith(`${href}/`);
           return (
-            <li key={href} className="flex-1">
+            <li key={href} className="min-w-0 flex-1">
               <Link
                 href={href}
                 className={cn(
@@ -30,7 +30,7 @@ export function BottomNav() {
                 )}
               >
                 <Icon size={22} strokeWidth={activo ? 2.4 : 2} />
-                <span>{label}</span>
+                <span className="truncate px-1">{label}</span>
               </Link>
             </li>
           );
