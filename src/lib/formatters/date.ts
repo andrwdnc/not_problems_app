@@ -35,5 +35,6 @@ export function formatShortDate(date: Date | string | number): string {
 }
 
 export function nombreMes(mes: number): string {
-  return MESES_ES[mes - 1] ?? '';
+  const nombre = MESES_ES[mes - 1] ?? '';
+  return nombre.charAt(0).toLocaleUpperCase('es-ES') + nombre.slice(1);
 }

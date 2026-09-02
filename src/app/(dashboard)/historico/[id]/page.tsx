@@ -10,6 +10,8 @@ import { Badge } from '@/components/ui/Badge';
 import { formatCurrency } from '@/lib/formatters/currency';
 import { formatShortDate, nombreMes } from '@/lib/formatters/date';
 import { notFound } from 'next/navigation';
+import { ventanaDeMes } from '@/domain/rules/VentanaEdicionGastos';
+import { GastoMesAcciones } from '@/components/features/GastoMesAcciones';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,6 +25,8 @@ export default async function HistoricoDetallePage({
 
   const gastos = await gastoRepository.findByMes(mes.id);
   const aportaciones = await aportacionRepository.findByMes(mes.id);
+
+  const permisos = ventanaDeMes(new Date(), mes.anio, mes.mes);
 
   const aportado = aportaciones.reduce(
     (acc, a) => acc + (a.importeAportado ?? 0),
@@ -78,9 +82,16 @@ export default async function HistoricoDetallePage({
                     </Badge>
                   )}
                 </div>
-                <span className="font-mono text-sm font-semibold text-financial-negative">
-                  {formatCurrency(g.importe)}
-                </span>
+                <div className="flex shrink-0 flex-col items-end gap-1">
+                  <span className="font-mono text-sm font-semibold text-financial-negative">
+                    {formatCurrency(g.importe)}
+                  </span>
+                  <GastoMesAcciones
+                    gastoId={g.id}
+                    puedeEditar={permisos.puedeEditar}
+                    puedeEliminar={permisos.puedeEliminar}
+                  />
+                </div>
               </div>
             </Card>
           ))}

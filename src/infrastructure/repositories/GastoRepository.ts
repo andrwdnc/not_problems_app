@@ -1,4 +1,4 @@
-import { eq, desc, and } from 'drizzle-orm';
+import { eq, desc, and, inArray } from 'drizzle-orm';
 import { db } from '../db';
 import { gastos } from '../db/schema';
 import type { Categoria } from '@/domain/value-objects/Categoria';
@@ -19,6 +19,7 @@ export interface Gasto {
 export interface GastoRepository {
   findById(id: string): Promise<Gasto | null>;
   findByMes(mesId: string): Promise<Gasto[]>;
+  findByMesIds(mesIds: string[]): Promise<Gasto[]>;
   create(data: Omit<Gasto, 'id' | 'fechaCreacion'>): Promise<Gasto>;
   update(id: string, data: Partial<Gasto>): Promise<Gasto>;
   delete(id: string): Promise<void>;
@@ -36,7 +37,17 @@ export class GastoDrizzleRepository implements GastoRepository {
   async findByMes(mesId: string): Promise<Gasto[]> {
     const result = await db.query.gastos.findMany({
       where: eq(gastos.mesId, mesId),
-      orderBy: [desc(gastos.fechaGasto)],
+      // 1º por la fecha que le corresponde al gasto (día más reciente primero)
+      // y 2º por orden de creación dentro de cada día (el último creado primero).
+      orderBy: [desc(gastos.fechaGasto), desc(gastos.fechaCreacion)],
+    });
+    return result as Gasto[];
+  }
+
+  async findByMesIds(mesIds: string[]): Promise<Gasto[]> {
+    if (mesIds.length === 0) return [];
+    const result = await db.query.gastos.findMany({
+      where: inArray(gastos.mesId, mesIds),
     });
     return result as Gasto[];
   }

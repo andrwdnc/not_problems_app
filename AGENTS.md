@@ -22,7 +22,8 @@ Aplicación web mobile-first de **Finanzas Compartidas para Pareja** (2 usuarios
 |---|---|---|
 | **Framework** | Next.js 14+ (App Router) | React Server Components (RSC) + Server Actions |
 | **Lenguaje** | TypeScript | Tipado estricto (`noImplicitAny: true`, `strict: true`) |
-| **Base de Datos** | Supabase (Postgres) | Persistencia + Autenticación de usuarios |
+| **Base de Datos** | Supabase (Postgres) | Persistencia |
+| **Autenticación** | Propia (username + bcrypt + cookie) | Login por nombre de usuario + contraseña hasheada, sesión en cookie HTTP-only firmada (HMAC-SHA256) |
 | **ORM** | Drizzle ORM | Schema SQL explícito y consultas desacopladas |
 | **Validación** | Zod | Validación de entradas en Server Actions y formularios |
 | **Estilos** | Tailwind CSS v4 | Utility-first con tokens de diseño personalizados (`@theme`) |
@@ -52,13 +53,14 @@ src/
 │   └── value-objects/          # Objetos de valor (ImporteMoneda, Porcentaje)
 ├── infrastructure/             # Capa de Infraestructura (DB & Servicios Externos)
 │   ├── db/                     # Drizzle Schema, conexión y migraciones
-│   ├── repositories/           # Implementación de acceso a datos (Drizzle Repositories)
-│   └── auth/                   # Adaptador de Supabase Auth
+│   └── repositories/           # Implementación de acceso a datos (Drizzle Repositories)
 ├── server-actions/             # Casos de Uso / Controladores (Server Actions de Next.js)
 │   ├── gastos-actions.ts       # Acciones relativas a gastos (crear, editar, eliminar)
 │   ├── aportaciones-actions.ts # Acciones de sueldo y porcentaje
-│   └── meses-actions.ts        # Apertura y consulta de meses
+│   ├── meses-actions.ts        # Apertura y consulta de meses
+│   └── queries.ts              # Consultas del mes actual e histórico
 └── lib/                        # Utilidades y Helper Functions
+    ├── session/                # Sesión propia (cookie HTTP-only firmada HMAC-SHA256)
     ├── formatters/             # Formateadores de moneda (EUR), fechas y porcentajes
     └── utils.ts                # Merge de clases Tailwind (cn) y helpers generales
 ```
@@ -274,9 +276,7 @@ Definir en `.env.local` (ya ignorado por Git en proyectos Next.js — verificar 
 ```bash
 DATABASE_URL=...                  # Conexión Postgres de Supabase (pooler) — servidor
 DIRECT_URL=...                    # Conexión directa para migraciones de Drizzle
-NEXT_PUBLIC_SUPABASE_URL=...      # URL pública del proyecto Supabase
-NEXT_PUBLIC_SUPABASE_ANON_KEY=... # Clave pública (safe en cliente)
-SUPABASE_SERVICE_ROLE_KEY=...     # ⚠️ SOLO servidor. NUNCA importar en código cliente ni exponer
+AUTH_SECRET=...                   # Secreto (>= 32 chars) para firmar la cookie de sesión (HMAC-SHA256)
 ```
 
 Reglas:

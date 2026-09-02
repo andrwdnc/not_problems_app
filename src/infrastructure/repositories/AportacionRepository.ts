@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm';
+import { eq, inArray } from 'drizzle-orm';
 import { db } from '../db';
 import { aportaciones } from '../db/schema';
 
@@ -15,6 +15,7 @@ export interface AportacionRepository {
   findById(id: string): Promise<Aportacion | null>;
   findByMesAndUsuario(mesId: string, usuarioId: string): Promise<Aportacion | null>;
   findByMes(mesId: string): Promise<Aportacion[]>;
+  findByMesIds(mesIds: string[]): Promise<Aportacion[]>;
   create(data: Omit<Aportacion, 'id' | 'fechaRegistro'>): Promise<Aportacion>;
   update(id: string, data: Partial<Aportacion>): Promise<Aportacion>;
   delete(id: string): Promise<void>;
@@ -39,6 +40,14 @@ export class AportacionDrizzleRepository implements AportacionRepository {
   async findByMes(mesId: string): Promise<Aportacion[]> {
     const result = await db.query.aportaciones.findMany({
       where: eq(aportaciones.mesId, mesId),
+    });
+    return result as Aportacion[];
+  }
+
+  async findByMesIds(mesIds: string[]): Promise<Aportacion[]> {
+    if (mesIds.length === 0) return [];
+    const result = await db.query.aportaciones.findMany({
+      where: inArray(aportaciones.mesId, mesIds),
     });
     return result as Aportacion[];
   }

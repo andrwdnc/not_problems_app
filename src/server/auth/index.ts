@@ -1,22 +1,28 @@
-import { headers } from 'next/headers';
-import { getSupabaseServerClient } from '@/lib/supabase';
+import { leerSesion } from '@/lib/session';
+import { usuarioRepository } from '@/server-actions/repositories';
 
 /**
- * Obtiene el id del usuario autenticado a partir de la cabecera Authorization.
- * Devuelve null si no hay sesión activa.
+ * Obtiene el id del usuario autenticado a partir de la cookie de sesión firmada.
+ * Devuelve null si no hay sesión válida.
  */
 export async function getCurrentUserId(): Promise<string | null> {
-  const headersList = headers();
-  const authHeader = headersList.get('Authorization');
+  const userId = await leerSesion();
+  if (!userId) return null;
 
-  if (!authHeader) return null;
+  // Verificamos que el usuario sigue existiendo en la BD.
+  const usuario = await usuarioRepository.findById(userId);
+  return usuario ? usuario.id : null;
+}
 
-  const supabase = getSupabaseServerClient();
-  const {
-    data: { user },
-    error,
-  } = await supabase.auth.getUser(authHeader);
+/**
+ * Obtiene el usuario autenticado (id + username) o null si no hay sesión.
+ */
+export async function getCurrentUser(): Promise<{ id: string; username: string } | null> {
+  const userId = await leerSesion();
+  if (!userId) return null;
 
-  if (error || !user) return null;
-  return user.id;
+  const usuario = await usuarioRepository.findById(userId);
+  if (!usuario) return null;
+
+  return { id: usuario.id, username: usuario.username };
 }

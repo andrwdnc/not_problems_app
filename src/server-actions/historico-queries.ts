@@ -18,28 +18,44 @@ export async function obtenerHistorico(): Promise<MesHistorico[]> {
   const hoy = new Date();
   const meses = await mesRepository.getMesesAnteriores(24);
 
-  const resultado: MesHistorico[] = [];
+  if (meses.length === 0) return [];
 
-  for (const mes of meses) {
-    const aportaciones = await aportacionRepository.findByMes(mes.id);
-    const gastos = await gastoRepository.findByMes(mes.id);
+  const mesIds = meses.map((m) => m.id);
 
-    const aportado = aportaciones.reduce(
-      (acc, a) => acc + (a.importeAportado ?? 0),
-      0,
+  // 3 queries en total (en vez del clásico N+1): una para todos los meses,
+  // otra para todas sus aportaciones y otra para todos sus gastos.
+  const [aportaciones, gastos] = await Promise.all([
+    aportacionRepository.findByMesIds(mesIds),
+    gastoRepository.findByMesIds(mesIds),
+  ]);
+
+  const aportadoPorMes = new Map<string, number>();
+  for (const a of aportaciones) {
+    aportadoPorMes.set(
+      a.mesId,
+      (aportadoPorMes.get(a.mesId) ?? 0) + (a.importeAportado ?? 0),
     );
-    const gastado = gastos.reduce((acc, g) => acc + g.importe, 0);
+  }
+
+  const gastadoPorMes = new Map<string, number>();
+  for (const g of gastos) {
+    gastadoPorMes.set(
+      g.mesId,
+      (gastadoPorMes.get(g.mesId) ?? 0) + g.importe,
+    );
+  }
+
+  return meses.map((mes) => {
+    const aportado = aportadoPorMes.get(mes.id) ?? 0;
+    const gastado = gastadoPorMes.get(mes.id) ?? 0;
     const ahorro = aportado - gastado;
 
-    resultado.push({
+    return {
       mes: { id: mes.id, anio: mes.anio, mes: mes.mes },
       aportado,
       gastado,
       ahorro,
       permisos: ventanaDeMes(hoy, mes.anio, mes.mes),
-    });
-  }
-
-  // Ordenar del más reciente al más antiguo (asumiendo que ya vienen ordenados).
-  return resultado;
+    };
+  });
 }
