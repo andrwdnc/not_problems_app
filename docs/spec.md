@@ -1,15 +1,17 @@
-# App de Finanzas Compartidas — Especificación técnica
+# Nest — Tu espacio financiero compartido — Especificación técnica
 
 > Documento de referencia para construir la aplicación. Incluye stack, modelo de datos, reglas de negocio y diseño de pantallas con mockups. Las imágenes están en `./mockups/`.
 
 ## 1. Objetivo
 
-Aplicación privada para dos usuarios (pareja) que permite:
+Aplicación privada para **dos usuarios** que comparten una cuenta común. Permite:
 - Registrar el sueldo íntegro mensual de cada usuario.
-- Fijar un porcentaje **único y compartido** que ambos aportan a una cuenta conjunta.
+- Fijar un porcentaje **único y compartido** que ambos aportan a la cuenta conjunta.
 - Registrar gastos conjuntos (recurrentes y puntuales) y ver, a fin de mes, cuánto se ha gastado y cuánto se ha ahorrado.
 
-La app no gestiona gastos personales ni dinero real: todo lo registrado en ella se considera, por definición, gasto de la cuenta conjunta. Uso estimado: ~5 visitas al día entre los dos usuarios, casi siempre desde móvil (99% del uso).
+La app no gestiona gastos personales ni dinero real: todo lo registrado en ella se considera, por definición, gasto de la cuenta compartida. Uso estimado: ~5 visitas al día entre los dos usuarios, casi siempre desde móvil (99% del uso).
+
+> **En evolución:** la app está orientada a compartir gastos entre dos usuarios y evolucionará hacia el **control de gastos individuales**. El lenguaje de la interfaz se mantiene neutral (no anclado a "pareja") en previsión de esa ampliación.
 
 ## 2. Stack tecnológico
 
@@ -17,16 +19,16 @@ La app no gestiona gastos personales ni dinero real: todo lo registrado en ella 
 |---|---|---|
 | Frontend + backend | Next.js (App Router) | Un único framework para UI y lógica de servidor (Server Actions), sin API separada |
 | Despliegue | Vercel (plan gratuito) | Integración nativa con Next.js, despliegue automático por push a Git |
-| Base de datos | Supabase (Postgres) | Free tier permanente, incluye autenticación integrada |
+| Base de datos | Supabase (Postgres) | Free tier permanente, persistencia de datos |
 | ORM | Drizzle | Capa fina sobre SQL, sin generación de cliente, migraciones en SQL crudo legible |
-| Autenticación | Auth de Supabase | Suficiente para dos usuarios fijos, sin OAuth externo |
+| Autenticación | Propia (username + bcrypt + cookie) | Login por usuario + contraseña hasheada; sesión en cookie HTTP-only firmada HMAC-SHA256. No usa Supabase Auth |
 | Estilos | Tailwind CSS | Desarrollo rápido sin diseñar un sistema de componentes desde cero |
 | Control de versiones | GitHub (repo privado) | Conecta directamente con Vercel para despliegue continuo |
 
 ### Pasos de arranque sugeridos
 1. `npx create-next-app@latest` (TypeScript + Tailwind + App Router).
-2. Repo en GitHub, importado en Vercel (despliegue automático en cada push).
-3. Proyecto en Supabase → Postgres + Auth.
+2. Repo en GitHub, importado en Vercel (despliegue automático en cada push; solo `master` para producción).
+3. Proyecto en Supabase → Postgres (la autenticación es propia, no usa Supabase Auth).
 4. `npx drizzle-kit` para conectar y definir el schema.
 5. Variables de entorno (connection string, claves) en Vercel → Settings → Environment Variables, nunca en el código.
 6. Primera pantalla funcional: formulario de sueldo/aportación de extremo a extremo antes de construir el resto.
@@ -37,7 +39,8 @@ La app no gestiona gastos personales ni dinero real: todo lo registrado en ella 
 | Campo | Tipo | Descripción |
 |---|---|---|
 | id | uuid | Identificador único |
-| nombre | text | Nombre del usuario |
+| username | text (único) | Nombre de usuario usado en el login |
+| password_hash | text | Contraseña hasheada con bcrypt |
 
 ### 3.2 `meses`
 Representa cada periodo mensual. Se crea automáticamente el día 1 de cada mes.
