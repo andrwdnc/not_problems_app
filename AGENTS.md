@@ -10,8 +10,9 @@ Este documento es la guía definitiva de desarrollo para cualquier Agente de Int
 
 ## 1. Visión General del Proyecto
 
-Aplicación web mobile-first de **Finanzas Compartidas para Pareja** (2 usuarios).
+Aplicación web mobile-first **Nest — Tu espacio financiero compartido** (2 usuarios).
 - **Objetivo:** Gestionar sueldos, un porcentaje compartido de aportación a una cuenta común, gastos comunes y balance mensual (aportado / gastado / disponible).
+- **En evolución:** la app está orientada a compartir gastos entre dos usuarios y evolucionará hacia el **control de gastos individuales**. Mantén el lenguaje de la interfaz y del código **neutral** (consulta `src/literals/`) para no anclar la UI al concepto de "pareja".
 - **Filosofía de Código:** Clean Architecture + Principios SOLID, tipado estricto con TypeScript, desacoplamiento de la lógica de negocio respecto a la UI y la base de datos.
 
 ---
@@ -39,31 +40,43 @@ El proyecto sigue una adaptación de **Clean Architecture** para Next.js App Rou
 ```text
 src/
 ├── app/                        # Capa de Presentación / Rutas (Next.js App Router)
-│   ├── (auth)/                 # Rutas de autenticación (Login)
+│   ├── (auth)/                 # Rutas de autenticación (Login, Signup)
 │   ├── (dashboard)/            # Rutas de la app (Inicio, Gastos, Aportar, Histórico)
 │   ├── layout.tsx              # Layout principal con navegación inferior móvil
 │   └── globals.css             # Estilos globales y tokens Tailwind v4 (@theme)
 ├── components/                 # Componentes UI
 │   ├── ui/                     # Componentes atómicos/reutilizables (Button, Card, Input, Badge)
-│   ├── features/               # Componentes ligados a casos de uso (p.ej. ResumenAnillo, ListaGastos)
+│   ├── features/               # Componentes ligados a casos de uso (p.ej. AnilloProgreso, GastosList)
 │   └── layout/                 # Layouts específicos y Navegación Inferior
 ├── domain/                     # Capa del Dominio (Lógica de Negocio Pura)
 │   ├── entities/               # Tipos e interfaces del dominio (Mes, Usuario, Gasto, Aportacion)
 │   ├── rules/                  # Reglas de negocio puras (CalculadoraAportacion, VentanaEdicionGastos)
-│   └── value-objects/          # Objetos de valor (ImporteMoneda, Porcentaje)
+│   └── value-objects/          # Objetos de valor (ImporteMoneda, Porcentaje, Categoria)
 ├── infrastructure/             # Capa de Infraestructura (DB & Servicios Externos)
-│   ├── db/                     # Drizzle Schema, conexión y migraciones
-│   └── repositories/           # Implementación de acceso a datos (Drizzle Repositories)
+│   ├── db/                     # Drizzle Schema, conexión lazy (getDb) y migraciones
+│   ├── repositories/           # Implementación de acceso a datos (Drizzle Repositories)
+│   ├── audit/                  # Helper de auditoría (auditarMovimiento)
+│   └── config.ts               # Configuración validada con Zod (getConnectionUrl, getAuthSecret)
 ├── server-actions/             # Casos de Uso / Controladores (Server Actions de Next.js)
 │   ├── gastos-actions.ts       # Acciones relativas a gastos (crear, editar, eliminar)
 │   ├── aportaciones-actions.ts # Acciones de sueldo y porcentaje
-│   ├── meses-actions.ts        # Apertura y consulta de meses
-│   └── queries.ts              # Consultas del mes actual e histórico
+│   ├── auth-actions.ts         # Acciones de login/signup/logout
+│   ├── meses-actions.ts        # Apertura y generación automática de meses
+│   ├── queries.ts              # Resumen del mes actual
+│   ├── historico-queries.ts    # Consultas del histórico de meses
+│   └── schemas/                # Esquemas de validación Zod (auth, gasto, aportacion)
+├── server/auth/                # Autenticación de servidor (getCurrentUser, getCurrentUserId)
+├── literals/                   # Textos centralizados de la interfaz (namespace por área)
+├── middleware.ts               # Protección de rutas (Edge runtime, Web Crypto)
 └── lib/                        # Utilidades y Helper Functions
     ├── session/                # Sesión propia (cookie HTTP-only firmada HMAC-SHA256)
     ├── formatters/             # Formateadores de moneda (EUR), fechas y porcentajes
     └── utils.ts                # Merge de clases Tailwind (cn) y helpers generales
 ```
+
+> **Convención obligatoria de literales:** todo texto visible de la interfaz y los mensajes de validación deben vivir en `src/literals/` (importado como `literalesX`), **nunca** hardcodeado en un componente o server action. Esto mantiene la UI neutra y lista para la futura evolución individual.
+
+> **Configuración centralizada:** el acceso a variables de entorno pasa siempre por `src/infrastructure/config.ts` (validado con Zod), nunca por `process.env` directo en el cuerpo de funciones.
 
 ---
 
@@ -86,7 +99,8 @@ El agente **DEBE** respetar estrictamente los siguientes principios al generar o
 - No pasar objetos gigantes a los componentes visuales. Si un componente solo necesita el `importe` y la `categoria` de un gasto, su `props` debe requerir únicamente esos campos.
 
 ### D — Dependency Inversion Principle (DIP)
-- Las Server Actions no deben importar directamente librerías o SQL crudo en medio de la función. Deben apoyarse en la abstracción de repositorios (`infrastructure/repositories`).
+- Las Server Actions no deben importar directamente librerías o SQL crudo en medio de la función. Deben apoyarse en la abstracción de repositorios (`infrastructure/repositories`) y en la capa de configuración (`infrastructure/config.ts`) para las variables de entorno.
+- Todo texto visible de la interfaz y de validación se importa desde `src/literals/`, manteniendo la UI desacoplada de valores hardcodeados.
 
 ---
 
@@ -171,29 +185,34 @@ Al definir o consultar con Drizzle:
 ```typescript
 // Ejemplo de referencia del schema en src/infrastructure/db/schema.ts
 
-import { pgTable, uuid, text, integer, numeric, timestamp, date, boolean, jsonb, pgEnum } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, text, integer, numeric, timestamp, date, boolean, jsonb, pgEnum, uniqueIndex } from 'drizzle-orm/pg-core';
 
 export const usuarios = pgTable('usuarios', {
   id: uuid('id').primaryKey().defaultRandom(),
-  nombre: text('nombre').notNull(),
-});
+  username: text('username').notNull(),
+  passwordHash: text('password_hash').notNull(),
+}, (table) => [
+  uniqueIndex('usuarios_username_unique').on(table.username),
+]);
 
 export const meses = pgTable('meses', {
   id: uuid('id').primaryKey().defaultRandom(),
   anio: integer('anio').notNull(),
   mes: integer('mes').notNull(),
-  porcentaje: numeric('porcentaje', { precision: 5, scale: 2 }),
+  porcentaje: numeric('porcentaje', { precision: 5, scale: 2, mode: 'number' }),
   porcentajeFijadoPor: uuid('porcentaje_fijado_por').references(() => usuarios.id),
   porcentajeFechaRegistro: timestamp('porcentaje_fecha_registro'),
   fechaApertura: timestamp('fecha_apertura').defaultNow().notNull(),
-});
+}, (table) => [
+  uniqueIndex('meses_anio_mes_unique').on(table.anio, table.mes),
+]);
 
 export const aportaciones = pgTable('aportaciones', {
   id: uuid('id').primaryKey().defaultRandom(),
   mesId: uuid('mes_id').references(() => meses.id).notNull(),
   usuarioId: uuid('usuario_id').references(() => usuarios.id).notNull(),
-  sueldo: numeric('sueldo', { precision: 10, scale: 2 }).notNull(),
-  importeAportado: numeric('importe_aportado', { precision: 10, scale: 2 }),
+  sueldo: numeric('sueldo', { precision: 10, scale: 2, mode: 'number' }).notNull(),
+  importeAportado: numeric('importe_aportado', { precision: 10, scale: 2, mode: 'number' }),
   fechaRegistro: timestamp('fecha_registro').defaultNow().notNull(),
 });
 
@@ -206,8 +225,8 @@ export const gastos = pgTable('gastos', {
   mesId: uuid('mes_id').references(() => meses.id).notNull(),
   categoria: categoriaEnum('categoria').notNull(),
   detalle: text('detalle').notNull(),
-  importe: numeric('importe', { precision: 10, scale: 2 }).notNull(),
-  fechaGasto: date('fecha_gasto').notNull(),
+  importe: numeric('importe', { precision: 10, scale: 2, mode: 'number' }).notNull(),
+  fechaGasto: date('fecha_gasto', { mode: 'string' }).notNull(),
   esRecurrente: boolean('es_recurrente').default(false).notNull(),
   gastoRecurrenteOrigenId: uuid('gasto_recurrente_origen_id'),
   creadoPor: uuid('creado_por').references(() => usuarios.id).notNull(),
@@ -228,6 +247,8 @@ export const historicoMovimientos = pgTable('historico_movimientos', {
 });
 ```
 
+> **Conexión lazy (serverless):** la DB se accede siempre mediante `getDb()` (`src/infrastructure/db/connection.ts`), que crea un pool singleton cacheado a nivel global y establece la conexión **al primer uso**, no al importar el módulo. Esto evita fugas de sockets en Vercel (serverless) y permite que el build funcione sin la DB. Nunca crear un `Pool` nuevo en el cuerpo de una Server Action.
+
 ---
 
 ## 8. Comandos de Desarrollo
@@ -241,8 +262,10 @@ export const historicoMovimientos = pgTable('historico_movimientos', {
 | `npm run typecheck` | Verificación de tipos sin emitir (`tsc --noEmit`) |
 | `npm run test` | Ejecutar tests unitarios una vez (Vitest) |
 | `npm run test:watch` | Vitest en modo watch durante desarrollo |
-| `npx drizzle-kit push` | Aplicar el schema Drizzle a Supabase (desarrollo) |
-| `npx drizzle-kit generate` | Generar migraciones SQL a partir del schema |
+| `npm run db:generate` | Generar migraciones SQL a partir del schema |
+| `npm run db:push` | Aplicar el schema Drizzle a Supabase (desarrollo) |
+| `npm run db:studio` | Abrir Drizzle Studio |
+| `npm run db:vaciar` | Reset de la DB local (solo dev; script excluido del build) |
 
 > Si algún script aún no existe en `package.json`, créalo en lugar de asumir que funciona.
 
@@ -265,7 +288,8 @@ export const historicoMovimientos = pgTable('historico_movimientos', {
   - Ejemplos: `feat: add monthly summary ring on home screen`, `fix: prevent editing expenses after grace period`
 - Commits pequeños y atómicos: una responsabilidad por commit, modo imperativo ("add", no "added").
 - Nunca commitear: `.env*`, claves, tokens ni `node_modules`.
-- Trabajar directamente sobre `master` es aceptable (proyecto personal); usar ramas cortas solo para cambios grandes o arriesgados.
+- **Flujo de ramas / despliegue:** el desarrollo se hace sobre `develop`; `master` es la rama de producción con despliegue automático a Vercel. Los commits de trabajos intermedios y de documentación quedan en `develop`. Promociona a `master` (con su commit en Conventional Commits) cuando el trabajo esté listo y verificado para producción.
+- Antes de confirmar un trabajo: `npm run typecheck && npm run lint && npm run test` (y `npm run build` si es un cambio relevante).
 
 ---
 
@@ -288,11 +312,11 @@ Reglas:
 
 ## 12. Guía de Trabajo Incremental para el Agente
 
-Cuando el usuario te pida construir o avanzar en la aplicación, sigue esta secuencia de pasos ordenada:
+Cuando el usuario te pida construir o avanzar en la aplicación, sigue esta secuencia de pasos ordenada. Los pasos 1-4 describen la base ya construida: al ampliar la app (p. ej. hacia el control de gastos individuales), respétales como estándar de referencia en lugar de reimplementarlos.
 
 1. **Paso 1: Setup inicial y Configuración Base**
    - Asegurar que Tailwind tiene los tokens de color e incluye tipografía monoespaciada.
-   - Configurar conexión de Supabase y Drizzle ORM.
+   - Configurar conexión de Supabase y Drizzle ORM (vía `src/infrastructure/config.ts` y `getDb()` lazy).
 
 2. **Paso 2: Capa de Dominio (Domain Layer)**
    - Implementar las interfaces puras de las entidades.
