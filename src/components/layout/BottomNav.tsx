@@ -4,12 +4,13 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Home, Receipt, HandCoins, History } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { nav } from '@/literals';
 
 const items = [
-  { href: '/inicio', label: 'Inicio', icon: Home },
-  { href: '/gastos', label: 'Gastos', icon: Receipt },
-  { href: '/aportar', label: 'Aportar', icon: HandCoins },
-  { href: '/historico', label: 'Histórico', icon: History },
+  { href: '/inicio', label: nav.inicio, icon: Home },
+  { href: '/gastos', label: nav.gastos, icon: Receipt },
+  { href: '/aportar', label: nav.aportar, icon: HandCoins },
+  { href: '/historico', label: nav.historico, icon: History },
 ];
 
 export function BottomNav() {

@@ -12,6 +12,7 @@ import { formatShortDate, nombreMes } from '@/lib/formatters/date';
 import { notFound } from 'next/navigation';
 import { ventanaDeMes } from '@/domain/rules/VentanaEdicionGastos';
 import { GastoMesAcciones } from '@/components/features/GastoMesAcciones';
+import { historicoDetalle, resumen, gastos as gastosLiterales } from '@/literals';
 
 export const dynamic = 'force-dynamic';
 
@@ -47,13 +48,13 @@ export default async function HistoricoDetallePage({
 
       <div className="flex gap-3">
         <Card className="flex-1">
-          <p className="text-xs text-brand-muted">Aportado</p>
+          <p className="text-xs text-brand-muted">{resumen.aportado}</p>
           <p className="font-mono text-lg font-bold text-brand-primary">
             {formatCurrency(aportado)}
           </p>
         </Card>
         <Card className="flex-1">
-          <p className="text-xs text-brand-muted">Gastado</p>
+          <p className="text-xs text-brand-muted">{resumen.gastado}</p>
           <p className="font-mono text-lg font-bold text-financial-negative">
             {formatCurrency(gastado)}
           </p>
@@ -62,7 +63,7 @@ export default async function HistoricoDetallePage({
 
       {gastos.length === 0 ? (
         <Card>
-          <p className="text-sm text-brand-muted">Sin gastos en este mes.</p>
+          <p className="text-sm text-brand-muted">{historicoDetalle.sinGastos}</p>
         </Card>
       ) : (
         <div className="space-y-2">
@@ -78,7 +79,7 @@ export default async function HistoricoDetallePage({
                   </p>
                   {g.esRecurrente && (
                     <Badge tone="primary" className="mt-1">
-                      <RotateCcw size={11} /> Recurrente
+                      <RotateCcw size={11} /> {gastosLiterales.recurrente}
                     </Badge>
                   )}
                 </div>

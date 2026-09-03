@@ -6,6 +6,7 @@ import { login } from '@/server-actions/auth-actions';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Card } from '@/components/ui/Card';
+import { auth } from '@/literals';
 
 export function LoginForm() {
   const [mensaje, setMensaje] = useState<string | null>(null);
@@ -38,16 +39,16 @@ export function LoginForm() {
       <form onSubmit={handleSubmit} className="space-y-4">
         <Input
           id="username"
-          label="Nombre de usuario"
+          label={auth.labelUsuario}
           name="username"
           type="text"
           autoComplete="username"
-          placeholder="p.ej. andrew"
+          placeholder={auth.placeholderUsuarioLogin}
           required
         />
         <Input
           id="password"
-          label="Contraseña"
+          label={auth.labelContrasena}
           name="password"
           type="password"
           autoComplete="current-password"
@@ -59,7 +60,7 @@ export function LoginForm() {
           </p>
         )}
         <Button type="submit" fullWidth disabled={cargando}>
-          {cargando ? 'Entrando…' : 'Iniciar sesión'}
+          {cargando ? auth.entrando : auth.iniciarSesion}
         </Button>
       </form>
     </Card>

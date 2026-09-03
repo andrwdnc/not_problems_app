@@ -1,9 +1,10 @@
+import { resumen } from '@/literals';
+
 interface AnilloProgresoProps {
   porcentaje: number;
 }
 
-export function AnilloProgreso({ porcentaje }: AnilloProgresoProps) {
-  const radio = 84;
+export function AnilloProgreso({ porcentaje }: AnilloProgresoProps) {  const radio = 84;
   const circunferencia = 2 * Math.PI * radio;
   const recortado = Math.min(Math.max(porcentaje, 0), 100);
   const progreso = (recortado / 100) * circunferencia;
@@ -41,7 +42,7 @@ export function AnilloProgreso({ porcentaje }: AnilloProgresoProps) {
         <span className="font-mono text-4xl font-bold text-brand-ink">
           {Math.round(recortado)}%
         </span>
-        <span className="mt-1 text-sm text-brand-muted">gastado</span>
+        <span className="mt-1 text-sm text-brand-muted">{resumen.gastadoRing}</span>
       </div>
     </div>
   );

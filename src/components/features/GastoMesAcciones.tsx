@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Pencil, Trash2 } from 'lucide-react';
 import { eliminarGasto } from '@/server-actions/gastos-actions';
+import { gastos } from '@/literals';
 
 interface GastoMesAccionesProps {
   gastoId: string;
@@ -37,7 +38,7 @@ export function GastoMesAcciones({
         <Link
           href={`/gastos/${gastoId}`}
           className="text-brand-muted hover:text-brand-primary"
-          aria-label="Editar"
+          aria-label={gastos.editar}
         >
           <Pencil size={16} />
         </Link>
@@ -46,7 +47,7 @@ export function GastoMesAcciones({
         <button
           onClick={eliminar}
           className="text-brand-muted hover:text-financial-negative"
-          aria-label="Eliminar"
+          aria-label={gastos.eliminar}
         >
           <Trash2 size={16} />
         </button>

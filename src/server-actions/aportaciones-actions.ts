@@ -9,6 +9,7 @@ import { getCurrentUserId } from '@/server/auth';
 import type { Aportacion, Mes } from '@/infrastructure/repositories';
 import type { ActionResult } from './action-result';
 import { handleError } from './action-result';
+import { aportacionErrores, authErrores } from '@/literals';
 
 /**
  * Guarda (o fija) el sueldo de un usuario para un mes. Inmutable una vez guardado.
@@ -19,7 +20,7 @@ export async function fijarSueldo(
 ): Promise<ActionResult<Aportacion>> {
   const usuarioId = await getCurrentUserId();
   if (!usuarioId) {
-    return { ok: false, error: 'No autenticado' };
+    return { ok: false, error: authErrores.noAutenticado };
   }
 
   const parsed = sueldoSchema.safeParse(input);
@@ -34,7 +35,7 @@ export async function fijarSueldo(
     data.usuarioId,
   );
   if (existente && existente.importeAportado != null) {
-    return { ok: false, error: 'El sueldo ya está fijado y no se puede modificar.' };
+    return { ok: false, error: aportacionErrores.sueldoYaFijado };
   }
 
   let aportacion: Aportacion;
@@ -87,7 +88,7 @@ export async function fijarPorcentaje(
 ): Promise<ActionResult<Mes>> {
   const usuarioId = await getCurrentUserId();
   if (!usuarioId) {
-    return { ok: false, error: 'No autenticado' };
+    return { ok: false, error: authErrores.noAutenticado };
   }
 
   const parsed = porcentajeSchema.safeParse(input);
@@ -99,11 +100,11 @@ export async function fijarPorcentaje(
 
   const mes = await mesRepository.findById(mesId);
   if (!mes) {
-    return { ok: false, error: 'Mes no encontrado.' };
+    return { ok: false, error: aportacionErrores.mesNoEncontrado };
   }
 
   if (mes.porcentaje != null) {
-    return { ok: false, error: 'El porcentaje ya está fijado y no se puede modificar.' };
+    return { ok: false, error: aportacionErrores.porcentajeYaFijado };
   }
 
   const actualizado = await mesRepository.update(mesId, {

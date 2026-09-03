@@ -7,26 +7,26 @@ import { formatCurrency } from '@/lib/formatters/currency';
 import { nombreMes } from '@/lib/formatters/date';
 import Link from 'next/link';
 import { Info, ChevronRight } from 'lucide-react';
+import { historico as historicoLiterales, resumen } from '@/literals';
 
 export default async function HistoricoPage() {
   const historico = await obtenerHistorico();
 
   return (
     <div className="space-y-4">
-      <h1 className="text-xl font-bold text-brand-navy">Histórico</h1>
+      <h1 className="text-xl font-bold text-brand-navy">{historicoLiterales.titulo}</h1>
 
       <div className="flex items-start gap-2 rounded-xl bg-brand-pale p-3 text-xs text-brand-navy">
         <Info size={16} className="mt-0.5 shrink-0" />
         <p>
-          Solo el mes más reciente admite altas nuevas hasta el día 5. Los meses
-          anteriores quedan congelados.
+          {historicoLiterales.nota}
         </p>
       </div>
 
       {historico.length === 0 ? (
         <Card>
           <p className="text-sm text-brand-muted">
-            Aún no hay meses cerrados.
+            {historicoLiterales.sinMeses}
           </p>
         </Card>
       ) : (
@@ -35,10 +35,10 @@ export default async function HistoricoPage() {
             const conDeficit = h.ahorro < 0;
             const estado =
               h.permisos.estado === 'editable'
-                ? { texto: 'En curso', tone: 'primary' as const }
+                ? { texto: historicoLiterales.enCurso, tone: 'primary' as const }
                 : h.permisos.estado === 'gracia'
-                  ? { texto: 'Editable hasta el 5', tone: 'amber' as const }
-                  : { texto: 'Cerrado', tone: 'muted' as const };
+                  ? { texto: historicoLiterales.editableHastaEl5, tone: 'amber' as const }
+                  : { texto: historicoLiterales.cerrado, tone: 'muted' as const };
 
             return (
               <Link key={h.mes.id} href={`/historico/${h.mes.id}`} className="block">
@@ -52,20 +52,20 @@ export default async function HistoricoPage() {
 
                   <div className="mt-3 grid grid-cols-3 gap-2 text-center">
                     <div>
-                      <p className="text-xs text-brand-muted">Aportado</p>
+                      <p className="text-xs text-brand-muted">{resumen.aportado}</p>
                       <p className="font-mono text-sm font-semibold text-brand-primary">
                         {formatCurrency(h.aportado)}
                       </p>
                     </div>
                     <div>
-                      <p className="text-xs text-brand-muted">Gastado</p>
+                      <p className="text-xs text-brand-muted">{resumen.gastado}</p>
                       <p className="font-mono text-sm font-semibold text-financial-negative">
                         {formatCurrency(h.gastado)}
                       </p>
                     </div>
                     <div>
                       <p className="text-xs text-brand-muted">
-                        {conDeficit ? 'Déficit' : 'Ahorro'}
+                        {conDeficit ? resumen.deficit : resumen.ahorro}
                       </p>
                       <p
                         className={`font-mono text-sm font-semibold ${conDeficit ? 'text-financial-negative' : 'text-financial-positive'}`}
@@ -76,7 +76,7 @@ export default async function HistoricoPage() {
                   </div>
 
                   <div className="mt-3 flex items-center justify-end text-sm text-brand-muted">
-                    Ver detalle <ChevronRight size={16} />
+                    {historicoLiterales.verDetalle} <ChevronRight size={16} />
                   </div>
                 </Card>
               </Link>

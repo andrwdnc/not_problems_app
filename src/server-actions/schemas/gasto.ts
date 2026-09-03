@@ -1,14 +1,17 @@
 import { z } from 'zod';
 import { CATEGORIAS } from '@/domain/value-objects/Categoria';
+import { gastoValidaciones } from '@/literals';
 
 const categoriaEnum = z.enum(CATEGORIAS);
 
 export const gastoSchema = z.object({
   mesId: z.string().uuid(),
   categoria: categoriaEnum,
-  detalle: z.string().min(1, 'El detalle es obligatorio').max(200),
-  importe: z.coerce.number().positive('El importe debe ser mayor que 0'),
-  fechaGasto: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Fecha inválida'),
+  detalle: z.string().min(1, gastoValidaciones.detalleObligatorio).max(200),
+  importe: z.coerce.number().positive(gastoValidaciones.importePositivo),
+  fechaGasto: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, gastoValidaciones.fechaInvalida),
   esRecurrente: z.boolean().default(false),
 });
 

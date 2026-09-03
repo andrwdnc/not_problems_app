@@ -3,6 +3,7 @@ import { obtenerMesActual } from '@/server-actions/queries';
 export const dynamic = 'force-dynamic';
 import { gastoRepository, usuarioRepository } from '@/server-actions/repositories';
 import { GastosList } from '@/components/features/GastosList';
+import { nav } from '@/literals';
 
 export default async function GastosPage() {
   const mes = await obtenerMesActual();
@@ -12,7 +13,7 @@ export default async function GastosPage() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-xl font-bold text-brand-navy">Gastos</h1>
+      <h1 className="text-xl font-bold text-brand-navy">{nav.gastos}</h1>
       <GastosList
         gastos={gastos}
         usuarios={usuarioPorId}
