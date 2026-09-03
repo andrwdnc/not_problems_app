@@ -1,5 +1,6 @@
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import { cookies } from 'next/headers';
+import { getAuthSecret } from '@/infrastructure/config';
 
 const COOKIE_NAME = 'auth_session';
 const SESSION_TTL_SECONDS = 60 * 60 * 24 * 7; // 7 días
@@ -10,13 +11,7 @@ const SESSION_TTL_SECONDS = 60 * 60 * 24 * 7; // 7 días
  * con un secreto débil/impredecible.
  */
 function getSecret(): string {
-  const secret = process.env.AUTH_SECRET;
-  if (!secret || secret.length < 32) {
-    throw new Error(
-      'Falta AUTH_SECRET en el entorno. Debe tener al menos 32 caracteres.',
-    );
-  }
-  return secret;
+  return getAuthSecret();
 }
 
 /**

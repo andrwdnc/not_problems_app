@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server';
+import { getAuthSecret } from '@/infrastructure/config';
 
 const COOKIE_NAME = 'auth_session';
 
@@ -16,8 +17,12 @@ async function sesionValida(token: string | undefined): Promise<boolean> {
   const expMs = Number(expira);
   if (!Number.isFinite(expMs) || Date.now() >= expMs) return false;
 
-  const secret = process.env.AUTH_SECRET;
-  if (!secret) return false;
+  let secret: string;
+  try {
+    secret = getAuthSecret();
+  } catch {
+    return false;
+  }
 
   const data = new TextEncoder().encode(`${userId}.${expira}`);
   const firmaBytes = base64urlToBytes(firma);
