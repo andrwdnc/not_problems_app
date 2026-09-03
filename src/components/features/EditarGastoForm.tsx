@@ -9,6 +9,7 @@ import { Card } from '@/components/ui/Card';
 import { CATEGORIAS, type Categoria } from '@/domain/value-objects/Categoria';
 import { eliminarGasto, editarGasto } from '@/server-actions/gastos-actions';
 import type { Gasto } from '@/infrastructure/repositories';
+import { gastoForm } from '@/literals';
 
 export function EditarGastoForm({ gasto }: { gasto: Gasto }) {
   const router = useRouter();
@@ -42,7 +43,7 @@ export function EditarGastoForm({ gasto }: { gasto: Gasto }) {
   }
 
   async function eliminar() {
-    if (!confirm('¿Eliminar este gasto?')) return;
+    if (!confirm(gastoForm.confirmarEliminar)) return;
     const resultado = await eliminarGasto({ id: gasto.id });
     if (!resultado.ok) {
       setError(resultado.error);
@@ -55,7 +56,7 @@ export function EditarGastoForm({ gasto }: { gasto: Gasto }) {
   return (
     <form action={guardar} className="space-y-4">
       <div className="rounded-3xl bg-brand-navy p-6 text-center">
-        <p className="text-sm text-brand-sky">Importe</p>
+        <p className="text-sm text-brand-sky">{gastoForm.importe}</p>
         <input
           name="importe"
           type="number"
@@ -71,7 +72,7 @@ export function EditarGastoForm({ gasto }: { gasto: Gasto }) {
 
       <Card className="space-y-4">
         <div>
-          <p className="mb-2 text-sm font-medium text-brand-muted">Categoría</p>
+          <p className="mb-2 text-sm font-medium text-brand-muted">{gastoForm.categoria}</p>
           <div className="flex flex-wrap gap-2">
             {CATEGORIAS.map((c) => (
               <Chip
@@ -86,7 +87,7 @@ export function EditarGastoForm({ gasto }: { gasto: Gasto }) {
         </div>
 
         <Input
-          label="Detalle"
+          label={gastoForm.detalle}
           name="detalle"
           value={detalle}
           onChange={(e) => setDetalle(e.target.value)}
@@ -94,7 +95,7 @@ export function EditarGastoForm({ gasto }: { gasto: Gasto }) {
         />
 
         <Input
-          label="Fecha del gasto"
+          label={gastoForm.fechaGasto}
           name="fecha"
           type="date"
           value={fecha}
@@ -103,7 +104,7 @@ export function EditarGastoForm({ gasto }: { gasto: Gasto }) {
         />
 
         <label className="flex items-center justify-between">
-          <span className="text-sm font-medium text-brand-ink">Recurrente</span>
+          <span className="text-sm font-medium text-brand-ink">{gastoForm.recurrente}</span>
           <input
             type="checkbox"
             checked={recurrente}
@@ -120,10 +121,10 @@ export function EditarGastoForm({ gasto }: { gasto: Gasto }) {
       )}
 
       <Button type="submit" fullWidth disabled={enviando}>
-        {enviando ? 'Guardando…' : 'Guardar cambios'}
+        {enviando ? gastoForm.guardando : gastoForm.guardarCambios}
       </Button>
       <Button type="button" variant="danger" fullWidth onClick={eliminar}>
-        Eliminar gasto
+        {gastoForm.eliminar}
       </Button>
     </form>
   );

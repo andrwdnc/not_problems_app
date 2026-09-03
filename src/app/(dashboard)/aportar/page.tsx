@@ -4,6 +4,7 @@ export const dynamic = 'force-dynamic';
 import { aportacionRepository, usuarioRepository } from '@/server-actions/repositories';
 import { AportarForm } from '@/components/features/AportarForm';
 import { Card } from '@/components/ui/Card';
+import { aportar } from '@/literals';
 
 export default async function AportarPage() {
   const mes = await obtenerMesActual();
@@ -15,10 +16,10 @@ export default async function AportarPage() {
   if (!mes) {
     return (
       <div className="space-y-5">
-        <h1 className="text-xl font-bold text-brand-navy">Aportar</h1>
+        <h1 className="text-xl font-bold text-brand-navy">{aportar.titulo}</h1>
         <Card>
           <p className="text-sm text-brand-muted">
-            No hay un mes abierto todavía.
+            {aportar.sinMesAbierto}
           </p>
         </Card>
       </div>
@@ -27,7 +28,7 @@ export default async function AportarPage() {
 
   return (
     <div className="space-y-5">
-      <h1 className="text-xl font-bold text-brand-navy">Aportar</h1>
+      <h1 className="text-xl font-bold text-brand-navy">{aportar.titulo}</h1>
       <AportarForm mes={mes} usuarios={usuarios} aportaciones={aportaciones} />
     </div>
   );

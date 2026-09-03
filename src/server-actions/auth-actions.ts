@@ -7,6 +7,7 @@ import { usuarioRepository } from './repositories';
 import { crearSesion, borrarSesion } from '@/lib/session';
 import { handleError } from './action-result';
 import type { ActionResult } from './action-result';
+import { authErrores } from '@/literals';
 
 const COSTO_BCRYPT = 12;
 
@@ -27,12 +28,12 @@ export async function login(input: unknown): Promise<ActionResult> {
   if (!usuario) {
     // Respuesta idéntica para usuario inexistente o contraseña incorrecta
     // (evita enumerar usuarios).
-    return { ok: false, error: 'Nombre de usuario o contraseña incorrectos.' };
+    return { ok: false, error: authErrores.credencialesIncorrectas };
   }
 
   const coincide = await bcrypt.compare(password, usuario.passwordHash);
   if (!coincide) {
-    return { ok: false, error: 'Nombre de usuario o contraseña incorrectos.' };
+    return { ok: false, error: authErrores.credencialesIncorrectas };
   }
 
   await crearSesion(usuario.id);
@@ -55,7 +56,7 @@ export async function signup(input: unknown): Promise<ActionResult> {
 
   const existente = await usuarioRepository.findByUsername(username);
   if (existente) {
-    return { ok: false, error: `El nombre de usuario "${username}" ya está en uso.` };
+    return { ok: false, error: authErrores.usuarioEnUso(username) };
   }
 
   const passwordHash = await bcrypt.hash(password, COSTO_BCRYPT);

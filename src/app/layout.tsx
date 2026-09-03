@@ -1,9 +1,10 @@
 import type { Metadata } from 'next';
 import './globals.css';
+import { app } from '@/literals';
 
 export const metadata: Metadata = {
-  title: 'Finanzas Compartidas',
-  description: 'Gestión de finanzas compartidas para pareja',
+  title: app.nombre,
+  description: app.descripcion,
 };
 
 export default function RootLayout({

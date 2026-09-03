@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { authErrores } from '@/literals';
 
 export type ActionResult<T = void> =
   | { ok: true; data: T }
@@ -12,5 +13,5 @@ export function handleError(error: unknown): { ok: false; error: string } {
   if (error instanceof Error) {
     return { ok: false, error: error.message };
   }
-  return { ok: false, error: 'Error inesperado' };
+  return { ok: false, error: authErrores.errorInesperado };
 }
