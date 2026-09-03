@@ -24,6 +24,7 @@ import { formatShortDate } from '@/lib/formatters/date';
 import { CATEGORIAS, type Categoria } from '@/domain/value-objects/Categoria';
 import type { Gasto } from '@/infrastructure/repositories';
 import { eliminarGasto } from '@/server-actions/gastos-actions';
+import { gastos as gastosLiterales } from '@/literals';
 
 interface GastosListProps {
   gastos: Gasto[];
@@ -60,7 +61,7 @@ export function GastosList({ gastos, usuarios, mesId }: GastosListProps) {
     <div className="relative space-y-4 pb-20">
       <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1">
         <Chip active={filtro === 'Todos'} onClick={() => setFiltro('Todos')}>
-          Todos
+          {gastosLiterales.todos}
         </Chip>
         {CATEGORIAS.map((c) => (
           <Chip key={c} active={filtro === c} onClick={() => setFiltro(c)}>
@@ -71,7 +72,7 @@ export function GastosList({ gastos, usuarios, mesId }: GastosListProps) {
 
       {filtrados.length === 0 ? (
         <Card>
-          <p className="text-sm text-brand-muted">No hay gastos en esta categoría.</p>
+          <p className="text-sm text-brand-muted">{gastosLiterales.sinGastosCategoria}</p>
         </Card>
       ) : (
         <div className="space-y-2">
@@ -93,7 +94,7 @@ export function GastosList({ gastos, usuarios, mesId }: GastosListProps) {
                     </p>
                     {g.esRecurrente && (
                       <Badge tone="primary" className="mt-1">
-                        <RotateCcw size={11} /> Recurrente
+                        <RotateCcw size={11} /> {gastosLiterales.recurrente}
                       </Badge>
                     )}
                   </div>
@@ -105,14 +106,14 @@ export function GastosList({ gastos, usuarios, mesId }: GastosListProps) {
                       <Link
                         href={`/gastos/${g.id}`}
                         className="text-brand-muted hover:text-brand-primary"
-                        aria-label="Editar"
+                        aria-label={gastosLiterales.editar}
                       >
                         <Pencil size={16} />
                       </Link>
                       <button
                         onClick={() => eliminar(g.id)}
                         className="text-brand-muted hover:text-financial-negative"
-                        aria-label="Eliminar"
+                        aria-label={gastosLiterales.eliminar}
                       >
                         <Trash2 size={16} />
                       </button>
@@ -128,7 +129,7 @@ export function GastosList({ gastos, usuarios, mesId }: GastosListProps) {
       <Link
         href="/gastos/nuevo"
         className="fixed bottom-20 right-4 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-brand-primary text-white shadow-lg transition-transform active:scale-95"
-        aria-label="Nuevo gasto"
+        aria-label={gastosLiterales.nuevoGasto}
       >
         <Plus size={28} />
       </Link>

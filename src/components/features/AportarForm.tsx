@@ -10,6 +10,7 @@ import { Card } from '@/components/ui/Card';
 import { Lock } from 'lucide-react';
 import { formatCurrency } from '@/lib/formatters/currency';
 import type { Aportacion, Mes, Usuario } from '@/infrastructure/repositories';
+import { aportar } from '@/literals';
 
 interface AportarFormProps {
   mes: Mes;
@@ -45,7 +46,7 @@ export function AportarForm({
       }
       router.refresh();
     } catch {
-      setMensaje('Error al guardar el sueldo. Inténtalo de nuevo.');
+      setMensaje(aportar.errorGuardarSueldo);
     }
   }
 
@@ -61,7 +62,7 @@ export function AportarForm({
       setPorcentajeValor('');
       router.refresh();
     } catch {
-      setMensaje('Error al fijar el porcentaje. Inténtalo de nuevo.');
+      setMensaje(aportar.errorFijarPorcentaje);
     }
   }
 
@@ -81,34 +82,34 @@ export function AportarForm({
               </div>
               {fijado ? (
                 <Badge tone="muted">
-                  <Lock size={12} /> Fijo
+                  <Lock size={12} /> {aportar.fijo}
                 </Badge>
               ) : (
-                <Badge tone="amber">Pendiente</Badge>
+                <Badge tone="amber">{aportar.pendiente}</Badge>
               )}
             </div>
 
             {fijado && aportacion ? (
               <div className="space-y-2">
                 <div>
-                  <p className="text-xs text-brand-muted">Sueldo</p>
+                  <p className="text-xs text-brand-muted">{aportar.sueldoIntegro}</p>
                   <p className="font-mono text-lg font-semibold text-brand-ink">
                     {formatCurrency(aportacion.sueldo)}
                   </p>
                 </div>
                 <div>
-                  <p className="text-xs text-brand-muted">Importe aportado</p>
+                  <p className="text-xs text-brand-muted">{aportar.importeAportado}</p>
                   <p className="font-mono text-lg font-semibold text-brand-primary">
                     {aportacion.importeAportado != null
                       ? formatCurrency(aportacion.importeAportado)
-                      : '— pendiente de porcentaje'}
+                      : aportar.pendientePorcentaje}
                   </p>
                 </div>
               </div>
             ) : (
               <form action={(fd) => guardarSueldo(usuario.id, fd)}>
                 <Input
-                  label="Sueldo íntegro"
+                  label={aportar.sueldoIntegro}
                   name="sueldo"
                   type="number"
                   inputMode="decimal"
@@ -117,7 +118,7 @@ export function AportarForm({
                   required
                 />
                 <Button type="submit" fullWidth className="mt-3">
-                  Guardar sueldo
+                  {aportar.guardarSueldo}
                 </Button>
               </form>
             )}
@@ -127,7 +128,7 @@ export function AportarForm({
 
       <Card className="border-brand-primary/30 bg-brand-pale/40">
         <h3 className="mb-2 flex items-center gap-2 text-sm font-semibold text-brand-navy">
-          Porcentaje de aportación
+          {aportar.porcentajeAportacion}
           {mes.porcentaje != null && <Lock size={14} className="text-brand-muted" />}
         </h3>
         {mes.porcentaje != null ? (
@@ -137,7 +138,7 @@ export function AportarForm({
         ) : (
           <form action={guardarPorcentaje}>
             <Input
-              label="Porcentaje único del mes"
+              label={aportar.porcentajeUnico}
               name="porcentaje"
               type="number"
               inputMode="decimal"
@@ -148,7 +149,7 @@ export function AportarForm({
               required
             />
             <Button type="submit" fullWidth className="mt-3">
-              Fijar porcentaje
+              {aportar.fijarPorcentaje}
             </Button>
           </form>
         )}
@@ -156,7 +157,7 @@ export function AportarForm({
 
       {mes.porcentaje != null && (
         <Card className="bg-brand-navy">
-          <p className="text-xs text-brand-sky">Total cuenta conjunta</p>
+          <p className="text-xs text-brand-sky">{aportar.totalCuentaConjunta}</p>
           <p className="font-mono text-2xl font-bold text-white">
             {formatCurrency(
               aportaciones.reduce(
@@ -169,7 +170,7 @@ export function AportarForm({
       )}
 
       <p className="text-center text-xs text-brand-muted">
-        El sueldo y el porcentaje son inamovibles una vez guardados.
+        {aportar.notaInamovible}
       </p>
 
       {mensaje && (

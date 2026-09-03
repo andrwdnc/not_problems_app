@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/Input';
 import { Card } from '@/components/ui/Card';
 import { CATEGORIAS, type Categoria } from '@/domain/value-objects/Categoria';
 import { crearGasto } from '@/server-actions/gastos-actions';
+import { gastoForm } from '@/literals';
 
 interface GastoFormProps {
   mesId: string;
@@ -49,7 +50,7 @@ export function NuevoGastoForm({ mesId }: GastoFormProps) {
   return (
     <form action={guardar} className="space-y-4">
       <div className="rounded-3xl bg-brand-navy p-6 text-center">
-        <p className="text-sm text-brand-sky">Importe</p>
+        <p className="text-sm text-brand-sky">{gastoForm.importe}</p>
         <input
           name="importe"
           type="number"
@@ -66,7 +67,7 @@ export function NuevoGastoForm({ mesId }: GastoFormProps) {
 
       <Card className="space-y-4">
         <div>
-          <p className="mb-2 text-sm font-medium text-brand-muted">Categoría</p>
+          <p className="mb-2 text-sm font-medium text-brand-muted">{gastoForm.categoria}</p>
           <div className="flex flex-wrap gap-2">
             {CATEGORIAS.map((c) => (
               <Chip
@@ -81,16 +82,16 @@ export function NuevoGastoForm({ mesId }: GastoFormProps) {
         </div>
 
         <Input
-          label="Detalle"
+          label={gastoForm.detalle}
           name="detalle"
           value={detalle}
           onChange={(e) => setDetalle(e.target.value)}
-          placeholder="Ej. cerveza Sully"
+          placeholder={gastoForm.placeholderDetalle}
           required
         />
 
         <Input
-          label="Fecha del gasto"
+          label={gastoForm.fechaGasto}
           name="fecha"
           type="date"
           value={fecha}
@@ -99,7 +100,7 @@ export function NuevoGastoForm({ mesId }: GastoFormProps) {
         />
 
         <label className="flex items-center justify-between">
-          <span className="text-sm font-medium text-brand-ink">Recurrente</span>
+          <span className="text-sm font-medium text-brand-ink">{gastoForm.recurrente}</span>
           <input
             type="checkbox"
             checked={recurrente}
@@ -110,7 +111,7 @@ export function NuevoGastoForm({ mesId }: GastoFormProps) {
       </Card>
 
       <p className="text-center text-xs text-brand-muted">
-        La fecha del gasto decide a qué mes afecta, no el día en que se registra.
+        {gastoForm.notaMesGasto}
       </p>
 
       {error && (
@@ -120,7 +121,7 @@ export function NuevoGastoForm({ mesId }: GastoFormProps) {
       )}
 
       <Button type="submit" fullWidth disabled={enviando}>
-        {enviando ? 'Guardando…' : 'Guardar gasto'}
+        {enviando ? gastoForm.guardando : gastoForm.guardar}
       </Button>
     </form>
   );

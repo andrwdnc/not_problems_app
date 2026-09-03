@@ -9,6 +9,7 @@ import { getCurrentUserId } from '@/server/auth';
 import type { Gasto } from '@/infrastructure/repositories';
 import type { ActionResult } from './action-result';
 import { handleError } from './action-result';
+import { authErrores } from '@/literals';
 
 function mesDeFecha(fecha: string): { anio: number; mes: number } {
   const [anio, mes] = fecha.split('-').map(Number);
@@ -20,7 +21,7 @@ export async function crearGasto(
 ): Promise<ActionResult<Gasto>> {
   const usuarioId = await getCurrentUserId();
   if (!usuarioId) {
-    return { ok: false, error: 'No autenticado' };
+    return { ok: false, error: authErrores.noAutenticado };
   }
 
   const parsed = gastoSchema.safeParse(input);
@@ -80,7 +81,7 @@ export async function editarGasto(
 ): Promise<ActionResult<Gasto>> {
   const usuarioId = await getCurrentUserId();
   if (!usuarioId) {
-    return { ok: false, error: 'No autenticado' };
+    return { ok: false, error: authErrores.noAutenticado };
   }
 
   const parsed = editarGastoSchema.safeParse(input);
@@ -134,7 +135,7 @@ export async function eliminarGasto(
 ): Promise<ActionResult<void>> {
   const usuarioId = await getCurrentUserId();
   if (!usuarioId) {
-    return { ok: false, error: 'No autenticado' };
+    return { ok: false, error: authErrores.noAutenticado };
   }
 
   const parsed = eliminarGastoSchema.safeParse(input);

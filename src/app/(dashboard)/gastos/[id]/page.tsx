@@ -6,6 +6,7 @@ import { gastoRepository } from '@/server-actions/repositories';
 export const dynamic = 'force-dynamic';
 import { EditarGastoForm } from '@/components/features/EditarGastoForm';
 import { ventanaEdicionGastos } from '@/domain/rules/VentanaEdicionGastos';
+import { gastoForm } from '@/literals';
 
 export default async function EditarGastoPage({
   params,
@@ -30,13 +31,13 @@ export default async function EditarGastoPage({
         <Link href="/gastos" className="text-brand-muted">
           <ChevronLeft />
         </Link>
-        <h1 className="text-xl font-bold text-brand-navy">Editar gasto</h1>
+        <h1 className="text-xl font-bold text-brand-navy">{gastoForm.editarGasto}</h1>
       </div>
 
       {!ventana.puedeEditar && (
         <div className="flex items-center gap-2 rounded-xl bg-brand-pale p-3 text-sm text-brand-navy">
           <Lock size={16} />
-          Este gasto está congelado y es de solo lectura.
+          {gastoForm.gastoCongelado}
         </div>
       )}
 
