@@ -7,3 +7,4 @@ build
 drizzle
 *.tsbuildinfo
 next-env.d.ts
+.vercel
