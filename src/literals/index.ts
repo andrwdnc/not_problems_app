@@ -22,7 +22,7 @@ export const auth = {
   noTienesCuenta: '¿No tienes cuenta?',
   yaTienesCuenta: '¿Ya tienes cuenta?',
   labelUsuario: 'Nombre de usuario',
-  placeholderUsuarioLogin: 'p.ej. andrew',
+  placeholderUsuarioLogin: 'ej. Paco',
   placeholderUsuarioSignup: 'Tu nombre de usuario',
   labelContrasena: 'Contraseña',
   iniciarSesion: 'Iniciar sesión',
@@ -56,7 +56,7 @@ export const gastoForm = {
   importe: 'Importe',
   categoria: 'Categoría',
   detalle: 'Detalle',
-  placeholderDetalle: 'Ej. cerveza Sully',
+  placeholderDetalle: 'ej. Cerveza Sully',
   fechaGasto: 'Fecha del gasto',
   recurrente: 'Recurrente',
   notaMesGasto:
