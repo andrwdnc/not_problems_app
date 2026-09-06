@@ -9,7 +9,7 @@ import { getCurrentUserId } from '@/server/auth';
 import type { Gasto } from '@/infrastructure/repositories';
 import type { ActionResult } from './action-result';
 import { handleError } from './action-result';
-import { authErrores } from '@/literals';
+import { authErrores, gastosErrores } from '@/literals';
 
 function mesDeFecha(fecha: string): { anio: number; mes: number } {
   const [anio, mes] = fecha.split('-').map(Number);
@@ -46,7 +46,7 @@ export async function crearGasto(
   });
 
   if (!ventana.puedeCrear) {
-    return { ok: false, error: 'Este mes está congelado y no admite nuevos gastos.' };
+    return { ok: false, error: gastosErrores.mesCongeladoNuevos };
   }
 
   const gasto = await gastoRepository.create({
@@ -91,7 +91,7 @@ export async function editarGasto(
   const data = parsed.data;
   const existente = await gastoRepository.findById(data.id);
   if (!existente) {
-    return { ok: false, error: 'Gasto no encontrado.' };
+    return { ok: false, error: gastosErrores.gastoNoEncontrado };
   }
 
   const { anio, mes } = mesDeFecha(existente.fechaGasto);
@@ -102,7 +102,7 @@ export async function editarGasto(
   });
 
   if (!ventana.puedeEditar) {
-    return { ok: false, error: 'Este gasto ya no es editable.' };
+    return { ok: false, error: gastosErrores.gastoNoEditable };
   }
 
   const actualizado = await gastoRepository.update(data.id, {
@@ -145,7 +145,7 @@ export async function eliminarGasto(
   const { id } = parsed.data;
   const existente = await gastoRepository.findById(id);
   if (!existente) {
-    return { ok: false, error: 'Gasto no encontrado.' };
+    return { ok: false, error: gastosErrores.gastoNoEncontrado };
   }
 
   const { anio, mes } = mesDeFecha(existente.fechaGasto);
@@ -156,7 +156,7 @@ export async function eliminarGasto(
   });
 
   if (!ventana.puedeEliminar) {
-    return { ok: false, error: 'Este gasto ya no se puede eliminar.' };
+    return { ok: false, error: gastosErrores.gastoNoEliminable };
   }
 
   await gastoRepository.delete(id);

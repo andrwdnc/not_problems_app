@@ -90,6 +90,14 @@ export const gastos = {
   verDetalle: 'Ver detalle',
 };
 
+export const gastosErrores = {
+  mesCongeladoNuevos:
+    'Este mes está congelado y no admite nuevos gastos.',
+  gastoNoEncontrado: 'Gasto no encontrado.',
+  gastoNoEditable: 'Este gasto ya no es editable.',
+  gastoNoEliminable: 'Este gasto ya no se puede eliminar.',
+};
+
 export const aportar = {
   titulo: 'Aportar',
   sueldoIntegro: 'Sueldo íntegro',
@@ -151,4 +159,15 @@ export const historico = {
 
 export const historicoDetalle = {
   sinGastos: 'Sin gastos en este mes.',
+};
+
+export const errores = {
+  noEncontradoTitulo: 'Página no encontrada',
+  noEncontradoDescripcion:
+    'La página que buscas no existe o ha cambiado de dirección.',
+  errorTitulo: 'Algo ha ido mal',
+  errorDescripcion:
+    'Ocurrió un error inesperado. Inténtalo de nuevo en unos segundos.',
+  reintentar: 'Reintentar',
+  volverInicio: 'Volver al inicio',
 };
