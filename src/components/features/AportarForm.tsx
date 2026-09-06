@@ -112,9 +112,10 @@ export function AportarForm({
                 <Input
                   label={aportar.sueldoIntegro}
                   name="sueldo"
-                  type="number"
+                  type="text"
                   inputMode="decimal"
-                  step="0.01"
+                  autoComplete="off"
+                  pattern="[0-9]*[.,]?[0-9]*"
                   placeholder="0,00 €"
                   required
                 />
@@ -141,9 +142,10 @@ export function AportarForm({
             <Input
               label={aportar.porcentajeUnico}
               name="porcentaje"
-              type="number"
+              type="text"
               inputMode="decimal"
-              step="0.01"
+              autoComplete="off"
+              pattern="[0-9]*[.,]?[0-9]*"
               value={porcentajeValor}
               onChange={(e) => setPorcentajeValor(e.target.value)}
               placeholder="50"

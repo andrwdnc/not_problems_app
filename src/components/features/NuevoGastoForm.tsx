@@ -53,9 +53,10 @@ export function NuevoGastoForm({ mesId }: GastoFormProps) {
         <p className="text-sm text-brand-sky">{gastoForm.importe}</p>
         <input
           name="importe"
-          type="number"
+          type="text"
           inputMode="decimal"
-          step="0.01"
+          autoComplete="off"
+          pattern="[0-9]*[.,]?[0-9]*"
           value={importe}
           onChange={(e) => setImporte(e.target.value)}
           placeholder="0,00"

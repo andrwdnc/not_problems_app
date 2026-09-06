@@ -2,6 +2,7 @@ import { z } from 'zod';
 import {
   importeDesdeCadena,
   esImporteValido,
+  numeroDecimalDesdeCadena,
 } from '@/domain/value-objects/ImporteMoneda';
 import { aportacionErrores } from '@/literals';
 
@@ -19,12 +20,15 @@ export const sueldoSchema = z.object({
   sueldo: sueldoCentimos,
 });
 
+// El porcentaje se escribe con coma o punto ("12,5"), válido tanto de teclado
+// decimal español como de teclado numérico.
+const porcentajeDecimal = z.string().transform(numeroDecimalDesdeCadena);
+
 export const porcentajeSchema = z.object({
   mesId: z.string().uuid(),
-  porcentaje: z.coerce
-    .number()
-    .gt(0, aportacionErrores.porcentajePositivo)
-    .lte(100, aportacionErrores.porcentajeMaximo),
+  porcentaje: porcentajeDecimal
+    .refine((v) => v > 0, aportacionErrores.porcentajePositivo)
+    .refine((v) => v <= 100, aportacionErrores.porcentajeMaximo),
 });
 
 export type SueldoInput = z.infer<typeof sueldoSchema>;

@@ -7,6 +7,7 @@ export {
   esImporteValido,
   eurosACentimos,
   centimosAEuros,
+  numeroDecimalDesdeCadena,
 } from './value-objects/ImporteMoneda';
 export { validarPorcentaje } from './value-objects/Porcentaje';
 export {

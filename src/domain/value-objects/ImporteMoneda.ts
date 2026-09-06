@@ -57,6 +57,26 @@ export function importeDesdeCadena(cadena: string): number {
 }
 
 /**
+ * Convierte una cadena escrita por el usuario a un número decimal, aceptando
+ * coma o punto como separador decimal ("12,5" / "12.5" / "1.250,5"). Devuelve
+ * 0 si la cadena no es un número válido. Pensado para porcentajes y magnitudes
+ * no monetarias (la moneda usa `importeDesdeCadena`, en céntimos).
+ */
+export function numeroDecimalDesdeCadena(cadena: string): number {
+  const limpio = cadena.trim();
+  if (limpio === '') {
+    return 0;
+  }
+
+  const normalizado = limpio.includes(',')
+    ? limpio.replace(/\./g, '').replace(/,/g, '.')
+    : limpio;
+
+  const valor = Number(normalizado);
+  return Number.isFinite(valor) && valor >= 0 ? valor : 0;
+}
+
+/**
  * Comprueba que una cantidad (en céntimos) es un número finito y no negativo.
  */
 export function esImporteValido(cantidad: number): boolean {

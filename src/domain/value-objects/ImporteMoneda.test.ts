@@ -5,6 +5,7 @@ import {
   importeDesdeCadena,
   esImporteValido,
   formatearImporteMoneda,
+  numeroDecimalDesdeCadena,
 } from './ImporteMoneda';
 
 describe('eurosACentimos', () => {
@@ -58,5 +59,20 @@ describe('formatearImporteMoneda', () => {
   it('formatea céntimos con 2 decimales', () => {
     expect(formatearImporteMoneda(125050)).toBe('1250.50');
     expect(formatearImporteMoneda(5)).toBe('0.05');
+  });
+});
+
+describe('numeroDecimalDesdeCadena', () => {
+  it('acepta coma o punto como decimal', () => {
+    expect(numeroDecimalDesdeCadena('12,5')).toBe(12.5);
+    expect(numeroDecimalDesdeCadena('12.5')).toBe(12.5);
+    expect(numeroDecimalDesdeCadena('1.250,5')).toBe(1250.5);
+    expect(numeroDecimalDesdeCadena('50')).toBe(50);
+  });
+
+  it('devuelve 0 para entradas inválidas', () => {
+    expect(numeroDecimalDesdeCadena('')).toBe(0);
+    expect(numeroDecimalDesdeCadena('abc')).toBe(0);
+    expect(numeroDecimalDesdeCadena('-1')).toBe(0);
   });
 });
