@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { mesRepository, gastoRepository } from './repositories';
 import { auditarMovimiento } from '@/infrastructure/audit/auditarMovimiento';
 import { getCurrentUserId } from '@/server/auth';
+import { prepararDuplicadoRecurrente } from '@/domain/rules/GastosRecurrentes';
 import type { Mes } from '@/infrastructure/repositories';
 
 /**
@@ -48,22 +49,17 @@ export async function generarMesAutomático(
     if (!usuarioId) {
       throw new Error('No se pudo registrar la auditoría: no hay usuario autenticado.');
     }
-    await gastoRepository.create({
+    const duplicado = prepararDuplicadoRecurrente(gasto, {
       mesId: nuevoMes.id,
-      categoria: gasto.categoria,
-      detalle: gasto.detalle,
-      importe: gasto.importe,
-      // Fecha del gasto duplicado: mismo día del mes nuevo.
-      fechaGasto: `${anioNuevo}-${String(mesNuevo).padStart(2, '0')}-${gasto.fechaGasto.slice(8, 10)}`,
-      esRecurrente: true,
-      gastoRecurrenteOrigenId: gasto.id,
-      creadoPor: gasto.creadoPor,
+      anio: anioNuevo,
+      mes: mesNuevo,
     });
+    const creado = await gastoRepository.create(duplicado);
 
     await auditarMovimiento({
       usuarioId,
       entidad: 'gastos',
-      entidadId: gasto.id,
+      entidadId: creado.id,
       accion: 'crear',
       valorNuevo: { desde: gasto.id, mes: nuevoMes.id },
     });
