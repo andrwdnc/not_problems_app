@@ -9,6 +9,12 @@ export interface AportacionRepository {
   findByMes(mesId: string): Promise<Aportacion[]>;
   findByMesIds(mesIds: string[]): Promise<Aportacion[]>;
   create(data: Omit<Aportacion, 'id' | 'fechaRegistro'>): Promise<Aportacion>;
+  /**
+   * Crea la aportación solo si aún no existe el par (mes, usuario). Ante una
+   * carrera concurrente reaprovecha la fila ganadora en lugar de lanzar una
+   * violación del índice único. Devuelve siempre la fila vigente.
+   */
+  createSiNoExiste(data: Omit<Aportacion, 'id' | 'fechaRegistro'>): Promise<Aportacion>;
   update(id: string, data: Partial<Aportacion>): Promise<Aportacion>;
   delete(id: string): Promise<void>;
   /**
@@ -53,6 +59,21 @@ export class AportacionDrizzleRepository implements AportacionRepository {
   async create(data: Omit<Aportacion, 'id' | 'fechaRegistro'>): Promise<Aportacion> {
     const [result] = await db.insert(aportaciones).values(data).returning();
     return result as Aportacion;
+  }
+
+  async createSiNoExiste(
+    data: Omit<Aportacion, 'id' | 'fechaRegistro'>,
+  ): Promise<Aportacion> {
+    const [result] = await db
+      .insert(aportaciones)
+      .values(data)
+      .onConflictDoNothing({
+        target: [aportaciones.mesId, aportaciones.usuarioId],
+      })
+      .returning();
+    if (result) return result as Aportacion;
+    const existente = await this.findByMesAndUsuario(data.mesId, data.usuarioId);
+    return existente as Aportacion;
   }
 
   async update(id: string, data: Partial<Aportacion>): Promise<Aportacion> {

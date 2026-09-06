@@ -44,7 +44,9 @@ export async function fijarSueldo(
       sueldo: data.sueldo,
     });
   } else {
-    aportacion = await aportacionRepository.create({
+    // Upsert idempotente: si otro llamado creó la fila entre medias (carrera),
+    // se reutiliza la ganadora en lugar de violar el índice único.
+    aportacion = await aportacionRepository.createSiNoExiste({
       mesId: data.mesId,
       usuarioId: data.usuarioId,
       sueldo: data.sueldo,
