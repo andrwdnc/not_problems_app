@@ -13,7 +13,11 @@
     "db:vaciar": "tsx --env-file=.env.local scripts/vaciar-db.ts",
     "db:generate": "drizzle-kit generate",
     "db:push": "drizzle-kit push",
+    "db:migrate": "drizzle-kit migrate",
     "db:studio": "drizzle-kit studio"
+  },
+  "engines": {
+    "node": "^20"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",
@@ -21,7 +25,7 @@
     "dotenv": "^17.4.2",
     "drizzle-orm": "^0.45.2",
     "lucide-react": "^0.344.0",
-    "next": "14.2.0",
+    "next": "14.2.35",
     "pg": "^8.11.3",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
@@ -38,7 +42,7 @@
     "@typescript-eslint/parser": "^7.0.0",
     "drizzle-kit": "^0.31.10",
     "eslint": "^8.56.0",
-    "eslint-config-next": "14.2.0",
+    "eslint-config-next": "14.2.35",
     "tailwindcss": "^4.0.0",
     "typescript": "^5.4.2",
     "vite": "^5.2.0",
