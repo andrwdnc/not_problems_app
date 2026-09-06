@@ -1,20 +1,33 @@
-import { obtenerMesActual, obtenerResumenMes } from '@/server-actions/queries';
+import { obtenerMesActual, calcularResumen } from '@/server-actions/queries';
 
 export const dynamic = 'force-dynamic';
+import { aportacionRepository, gastoRepository, usuarioRepository } from '@/server-actions/repositories';
 import { AnilloProgreso } from '@/components/features/AnilloProgreso';
 import { TarjetaEstado } from '@/components/features/TarjetaEstado';
 import { Card } from '@/components/ui/Card';
 import { nombreMes } from '@/lib/formatters/date';
 import Link from 'next/link';
-import { gastoRepository, usuarioRepository } from '@/server-actions/repositories';
 import { formatCurrency } from '@/lib/formatters/currency';
 import { inicio, resumen as literalesResumen } from '@/literals';
 
 export default async function InicioPage() {
-  const mes = await obtenerMesActual();
-  const resumen = mes ? await obtenerResumenMes(mes.id) : null;
-  const ultimosGastos = mes ? (await gastoRepository.findByMes(mes.id)).slice(0, 3) : [];
-  const usuarios = await usuarioRepository.findAll();
+  // 1º pasada en paralelo: mes actual + usuarios (no dependen entre sí).
+  const [mes, usuarios] = await Promise.all([
+    obtenerMesActual(),
+    usuarioRepository.findAll(),
+  ]);
+
+  // 2º pasada en paralelo: aportaciones + gastos del mes. Los gastos se
+  // reutilizan para el resumen y para los "últimos gastos" (una sola query).
+  const [aportaciones, gastos] = mes
+    ? await Promise.all([
+        aportacionRepository.findByMes(mes.id),
+        gastoRepository.findByMes(mes.id),
+      ])
+    : [[], []];
+
+  const resumen = mes ? calcularResumen(aportaciones, gastos) : null;
+  const ultimosGastos = gastos.slice(0, 3);
   const usuarioPorId = new Map(usuarios.map((u) => [u.id, u.username]));
 
   return (

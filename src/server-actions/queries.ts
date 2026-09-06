@@ -4,7 +4,7 @@ import {
   gastoRepository,
 } from '@/server-actions/repositories';
 import { generarMesAutomático } from '@/server-actions/meses-actions';
-import type { Mes } from '@/infrastructure/repositories';
+import type { Mes, Aportacion, Gasto } from '@/infrastructure/repositories';
 
 export interface ResumenMes {
   aportado: number;
@@ -14,10 +14,15 @@ export interface ResumenMes {
   porcentajeGastado: number;
 }
 
-export async function obtenerResumenMes(mesId: string): Promise<ResumenMes> {
-  const aportaciones = await aportacionRepository.findByMes(mesId);
-  const gastos = await gastoRepository.findByMes(mesId);
-
+/**
+ * Cálculo puro del resumen de un mes. Recibe los arrays ya consultados para
+ * permitir a las páginas reutilizar los mismos datos (p. ej. la lista de gastos
+ * sin lanzar dos veces la misma query).
+ */
+export function calcularResumen(
+  aportaciones: Aportacion[],
+  gastos: Gasto[],
+): ResumenMes {
   const aportado = aportaciones.reduce(
     (acc, a) => acc + (a.importeAportado ?? 0),
     0,
@@ -34,6 +39,14 @@ export async function obtenerResumenMes(mesId: string): Promise<ResumenMes> {
     numeroGastos: gastos.length,
     porcentajeGastado,
   };
+}
+
+export async function obtenerResumenMes(mesId: string): Promise<ResumenMes> {
+  const [aportaciones, gastos] = await Promise.all([
+    aportacionRepository.findByMes(mesId),
+    gastoRepository.findByMes(mesId),
+  ]);
+  return calcularResumen(aportaciones, gastos);
 }
 
 function calcularMesAnterior(anio: number, mes: number): { anio: number; mes: number } {

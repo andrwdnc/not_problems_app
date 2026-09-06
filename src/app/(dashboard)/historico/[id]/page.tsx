@@ -24,8 +24,10 @@ export default async function HistoricoDetallePage({
   const mes = await mesRepository.findById(params.id);
   if (!mes) notFound();
 
-  const gastos = await gastoRepository.findByMes(mes.id);
-  const aportaciones = await aportacionRepository.findByMes(mes.id);
+  const [gastos, aportaciones] = await Promise.all([
+    gastoRepository.findByMes(mes.id),
+    aportacionRepository.findByMes(mes.id),
+  ]);
 
   const permisos = ventanaDeMes(new Date(), mes.anio, mes.mes);
 

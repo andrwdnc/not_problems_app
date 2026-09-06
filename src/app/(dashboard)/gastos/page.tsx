@@ -6,9 +6,11 @@ import { GastosList } from '@/components/features/GastosList';
 import { nav } from '@/literals';
 
 export default async function GastosPage() {
-  const mes = await obtenerMesActual();
+  const [mes, usuarios] = await Promise.all([
+    obtenerMesActual(),
+    usuarioRepository.findAll(),
+  ]);
   const gastos = mes ? await gastoRepository.findByMes(mes.id) : [];
-  const usuarios = await usuarioRepository.findAll();
   const usuarioPorId = new Map(usuarios.map((u) => [u.id, u.username]));
 
   return (
