@@ -23,8 +23,8 @@ export const meses = pgTable('meses', {
   mes: integer('mes').notNull(),
   porcentaje: numeric('porcentaje', { precision: 5, scale: 2, mode: 'number' }),
   porcentajeFijadoPor: uuid('porcentaje_fijado_por').references(() => usuarios.id),
-  porcentajeFechaRegistro: timestamp('porcentaje_fecha_registro'),
-  fechaApertura: timestamp('fecha_apertura').defaultNow().notNull(),
+  porcentajeFechaRegistro: timestamp('porcentaje_fecha_registro', { withTimezone: true }),
+  fechaApertura: timestamp('fecha_apertura', { withTimezone: true }).defaultNow().notNull(),
 }, (table) => [
   uniqueIndex('meses_anio_mes_unique').on(table.anio, table.mes),
 ]);
@@ -35,8 +35,11 @@ export const aportaciones = pgTable('aportaciones', {
   usuarioId: uuid('usuario_id').references(() => usuarios.id).notNull(),
   sueldo: numeric('sueldo', { precision: 10, scale: 2, mode: 'number' }).notNull(),
   importeAportado: numeric('importe_aportado', { precision: 10, scale: 2, mode: 'number' }),
-  fechaRegistro: timestamp('fecha_registro').defaultNow().notNull(),
-});
+  fechaRegistro: timestamp('fecha_registro', { withTimezone: true }).defaultNow().notNull(),
+}, (table) => [
+  // Invariante: una única aportación por usuario y mes.
+  uniqueIndex('aportaciones_mes_usuario_unique').on(table.mesId, table.usuarioId),
+]);
 
 export const gastos = pgTable('gastos', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -48,7 +51,7 @@ export const gastos = pgTable('gastos', {
   esRecurrente: boolean('es_recurrente').default(false).notNull(),
   gastoRecurrenteOrigenId: uuid('gasto_recurrente_origen_id'),
   creadoPor: uuid('creado_por').references(() => usuarios.id).notNull(),
-  fechaCreacion: timestamp('fecha_creacion').defaultNow().notNull(),
+  fechaCreacion: timestamp('fecha_creacion', { withTimezone: true }).defaultNow().notNull(),
 });
 
 export const accionEnum = pgEnum('accion_enum', ['crear', 'editar', 'eliminar']);
@@ -61,5 +64,5 @@ export const historicoMovimientos = pgTable('historico_movimientos', {
   accion: accionEnum('accion').notNull(),
   valorAnterior: jsonb('valor_anterior'),
   valorNuevo: jsonb('valor_nuevo'),
-  fecha: timestamp('fecha').defaultNow().notNull(),
+  fecha: timestamp('fecha', { withTimezone: true }).defaultNow().notNull(),
 });

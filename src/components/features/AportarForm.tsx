@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/Badge';
 import { Card } from '@/components/ui/Card';
 import { Lock } from 'lucide-react';
 import { formatCurrency } from '@/lib/formatters/currency';
+import { calcularTotalCuentaConjunta } from '@/domain/rules/CalculadoraAportacion';
 import type { Aportacion, Mes, Usuario } from '@/infrastructure/repositories';
 import { aportar } from '@/literals';
 
@@ -160,9 +161,8 @@ export function AportarForm({
           <p className="text-xs text-brand-sky">{aportar.totalCuentaConjunta}</p>
           <p className="font-mono text-2xl font-bold text-white">
             {formatCurrency(
-              aportaciones.reduce(
-                (acc, a) => acc + (a.importeAportado ?? 0),
-                0,
+              calcularTotalCuentaConjunta(
+                aportaciones.map((a) => a.importeAportado),
               ),
             )}
           </p>

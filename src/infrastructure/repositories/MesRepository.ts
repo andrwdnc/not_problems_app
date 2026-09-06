@@ -1,4 +1,4 @@
-import { desc, eq, and } from 'drizzle-orm';
+import { desc, eq, and, isNull } from 'drizzle-orm';
 import { db } from '../db';
 import { meses } from '../db/schema';
 
@@ -25,6 +25,15 @@ export interface MesRepository {
   create(data: CrearMesInput): Promise<Mes>;
   findOrCreate(data: CrearMesInput): Promise<ResultadoFindOrCreate>;
   update(id: string, data: Partial<Mes>): Promise<Mes>;
+  /**
+   * Fija el porcentaje del mes solo si aún no estaba definido (evita que una
+   * carrera concurrente lo sobrescriba). Devuelve null si ya estaba fijado.
+   */
+  fijarPorcentajeSiNulo(
+    id: string,
+    porcentaje: number,
+    fijadoPor: string,
+  ): Promise<Mes | null>;
 }
 
 export interface ResultadoFindOrCreate {
@@ -108,5 +117,22 @@ export class MesDrizzleRepository implements MesRepository {
       .where(eq(meses.id, id))
       .returning();
     return result as Mes;
+  }
+
+  async fijarPorcentajeSiNulo(
+    id: string,
+    porcentaje: number,
+    fijadoPor: string,
+  ): Promise<Mes | null> {
+    const [result] = await db
+      .update(meses)
+      .set({
+        porcentaje,
+        porcentajeFijadoPor: fijadoPor,
+        porcentajeFechaRegistro: new Date(),
+      })
+      .where(and(eq(meses.id, id), isNull(meses.porcentaje)))
+      .returning();
+    return (result as Mes) ?? null;
   }
 }

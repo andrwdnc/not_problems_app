@@ -39,6 +39,8 @@ export const authErrores = {
   credencialesIncorrectas: 'Nombre de usuario o contraseña incorrectos.',
   usuarioEnUso: (username: string) =>
     `El nombre de usuario "${username}" ya está en uso.`,
+  maximoUsuariosAlcanzado:
+    'El espacio compartido ya está completo (2 usuarios). No se pueden registrar más cuentas.',
   noAutenticado: 'No autenticado',
   errorInesperado: 'Error inesperado',
 };

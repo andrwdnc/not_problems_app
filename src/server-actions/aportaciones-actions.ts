@@ -57,9 +57,14 @@ export async function fijarSueldo(
   if (mes?.porcentaje != null) {
     const importe = calcularImporteAportado(data.sueldo, mes.porcentaje);
     if (importe != null) {
-      aportacion = await aportacionRepository.update(aportacion.id, {
-        importeAportado: importe,
-      });
+      const fijado = await aportacionRepository.fijarImporteAportadoSiNulo(
+        aportacion.id,
+        importe,
+      );
+      // Solo escribe la auditoría del cálculo si realmente pudo fijarlo.
+      if (fijado) {
+        aportacion = fijado;
+      }
     }
   }
 
@@ -103,24 +108,29 @@ export async function fijarPorcentaje(
     return { ok: false, error: aportacionErrores.mesNoEncontrado };
   }
 
-  if (mes.porcentaje != null) {
+  // Fijación atómica: solo el primer llamador que encuentre el porcentaje aún
+  // nulo podrá fijarlo; los concurrentes reciben null y no duplican auditoría.
+  const actualizado = await mesRepository.fijarPorcentajeSiNulo(
+    mesId,
+    porcentaje,
+    usuarioId,
+  );
+
+  if (!actualizado) {
     return { ok: false, error: aportacionErrores.porcentajeYaFijado };
   }
 
-  const actualizado = await mesRepository.update(mesId, {
-    porcentaje,
-    porcentajeFijadoPor: usuarioId,
-    porcentajeFechaRegistro: new Date(),
-  });
-
-  // Recalcular importe_aportado de todas las aportaciones del mes.
+  // Recalcular importe_aportado de todas las aportaciones del mes. Cada una se
+  // fija atómicamente (solo si aún no tenía importe) para mantener la
+  // inmutabilidad ante carreras concurrentes.
   const aportaciones = await aportacionRepository.findByMes(mesId);
   for (const aportacion of aportaciones) {
     const importe = calcularImporteAportado(aportacion.sueldo, porcentaje);
     if (importe != null) {
-      await aportacionRepository.update(aportacion.id, {
-        importeAportado: importe,
-      });
+      await aportacionRepository.fijarImporteAportadoSiNulo(
+        aportacion.id,
+        importe,
+      );
     }
   }
 

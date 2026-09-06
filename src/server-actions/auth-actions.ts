@@ -54,6 +54,13 @@ export async function signup(input: unknown): Promise<ActionResult> {
 
   const { username, password } = parsed.data;
 
+  // La cuenta compartida está pensada para exactamente dos usuarios: impedir
+  // el registro superada esa cifra mantiene intactas las reglas de negocio.
+  const totalUsuarios = await usuarioRepository.count();
+  if (totalUsuarios >= 2) {
+    return { ok: false, error: authErrores.maximoUsuariosAlcanzado };
+  }
+
   const existente = await usuarioRepository.findByUsername(username);
   if (existente) {
     return { ok: false, error: authErrores.usuarioEnUso(username) };

@@ -31,14 +31,13 @@ export async function crearGasto(
 
   const data = parsed.data;
 
-  // El mes al que afecta viene dado por la fecha del gasto.
+  // El mes al que afecta viene dado por la fecha del gasto (no por el mes
+  // abierto en el formulario). Se obtiene (o crea) de forma idempotente: si el
+  // registro de ese mes aún no existe —p. ej. un gasto "olvidado" de un mes
+  // previo— se crea, evitando asignar el gasto al mes equivocado.
   const { anio, mes } = mesDeFecha(data.fechaGasto);
-
-  let mesId = data.mesId;
-  const mesDelGasto = await mesRepository.findByAnioAndMes(anio, mes);
-  if (mesDelGasto) {
-    mesId = mesDelGasto.id;
-  }
+  const { mes: mesDelGasto } = await mesRepository.findOrCreate({ anio, mes });
+  const mesId = mesDelGasto.id;
 
   const ventana = ventanaEdicionGastos({
     hoy: new Date(),

@@ -1,4 +1,4 @@
-import { eq, inArray } from 'drizzle-orm';
+import { eq, and, inArray, isNull } from 'drizzle-orm';
 import { db } from '../db';
 import { aportaciones } from '../db/schema';
 
@@ -19,6 +19,12 @@ export interface AportacionRepository {
   create(data: Omit<Aportacion, 'id' | 'fechaRegistro'>): Promise<Aportacion>;
   update(id: string, data: Partial<Aportacion>): Promise<Aportacion>;
   delete(id: string): Promise<void>;
+  /**
+   * Fija el importe aportado solo si aún no estaba calculado (evita que una
+   * carrera concurrente sobrescriba un valor ya fijado). Devuelve null si ya
+   * existía un valor (inaplicable).
+   */
+  fijarImporteAportadoSiNulo(id: string, importeAportado: number): Promise<Aportacion | null>;
 }
 
 export class AportacionDrizzleRepository implements AportacionRepository {
@@ -68,5 +74,17 @@ export class AportacionDrizzleRepository implements AportacionRepository {
 
   async delete(id: string): Promise<void> {
     await db.delete(aportaciones).where(eq(aportaciones.id, id));
+  }
+
+  async fijarImporteAportadoSiNulo(
+    id: string,
+    importeAportado: number,
+  ): Promise<Aportacion | null> {
+    const [result] = await db
+      .update(aportaciones)
+      .set({ importeAportado })
+      .where(and(eq(aportaciones.id, id), isNull(aportaciones.importeAportado)))
+      .returning();
+    return (result as Aportacion) ?? null;
   }
 }
