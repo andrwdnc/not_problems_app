@@ -6,6 +6,7 @@ import {
 import { generarMesAutomático } from '@/server-actions/meses-actions';
 import type { Mes, Aportacion, Gasto } from '@/infrastructure/repositories';
 
+/** Resumen de un mes. Las cifras (aportado/gastado/disponible) están en céntimos enteros. */
 export interface ResumenMes {
   aportado: number;
   gastado: number;

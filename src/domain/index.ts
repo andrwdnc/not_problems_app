@@ -5,6 +5,8 @@ export {
   formatearImporteMoneda,
   importeDesdeCadena,
   esImporteValido,
+  eurosACentimos,
+  centimosAEuros,
 } from './value-objects/ImporteMoneda';
 export { validarPorcentaje } from './value-objects/Porcentaje';
 export {

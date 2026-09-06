@@ -13,7 +13,7 @@ const gastoBase: Gasto = {
   mesId: 'mes-1',
   categoria: gato,
   detalle: 'Suscripción',
-  importe: 12.5,
+  importe: 1250, // céntimos (12,50 €)
   fechaGasto: '2026-01-31',
   esRecurrente: true,
   gastoRecurrenteOrigenId: null,
@@ -63,7 +63,7 @@ describe('prepararDuplicadoRecurrente', () => {
       mesId: 'mes-2',
       categoria: 'Alimentacion',
       detalle: 'Suscripción',
-      importe: 12.5,
+      importe: 1250,
       fechaGasto: '2026-02-28',
       esRecurrente: true,
       gastoRecurrenteOrigenId: 'g1',

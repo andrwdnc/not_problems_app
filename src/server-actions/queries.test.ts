@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { calcularResumen } from './queries';
 
+// Cifras expresadas en céntimos enteros (100 = 1 €).
 const aportacion = (importeAportado: number | null) => ({
   id: 'a',
   mesId: 'm',
@@ -44,8 +45,8 @@ describe('calcularResumen', () => {
   });
 
   it('suma los importes de los gastos', () => {
-    const resultado = calcularResumen([], [gasto(100), gasto(250.5)]);
-    expect(resultado.gastado).toBe(350.5);
+    const resultado = calcularResumen([], [gasto(100), gasto(2505)]);
+    expect(resultado.gastado).toBe(2605);
     expect(resultado.numeroGastos).toBe(2);
   });
 

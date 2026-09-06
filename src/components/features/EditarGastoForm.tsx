@@ -7,13 +7,14 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Card } from '@/components/ui/Card';
 import { CATEGORIAS, type Categoria } from '@/domain/value-objects/Categoria';
+import { centimosAEuros } from '@/domain/value-objects/ImporteMoneda';
 import { eliminarGasto, editarGasto } from '@/server-actions/gastos-actions';
 import type { Gasto } from '@/infrastructure/repositories';
 import { gastoForm } from '@/literals';
 
 export function EditarGastoForm({ gasto }: { gasto: Gasto }) {
   const router = useRouter();
-  const [importe, setImporte] = useState(String(gasto.importe));
+  const [importe, setImporte] = useState(() => String(centimosAEuros(gasto.importe)));
   const [categoria, setCategoria] = useState<Categoria>(gasto.categoria);
   const [detalle, setDetalle] = useState(gasto.detalle);
   const [fecha, setFecha] = useState(gasto.fechaGasto);

@@ -4,6 +4,7 @@ import {
   calcularTotalCuentaConjunta,
 } from './CalculadoraAportacion';
 
+// Todas las cantidades se expresan en céntimos enteros (100 = 1 €).
 describe('CalculadoraAportacion', () => {
   describe('calcularImporteAportado', () => {
     it('devuelve null si falta el sueldo', () => {
@@ -18,9 +19,10 @@ describe('CalculadoraAportacion', () => {
       expect(calcularImporteAportado(2000, 50)).toBe(1000);
     });
 
-    it('calcula porcentajes con decimales redondeando a 2 decimales', () => {
-      expect(calcularImporteAportado(2500, 50)).toBe(1250);
-      expect(calcularImporteAportado(1000, 33.33)).toBe(333.3);
+    it('calcula porcentajes con decimales redondeando al céntimo', () => {
+      expect(calcularImporteAportado(250000, 50)).toBe(125000);
+      // 1000 céntimos (10 €) al 33,33 % -> 333,3 -> 333 céntimos (3,33 €).
+      expect(calcularImporteAportado(1000, 33.33)).toBe(333);
     });
 
     it('devuelve null si el porcentaje es 0', () => {
