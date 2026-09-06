@@ -1,10 +1,14 @@
+// Entidades canónicas del dominio. Los repositorios de infraestructura
+// importan estos tipos y los re-exportan para los consumidores de la capa.
+
 import type { Categoria } from '../value-objects/Categoria';
 
 export type { Categoria };
 
+/** Usuario público, sin datos de autenticación. */
 export interface Usuario {
   id: string;
-  nombre: string;
+  username: string;
 }
 
 export interface Mes {

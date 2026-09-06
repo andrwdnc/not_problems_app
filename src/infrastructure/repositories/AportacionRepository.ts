@@ -1,15 +1,7 @@
 import { eq, and, inArray, isNull } from 'drizzle-orm';
 import { db } from '../db';
 import { aportaciones } from '../db/schema';
-
-export interface Aportacion {
-  id: string;
-  mesId: string;
-  usuarioId: string;
-  sueldo: number;
-  importeAportado: number | null;
-  fechaRegistro: Date;
-}
+import type { Aportacion } from '@/domain/entities';
 
 export interface AportacionRepository {
   findById(id: string): Promise<Aportacion | null>;

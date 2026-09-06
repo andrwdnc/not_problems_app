@@ -1,20 +1,7 @@
 import { eq, desc, and, inArray } from 'drizzle-orm';
 import { db } from '../db';
 import { gastos } from '../db/schema';
-import type { Categoria } from '@/domain/value-objects/Categoria';
-
-export interface Gasto {
-  id: string;
-  mesId: string;
-  categoria: Categoria;
-  detalle: string;
-  importe: number;
-  fechaGasto: string;
-  esRecurrente: boolean;
-  gastoRecurrenteOrigenId: string | null;
-  creadoPor: string;
-  fechaCreacion: Date;
-}
+import type { Gasto } from '@/domain/entities';
 
 export interface GastoRepository {
   findById(id: string): Promise<Gasto | null>;

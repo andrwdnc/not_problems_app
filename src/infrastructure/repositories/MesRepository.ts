@@ -1,16 +1,7 @@
 import { desc, eq, and, isNull } from 'drizzle-orm';
 import { db } from '../db';
 import { meses } from '../db/schema';
-
-export interface Mes {
-  id: string;
-  anio: number;
-  mes: number;
-  porcentaje: number | null;
-  porcentajeFijadoPor: string | null;
-  porcentajeFechaRegistro: Date | null;
-  fechaApertura: Date;
-}
+import type { Mes } from '@/domain/entities';
 
 export interface CrearMesInput {
   anio: number;

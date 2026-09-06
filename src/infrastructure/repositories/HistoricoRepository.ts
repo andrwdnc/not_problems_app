@@ -1,18 +1,6 @@
 import { db } from '../db';
 import { historicoMovimientos } from '../db/schema';
-
-export type Accion = 'crear' | 'editar' | 'eliminar';
-
-export interface MovimientoAuditoria {
-  id: string;
-  usuarioId: string;
-  entidad: string;
-  entidadId: string;
-  accion: Accion;
-  valorAnterior: unknown | null;
-  valorNuevo: unknown | null;
-  fecha: Date;
-}
+import type { Accion, MovimientoAuditoria } from '@/domain/entities';
 
 export interface HistoricoRepository {
   registrar(data: Omit<MovimientoAuditoria, 'id' | 'fecha'>): Promise<MovimientoAuditoria>;

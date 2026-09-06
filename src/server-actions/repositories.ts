@@ -1,13 +1,9 @@
-import {
-  AportacionDrizzleRepository,
-  MesDrizzleRepository,
-  GastoDrizzleRepository,
-  HistoricoDrizzleRepository,
-  UsuarioDrizzleRepository,
-} from '@/infrastructure/repositories';
-
-export const mesRepository = new MesDrizzleRepository();
-export const aportacionRepository = new AportacionDrizzleRepository();
-export const gastoRepository = new GastoDrizzleRepository();
-export const historicoRepository = new HistoricoDrizzleRepository();
-export const usuarioRepository = new UsuarioDrizzleRepository();
+// Compatibilidad: las server actions consumen los repositorios a través de este
+// barrel, que simplemente re-exporta las instancias de la composición de raíz.
+export {
+  mesRepository,
+  aportacionRepository,
+  gastoRepository,
+  historicoRepository,
+  usuarioRepository,
+} from '@/infrastructure/repositories/instances';

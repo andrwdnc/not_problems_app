@@ -1,5 +1,5 @@
 import { leerSesion } from '@/lib/session';
-import { usuarioRepository } from '@/server-actions/repositories';
+import { usuarioRepository } from '@/infrastructure/repositories/instances';
 
 /**
  * Obtiene el id del usuario autenticado a partir de la cookie de sesión firmada.

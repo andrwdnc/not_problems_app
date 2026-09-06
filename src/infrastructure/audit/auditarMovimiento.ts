@@ -1,7 +1,5 @@
-import { HistoricoDrizzleRepository } from '../repositories';
-import type { Accion } from '../repositories';
-
-const historicoRepository = new HistoricoDrizzleRepository();
+import { historicoRepository } from '../repositories/instances';
+import type { Accion } from '@/domain/entities';
 
 export interface AuditarMovimientoParams {
   usuarioId: string;
