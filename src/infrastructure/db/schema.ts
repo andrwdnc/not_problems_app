@@ -1,4 +1,4 @@
-import { pgEnum, pgTable, uuid, text, integer, numeric, timestamp, date, boolean, jsonb, uniqueIndex } from 'drizzle-orm/pg-core';
+import { pgEnum, pgTable, uuid, text, integer, numeric, timestamp, date, boolean, jsonb, uniqueIndex, bigint, index } from 'drizzle-orm/pg-core';
 export const categoriaEnum = pgEnum('categoria_enum', [
   'Vivienda',
   'Suministros',
@@ -33,8 +33,9 @@ export const aportaciones = pgTable('aportaciones', {
   id: uuid('id').primaryKey().defaultRandom(),
   mesId: uuid('mes_id').references(() => meses.id).notNull(),
   usuarioId: uuid('usuario_id').references(() => usuarios.id).notNull(),
-  sueldo: numeric('sueldo', { precision: 10, scale: 2, mode: 'number' }).notNull(),
-  importeAportado: numeric('importe_aportado', { precision: 10, scale: 2, mode: 'number' }),
+  // Importes en céntimos enteros (bigint): evitan errores de coma flotante.
+  sueldo: bigint('sueldo', { mode: 'number' }).notNull(),
+  importeAportado: bigint('importe_aportado', { mode: 'number' }),
   fechaRegistro: timestamp('fecha_registro', { withTimezone: true }).defaultNow().notNull(),
 }, (table) => [
   // Invariante: una única aportación por usuario y mes.
@@ -46,7 +47,7 @@ export const gastos = pgTable('gastos', {
   mesId: uuid('mes_id').references(() => meses.id).notNull(),
   categoria: categoriaEnum('categoria').notNull(),
   detalle: text('detalle').notNull(),
-  importe: numeric('importe', { precision: 10, scale: 2, mode: 'number' }).notNull(),
+  importe: bigint('importe', { mode: 'number' }).notNull(),
   fechaGasto: date('fecha_gasto', { mode: 'string' }).notNull(),
   esRecurrente: boolean('es_recurrente').default(false).notNull(),
   gastoRecurrenteOrigenId: uuid('gasto_recurrente_origen_id'),
@@ -56,13 +57,18 @@ export const gastos = pgTable('gastos', {
 
 export const accionEnum = pgEnum('accion_enum', ['crear', 'editar', 'eliminar']);
 
+export const entidadEnum = pgEnum('entidad_enum', ['meses', 'aportaciones', 'gastos']);
+
 export const historicoMovimientos = pgTable('historico_movimientos', {
   id: uuid('id').primaryKey().defaultRandom(),
   usuarioId: uuid('usuario_id').references(() => usuarios.id).notNull(),
-  entidad: text('entidad').notNull(),
+  entidad: entidadEnum('entidad').notNull(),
   entidadId: uuid('entidad_id').notNull(),
   accion: accionEnum('accion').notNull(),
   valorAnterior: jsonb('valor_anterior'),
   valorNuevo: jsonb('valor_nuevo'),
   fecha: timestamp('fecha', { withTimezone: true }).defaultNow().notNull(),
-});
+}, (table) => [
+  // La auditoría se consultará por usuario; indexa para que no degrade con el tiempo.
+  index('historico_usuario_idx').on(table.usuarioId),
+]);
