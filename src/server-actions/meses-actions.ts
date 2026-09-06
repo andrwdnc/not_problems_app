@@ -1,22 +1,10 @@
 'use server';
 
-import { revalidatePath } from 'next/cache';
 import { mesRepository, gastoRepository } from './repositories';
 import { auditarMovimiento } from '@/infrastructure/audit/auditarMovimiento';
 import { getCurrentUserId } from '@/server/auth';
 import { prepararDuplicadoRecurrente } from '@/domain/rules/GastosRecurrentes';
 import type { Mes } from '@/infrastructure/repositories';
-
-/**
- * Abre (o devuelve) el mes de un año y mes concretos (1-12).
- * Es idempotente: si ya existe, lo devuelve sin duplicarlo.
- */
-export async function abrirMes(anio: number, mes: number): Promise<Mes | null> {
-  const existente = await mesRepository.findByAnioAndMes(anio, mes);
-  if (existente) return existente;
-
-  return mesRepository.create({ anio, mes, porcentaje: null });
-}
 
 /**
  * Genera automáticamente el mes nuevo a partir del mes anterior:
