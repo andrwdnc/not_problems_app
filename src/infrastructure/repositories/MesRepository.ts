@@ -25,6 +25,15 @@ export interface MesRepository {
     porcentaje: number,
     fijadoPor: string,
   ): Promise<Mes | null>;
+  /**
+   * Fija el presupuesto de gastos del mes solo si aún no estaba definido.
+   * Mismo contrato atómico que `fijarPorcentajeSiNulo`.
+   */
+  fijarPresupuestoSiNulo(
+    id: string,
+    presupuesto: number,
+    fijadoPor: string,
+  ): Promise<Mes | null>;
 }
 
 export interface ResultadoFindOrCreate {
@@ -65,6 +74,9 @@ export class MesDrizzleRepository implements MesRepository {
         porcentaje: data.porcentaje ?? null,
         porcentajeFijadoPor: null,
         porcentajeFechaRegistro: null,
+        presupuesto: null,
+        presupuestoFijadoPor: null,
+        presupuestoFechaRegistro: null,
       })
       .returning();
     return result as Mes;
@@ -84,6 +96,9 @@ export class MesDrizzleRepository implements MesRepository {
         porcentaje: data.porcentaje ?? null,
         porcentajeFijadoPor: null,
         porcentajeFechaRegistro: null,
+        presupuesto: null,
+        presupuestoFijadoPor: null,
+        presupuestoFechaRegistro: null,
       })
       .onConflictDoNothing()
       .returning();
@@ -123,6 +138,23 @@ export class MesDrizzleRepository implements MesRepository {
         porcentajeFechaRegistro: new Date(),
       })
       .where(and(eq(meses.id, id), isNull(meses.porcentaje)))
+      .returning();
+    return (result as Mes) ?? null;
+  }
+
+  async fijarPresupuestoSiNulo(
+    id: string,
+    presupuesto: number,
+    fijadoPor: string,
+  ): Promise<Mes | null> {
+    const [result] = await db
+      .update(meses)
+      .set({
+        presupuesto,
+        presupuestoFijadoPor: fijadoPor,
+        presupuestoFechaRegistro: new Date(),
+      })
+      .where(and(eq(meses.id, id), isNull(meses.presupuesto)))
       .returning();
     return (result as Mes) ?? null;
   }

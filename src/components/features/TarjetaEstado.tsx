@@ -1,12 +1,12 @@
 import { cn } from '@/lib/utils';
 import { formatCurrency } from '@/lib/formatters/currency';
 
-type Variante = 'aportado' | 'gastado' | 'disponible';
+type Variante = 'aportado' | 'gastado' | 'disponible' | 'presupuesto' | 'ahorro';
 
 interface TarjetaEstadoProps {
   variante: Variante;
   etiqueta: string;
-  importe: number;
+  importe: number | null;
 }
 
 const estilos: Record<
@@ -16,6 +16,11 @@ const estilos: Record<
   aportado: {
     texto: 'text-brand-primary',
     fondo: 'bg-brand-surface',
+    borde: 'border-brand-border',
+  },
+  presupuesto: {
+    texto: 'text-brand-navy',
+    fondo: 'bg-brand-pale/50',
     borde: 'border-brand-border',
   },
   gastado: {
@@ -28,6 +33,11 @@ const estilos: Record<
     fondo: 'bg-financial-positiveBg',
     borde: 'border-financial-positive/20',
   },
+  ahorro: {
+    texto: 'text-financial-positive',
+    fondo: 'bg-financial-positiveBg',
+    borde: 'border-financial-positive/20',
+  },
 };
 
 export function TarjetaEstado({
@@ -35,11 +45,11 @@ export function TarjetaEstado({
   etiqueta,
   importe,
 }: TarjetaEstadoProps) {
-  // "Disponible" es verde mientras haya saldo positivo; en cuanto se gasta más
-  // de lo ingresado (negativo), pasa a rojo para indicar déficit.
-  const esNegativo = importe < 0;
+  // "Disponible" y "Ahorro" son verdes mientras haya saldo positivo; en cuanto
+  // se gasta más de lo ingresado (negativo), pasan a rojo para indicar déficit.
+  const esNegativo = (importe ?? 0) < 0;
   const estilo =
-    variante === 'disponible' && esNegativo
+    (variante === 'disponible' || variante === 'ahorro') && esNegativo
       ? estilos.gastado
       : estilos[variante];
 
@@ -52,14 +62,20 @@ export function TarjetaEstado({
       )}
     >
       <p className="truncate text-xs font-medium text-brand-muted">{etiqueta}</p>
-      <p
-        className={cn(
-          'mt-1 min-w-0 break-words font-mono text-lg font-bold tabular-nums sm:text-xl',
-          estilo.texto,
-        )}
-      >
-        {formatCurrency(importe)}
-      </p>
+      {importe != null ? (
+        <p
+          className={cn(
+            'mt-1 min-w-0 break-words font-mono text-lg font-bold tabular-nums sm:text-xl',
+            estilo.texto,
+          )}
+        >
+          {formatCurrency(importe)}
+        </p>
+      ) : (
+        <p className="mt-1 font-mono text-lg font-bold tabular-nums text-brand-muted sm:text-xl">
+          —
+        </p>
+      )}
     </div>
   );
 }

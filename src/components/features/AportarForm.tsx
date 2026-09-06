@@ -2,13 +2,14 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { fijarSueldo, fijarPorcentaje } from '@/server-actions/aportaciones-actions';
+import { fijarSueldo, fijarPorcentaje, fijarPresupuesto } from '@/server-actions/aportaciones-actions';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Badge } from '@/components/ui/Badge';
 import { Card } from '@/components/ui/Card';
 import { Lock } from 'lucide-react';
 import { formatCurrency } from '@/lib/formatters/currency';
+import { formatShortDate } from '@/lib/formatters/date';
 import {
   calcularTotalCuentaConjunta,
   calcularImporteAportado,
@@ -30,6 +31,7 @@ export function AportarForm({
   const router = useRouter();
   const [mensaje, setMensaje] = useState<string | null>(null);
   const [porcentajeValor, setPorcentajeValor] = useState('');
+  const [presupuestoValor, setPresupuestoValor] = useState('');
 
   // Estado local síncrono con el servidor: tras una mutación confirmada se
   // refleja al instante en la UI, sin depender del refresco del router.
@@ -101,6 +103,23 @@ export function AportarForm({
       router.refresh();
     } catch {
       setMensaje(aportar.errorFijarPorcentaje);
+    }
+  }
+
+  async function guardarPresupuesto(formData: FormData) {
+    const presupuesto = formData.get('presupuesto') as string;
+    setMensaje(null);
+    try {
+      const resultado = await fijarPresupuesto({ mesId: mes.id, presupuesto });
+      if (!resultado.ok) {
+        setMensaje(resultado.error);
+        return;
+      }
+      setMes(resultado.data);
+      setPresupuestoValor('');
+      router.refresh();
+    } catch {
+      setMensaje(aportar.errorFijarPresupuesto);
     }
   }
 
@@ -190,6 +209,52 @@ export function AportarForm({
             />
             <Button type="submit" fullWidth className="mt-3">
               {aportar.fijarPorcentaje}
+            </Button>
+          </form>
+        )}
+      </Card>
+
+      <Card className="border-brand-primary/30 bg-brand-pale/40">
+        <h3 className="mb-2 flex items-center gap-2 text-sm font-semibold text-brand-navy">
+          {aportar.presupuestoGastos}
+          {mes.presupuesto != null && <Lock size={14} className="text-brand-muted" />}
+        </h3>
+        {mes.presupuesto != null ? (
+          <>
+            <p className="font-mono text-3xl font-bold text-brand-navy">
+              {formatCurrency(mes.presupuesto)}
+            </p>
+            {(() => {
+              const fijadoPorUsuario = mes.presupuestoFijadoPor
+                ? usuarios.find((u) => u.id === mes.presupuestoFijadoPor)
+                : null;
+              if (!fijadoPorUsuario || !mes.presupuestoFechaRegistro) return null;
+              return (
+                <p className="mt-1 text-xs text-brand-muted">
+                  {aportar.fijadoPor(
+                    fijadoPorUsuario.username,
+                    formatShortDate(mes.presupuestoFechaRegistro),
+                  )}
+                </p>
+              );
+            })()}
+          </>
+        ) : (
+          <form action={guardarPresupuesto}>
+            <Input
+              label={aportar.presupuestoUnicoMes}
+              name="presupuesto"
+              type="text"
+              inputMode="decimal"
+              autoComplete="off"
+              pattern="[0-9]*[.,]?[0-9]*"
+              value={presupuestoValor}
+              onChange={(e) => setPresupuestoValor(e.target.value)}
+              placeholder="200,00 €"
+              required
+            />
+            <Button type="submit" fullWidth className="mt-3">
+              {aportar.fijarPresupuesto}
             </Button>
           </form>
         )}

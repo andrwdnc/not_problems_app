@@ -40,3 +40,48 @@ export function calcularTotalCuentaConjunta(
     return acc + importe;
   }, 0);
 }
+
+/**
+ * Regla pura: ahorro del mes = aportado − presupuesto de gastos.
+ *
+ * Cuando aún no se ha fijado el presupuesto, el ahorro coincide con
+ * `aportado − gastado` (continuidad: todo lo no gastado es ahorro). En cuanto
+ * existe presupuesto, el ahorro se calcula contra el tope fijado y los gastos
+ * no lo descuentan (se consumen del presupuesto).
+ *
+ * Cifras en céntimos enteros.
+ */
+export function calcularAhorro(
+  aportadoCentimos: number,
+  presupuestoCentimos: number | null | undefined,
+  gastadoCentimos: number,
+): number {
+  const tope = presupuestoCentimos ?? gastadoCentimos;
+  return aportadoCentimos - tope;
+}
+
+/**
+ * Regla pura: presupuesto de gastos que queda disponible =
+ * presupuesto − gastado. Sin presupuesto fijado devuelve null.
+ * Negativo indica que se ha superado el tope del mes.
+ */
+export function calcularRestantePresupuesto(
+  presupuestoCentimos: number | null | undefined,
+  gastadoCentimos: number,
+): number | null {
+  if (presupuestoCentimos == null) return null;
+  return presupuestoCentimos - gastadoCentimos;
+}
+
+/**
+ * Regla pura: porcentaje del presupuesto consumido =
+ * gastado / presupuesto × 100. Sin presupuesto fijado devuelve null.
+ * Puede superar 100 cuando se sobrepasa el tope.
+ */
+export function calcularPorcentajePresupuestoConsumido(
+  gastadoCentimos: number,
+  presupuestoCentimos: number | null | undefined,
+): number | null {
+  if (presupuestoCentimos == null || presupuestoCentimos <= 0) return null;
+  return (gastadoCentimos / presupuestoCentimos) * 100;
+}

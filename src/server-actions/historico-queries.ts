@@ -1,6 +1,7 @@
 import { mesRepository, aportacionRepository, gastoRepository } from './repositories';
 import { ventanaDeMes } from '@/domain/rules/VentanaEdicionGastos';
 import type { PermisosEdicion } from '@/domain/rules/VentanaEdicionGastos';
+import { calcularAhorro } from '@/domain/rules/CalculadoraAportacion';
 
 export interface MesHistorico {
   mes: {
@@ -10,6 +11,9 @@ export interface MesHistorico {
   };
   aportado: number;
   gastado: number;
+  /** Presupuesto de gastos en céntimos; null si nunca se fijó. */
+  presupuesto: number | null;
+  /** Ahorro = aportado − presupuesto; sin presupuesto, aportado − gastado. */
   ahorro: number; // positivo = ahorro, negativo = déficit
   permisos: PermisosEdicion;
 }
@@ -48,12 +52,13 @@ export async function obtenerHistorico(): Promise<MesHistorico[]> {
   return meses.map((mes) => {
     const aportado = aportadoPorMes.get(mes.id) ?? 0;
     const gastado = gastadoPorMes.get(mes.id) ?? 0;
-    const ahorro = aportado - gastado;
+    const ahorro = calcularAhorro(aportado, mes.presupuesto, gastado);
 
     return {
       mes: { id: mes.id, anio: mes.anio, mes: mes.mes },
       aportado,
       gastado,
+      presupuesto: mes.presupuesto,
       ahorro,
       permisos: ventanaDeMes(hoy, mes.anio, mes.mes),
     };

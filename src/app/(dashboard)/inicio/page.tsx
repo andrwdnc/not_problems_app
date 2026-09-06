@@ -26,9 +26,20 @@ export default async function InicioPage() {
       ])
     : [[], []];
 
-  const resumen = mes ? calcularResumen(aportaciones, gastos) : null;
+  const resumen = mes ? calcularResumen(aportaciones, gastos, mes.presupuesto) : null;
   const ultimosGastos = gastos.slice(0, 3);
   const usuarioPorId = new Map(usuarios.map((u) => [u.id, u.username]));
+
+  const porcentajeAnillo =
+    resumen && resumen.porcentajePresupuesto != null
+      ? resumen.porcentajePresupuesto
+      : resumen?.porcentajeGastado ?? 0;
+  const etiquetaAnillo =
+    resumen && resumen.porcentajePresupuesto != null
+      ? literalesResumen.presupuestoRing
+      : literalesResumen.gastadoRing;
+  const superadoPresupuesto =
+    resumen?.restantePresupuesto != null && resumen.restantePresupuesto < 0;
 
   return (
     <div className="space-y-5">
@@ -41,7 +52,7 @@ export default async function InicioPage() {
       {resumen ? (
         <>
           <Card className="flex flex-col items-center gap-4 py-6">
-            <AnilloProgreso porcentaje={resumen.porcentajeGastado} />
+            <AnilloProgreso porcentaje={porcentajeAnillo} etiqueta={etiquetaAnillo} />
             <p className="text-center text-sm text-brand-muted">
               {inicio.totalAportado}:{' '}
               <span className="font-mono font-semibold text-brand-ink">
@@ -58,16 +69,29 @@ export default async function InicioPage() {
               importe={resumen.aportado}
             />
             <TarjetaEstado
+              variante="presupuesto"
+              etiqueta={literalesResumen.presupuesto}
+              importe={resumen.presupuesto}
+            />
+            <TarjetaEstado
               variante="gastado"
               etiqueta={literalesResumen.gastado}
               importe={resumen.gastado}
             />
             <TarjetaEstado
-              variante="disponible"
-              etiqueta={literalesResumen.disponible}
-              importe={resumen.disponible}
+              variante="ahorro"
+              etiqueta={literalesResumen.ahorro}
+              importe={resumen.ahorro}
             />
           </div>
+
+          {superadoPresupuesto && (
+            <p className="rounded-xl bg-financial-negativeBg p-3 text-center text-sm font-medium text-financial-negative">
+              {inicio.teHasPasadoPresupuesto(
+                formatCurrency(-(resumen.restantePresupuesto as number)),
+              )}
+            </p>
+          )}
 
           <section>
             <div className="mb-2 flex items-center justify-between">

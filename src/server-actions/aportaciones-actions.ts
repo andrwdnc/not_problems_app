@@ -1,7 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { sueldoSchema, porcentajeSchema } from './schemas/aportacion';
+import { sueldoSchema, porcentajeSchema, presupuestoSchema } from './schemas/aportacion';
 import { aportacionRepository, mesRepository } from './repositories';
 import { auditarMovimiento } from '@/infrastructure/audit/auditarMovimiento';
 import { calcularImporteAportado } from '@/domain/rules/CalculadoraAportacion';
@@ -134,6 +134,59 @@ export async function fijarPorcentaje(
         importe,
       );
     }
+  }
+
+  await auditarMovimiento({
+    usuarioId,
+    entidad: 'meses',
+    entidadId: mesId,
+    accion: 'editar',
+    valorAnterior: mes,
+    valorNuevo: actualizado,
+  });
+
+  revalidatePath('/aportar');
+  revalidatePath('/');
+  revalidatePath('/historico');
+
+  return { ok: true, data: actualizado };
+}
+
+/**
+ * Fija el presupuesto de gastos único y compartido del mes. Inmutable una vez
+ * guardado y fijable por cualquiera de los dos usuarios (como el porcentaje).
+ * No afecta a los importes aportados: solo marca el tope de gasto del mes.
+ */
+export async function fijarPresupuesto(
+  input: unknown,
+): Promise<ActionResult<Mes>> {
+  const usuarioId = await getCurrentUserId();
+  if (!usuarioId) {
+    return { ok: false, error: authErrores.noAutenticado };
+  }
+
+  const parsed = presupuestoSchema.safeParse(input);
+  if (!parsed.success) {
+    return handleError(parsed.error);
+  }
+
+  const { mesId, presupuesto } = parsed.data;
+
+  const mes = await mesRepository.findById(mesId);
+  if (!mes) {
+    return { ok: false, error: aportacionErrores.mesNoEncontrado };
+  }
+
+  // Fijación atómica: solo el primer llamador que encuentre el presupuesto aún
+  // nulo podrá fijarlo; los concurrentes reciben null y no duplican auditoría.
+  const actualizado = await mesRepository.fijarPresupuestoSiNulo(
+    mesId,
+    presupuesto,
+    usuarioId,
+  );
+
+  if (!actualizado) {
+    return { ok: false, error: aportacionErrores.presupuestoYaFijado };
   }
 
   await auditarMovimiento({

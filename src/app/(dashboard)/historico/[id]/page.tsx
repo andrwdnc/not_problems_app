@@ -11,6 +11,7 @@ import { formatCurrency } from '@/lib/formatters/currency';
 import { formatShortDate, nombreMes } from '@/lib/formatters/date';
 import { notFound } from 'next/navigation';
 import { ventanaDeMes } from '@/domain/rules/VentanaEdicionGastos';
+import { calcularAhorro } from '@/domain/rules/CalculadoraAportacion';
 import { GastoMesAcciones } from '@/components/features/GastoMesAcciones';
 import { historicoDetalle, resumen, gastos as gastosLiterales } from '@/literals';
 
@@ -36,6 +37,8 @@ export default async function HistoricoDetallePage({
     0,
   );
   const gastado = gastos.reduce((acc, g) => acc + g.importe, 0);
+  const ahorro = calcularAhorro(aportado, mes.presupuesto, gastado);
+  const conDeficit = ahorro < 0;
 
   return (
     <div className="space-y-4">
@@ -59,6 +62,26 @@ export default async function HistoricoDetallePage({
           <p className="text-xs text-brand-muted">{resumen.gastado}</p>
           <p className="font-mono text-lg font-bold text-financial-negative">
             {formatCurrency(gastado)}
+          </p>
+        </Card>
+        <Card className="flex-1">
+          <p className="text-xs text-brand-muted">{resumen.presupuesto}</p>
+          {mes.presupuesto != null ? (
+            <p className="font-mono text-lg font-bold text-brand-navy">
+              {formatCurrency(mes.presupuesto)}
+            </p>
+          ) : (
+            <p className="font-mono text-lg font-bold text-brand-muted">—</p>
+          )}
+        </Card>
+        <Card className="flex-1">
+          <p className="text-xs text-brand-muted">
+            {conDeficit ? resumen.deficit : resumen.ahorro}
+          </p>
+          <p
+            className={`font-mono text-lg font-bold ${conDeficit ? 'text-financial-negative' : 'text-financial-positive'}`}
+          >
+            {formatCurrency(Math.abs(ahorro))}
           </p>
         </Card>
       </div>

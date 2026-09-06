@@ -24,6 +24,10 @@ export const meses = pgTable('meses', {
   porcentaje: numeric('porcentaje', { precision: 5, scale: 2, mode: 'number' }),
   porcentajeFijadoPor: uuid('porcentaje_fijado_por').references(() => usuarios.id),
   porcentajeFechaRegistro: timestamp('porcentaje_fecha_registro', { withTimezone: true }),
+  // Presupuesto de gastos mensual (céntimos), único e inmutable como el porcentaje.
+  presupuesto: bigint('presupuesto', { mode: 'number' }),
+  presupuestoFijadoPor: uuid('presupuesto_fijado_por').references(() => usuarios.id),
+  presupuestoFechaRegistro: timestamp('presupuesto_fecha_registro', { withTimezone: true }),
   fechaApertura: timestamp('fecha_apertura', { withTimezone: true }).defaultNow().notNull(),
 }, (table) => [
   uniqueIndex('meses_anio_mes_unique').on(table.anio, table.mes),

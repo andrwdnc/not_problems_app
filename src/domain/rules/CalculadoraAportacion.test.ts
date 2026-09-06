@@ -2,6 +2,9 @@ import { describe, it, expect } from 'vitest';
 import {
   calcularImporteAportado,
   calcularTotalCuentaConjunta,
+  calcularAhorro,
+  calcularRestantePresupuesto,
+  calcularPorcentajePresupuestoConsumido,
 } from './CalculadoraAportacion';
 
 // Todas las cantidades se expresan en céntimos enteros (100 = 1 €).
@@ -49,6 +52,52 @@ describe('CalculadoraAportacion', () => {
 
     it('devuelve 0 para lista vacía', () => {
       expect(calcularTotalCuentaConjunta([])).toBe(0);
+    });
+  });
+
+  describe('calcularAhorro', () => {
+    it('con presupuesto fijado: ahorro = aportado - presupuesto', () => {
+      expect(calcularAhorro(300000, 20000, 0)).toBe(280000);
+    });
+
+    it('el gasto no descuenta del ahorro cuando hay presupuesto', () => {
+      expect(calcularAhorro(300000, 20000, 18000)).toBe(280000);
+    });
+
+    it('sin presupuesto: ahorro = aportado - gastado (continuidad)', () => {
+      expect(calcularAhorro(300000, null, 18000)).toBe(282000);
+    });
+
+    it('puede ser negativo si no hay aportado suficiente', () => {
+      expect(calcularAhorro(15000, 20000, 0)).toBe(-5000);
+    });
+  });
+
+  describe('calcularRestantePresupuesto', () => {
+    it('devuelve presupuesto - gastado', () => {
+      expect(calcularRestantePresupuesto(20000, 6500)).toBe(13500);
+    });
+
+    it('devuelve null si no hay presupuesto', () => {
+      expect(calcularRestantePresupuesto(null, 6500)).toBeNull();
+    });
+
+    it('devuelve negativo cuando se supera el tope', () => {
+      expect(calcularRestantePresupuesto(20000, 25000)).toBe(-5000);
+    });
+  });
+
+  describe('calcularPorcentajePresupuestoConsumido', () => {
+    it('calcula el porcentaje sobre el presupuesto', () => {
+      expect(calcularPorcentajePresupuestoConsumido(5000, 20000)).toBeCloseTo(25);
+    });
+
+    it('devuelve null si no hay presupuesto', () => {
+      expect(calcularPorcentajePresupuestoConsumido(5000, null)).toBeNull();
+    });
+
+    it('puede superar 100 al sobrepasar el tope', () => {
+      expect(calcularPorcentajePresupuestoConsumido(30000, 20000)).toBeCloseTo(150);
     });
   });
 });

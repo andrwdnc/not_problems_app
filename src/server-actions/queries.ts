@@ -4,15 +4,24 @@ import {
   gastoRepository,
 } from '@/server-actions/repositories';
 import { generarMesAutomático } from '@/server-actions/meses-actions';
+import { calcularAhorro, calcularRestantePresupuesto, calcularPorcentajePresupuestoConsumido } from '@/domain/rules/CalculadoraAportacion';
 import type { Mes, Aportacion, Gasto } from '@/infrastructure/repositories';
 
-/** Resumen de un mes. Las cifras (aportado/gastado/disponible) están en céntimos enteros. */
+/** Resumen de un mes. Las cifras están en céntimos enteros. */
 export interface ResumenMes {
   aportado: number;
   gastado: number;
   disponible: number;
   numeroGastos: number;
   porcentajeGastado: number;
+  /** Presupuesto de gastos del mes en céntimos; null hasta que se fija. */
+  presupuesto: number | null;
+  /** Ahorro = aportado − presupuesto; sin presupuesto, aportado − gastado. */
+  ahorro: number;
+  /** Presupuesto restante (presupuesto − gastado); null si no hay tope. */
+  restantePresupuesto: number | null;
+  /** % del presupuesto consumido; null si no hay tope. Puede superar 100. */
+  porcentajePresupuesto: number | null;
 }
 
 /**
@@ -23,6 +32,7 @@ export interface ResumenMes {
 export function calcularResumen(
   aportaciones: Aportacion[],
   gastos: Gasto[],
+  presupuesto: number | null,
 ): ResumenMes {
   const aportado = aportaciones.reduce(
     (acc, a) => acc + (a.importeAportado ?? 0),
@@ -39,15 +49,25 @@ export function calcularResumen(
     disponible,
     numeroGastos: gastos.length,
     porcentajeGastado,
+    presupuesto,
+    ahorro: calcularAhorro(aportado, presupuesto, gastado),
+    restantePresupuesto: calcularRestantePresupuesto(presupuesto, gastado),
+    porcentajePresupuesto: calcularPorcentajePresupuestoConsumido(
+      gastado,
+      presupuesto,
+    ),
   };
 }
 
-export async function obtenerResumenMes(mesId: string): Promise<ResumenMes> {
+export async function obtenerResumenMes(
+  mesId: string,
+  presupuesto: number | null,
+): Promise<ResumenMes> {
   const [aportaciones, gastos] = await Promise.all([
     aportacionRepository.findByMes(mesId),
     gastoRepository.findByMes(mesId),
   ]);
-  return calcularResumen(aportaciones, gastos);
+  return calcularResumen(aportaciones, gastos, presupuesto);
 }
 
 function calcularMesAnterior(anio: number, mes: number): { anio: number; mes: number } {

@@ -18,6 +18,9 @@ export interface Mes {
   porcentaje: number | null;
   porcentajeFijadoPor: string | null;
   porcentajeFechaRegistro: Date | null;
+  presupuesto: number | null;
+  presupuestoFijadoPor: string | null;
+  presupuestoFechaRegistro: Date | null;
   fechaApertura: Date;
 }
 

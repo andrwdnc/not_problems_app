@@ -31,5 +31,16 @@ export const porcentajeSchema = z.object({
     .refine((v) => v <= 100, aportacionErrores.porcentajeMaximo),
 });
 
+// El presupuesto de gastos se escribe en euros ("200") igual que el sueldo y se
+// convierte a céntimos enteros para el dominio y la persistencia.
+export const presupuestoSchema = z.object({
+  mesId: z.string().uuid(),
+  presupuesto: sueldoCentimos.refine(
+    (v) => v > 0,
+    aportacionErrores.presupuestoPositivo,
+  ),
+});
+
 export type SueldoInput = z.infer<typeof sueldoSchema>;
 export type PorcentajeInput = z.infer<typeof porcentajeSchema>;
+export type PresupuestoInput = z.infer<typeof presupuestoSchema>;

@@ -50,7 +50,7 @@ export default async function HistoricoPage() {
                     <Badge tone={estado.tone}>{estado.texto}</Badge>
                   </div>
 
-                  <div className="mt-3 grid grid-cols-3 gap-2 text-center">
+                  <div className="mt-3 grid grid-cols-4 gap-2 text-center">
                     <div>
                       <p className="text-xs text-brand-muted">{resumen.aportado}</p>
                       <p className="font-mono text-sm font-semibold text-brand-primary">
@@ -62,6 +62,16 @@ export default async function HistoricoPage() {
                       <p className="font-mono text-sm font-semibold text-financial-negative">
                         {formatCurrency(h.gastado)}
                       </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-brand-muted">{resumen.presupuesto}</p>
+                      {h.presupuesto != null ? (
+                        <p className="font-mono text-sm font-semibold text-brand-navy">
+                          {formatCurrency(h.presupuesto)}
+                        </p>
+                      ) : (
+                        <p className="font-mono text-sm font-semibold text-brand-muted">—</p>
+                      )}
                     </div>
                     <div>
                       <p className="text-xs text-brand-muted">

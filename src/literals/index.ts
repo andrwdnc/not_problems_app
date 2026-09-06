@@ -48,7 +48,7 @@ export const authErrores = {
 export const nav = {
   inicio: 'Inicio',
   gastos: 'Gastos',
-  aportar: 'Aportar',
+  aportar: 'Aportes',
   historico: 'Histórico',
   salir: 'Salir',
   cerrarSesion: 'Cerrar sesión',
@@ -99,7 +99,7 @@ export const gastosErrores = {
 };
 
 export const aportar = {
-  titulo: 'Aportar',
+  titulo: 'Aportes y presupuesto',
   sueldoIntegro: 'Sueldo íntegro',
   guardarSueldo: 'Guardar sueldo',
   errorGuardarSueldo: 'Error al guardar el sueldo. Inténtalo de nuevo.',
@@ -111,8 +111,15 @@ export const aportar = {
   porcentajeUnico: 'Porcentaje único del mes',
   fijarPorcentaje: 'Fijar porcentaje',
   errorFijarPorcentaje: 'Error al fijar el porcentaje. Inténtalo de nuevo.',
+  presupuestoGastos: 'Presupuesto de gastos',
+  presupuestoUnicoMes: 'Presupuesto de gastos del mes',
+  fijarPresupuesto: 'Fijar presupuesto',
+  errorFijarPresupuesto:
+    'Error al fijar el presupuesto. Inténtalo de nuevo.',
+  fijadoPor: (username: string, fecha: string) => `Fijado por ${username} el ${fecha}`,
   totalCuentaConjunta: 'Total cuenta conjunta',
-  notaInamovible: 'El sueldo y el porcentaje son inamovibles una vez guardados.',
+  notaInamovible:
+    'El sueldo, el porcentaje y el presupuesto de gastos son inamovibles una vez guardados.',
   sinMesAbierto: 'No hay un mes abierto todavía.',
 };
 
@@ -120,9 +127,12 @@ export const aportacionErrores = {
   sueldoPositivo: 'El sueldo debe ser mayor que 0',
   porcentajePositivo: 'El porcentaje debe ser mayor que 0',
   porcentajeMaximo: 'El porcentaje no puede superar 100',
+  presupuestoPositivo: 'El presupuesto debe ser mayor que 0',
   sueldoYaFijado: 'El sueldo ya está fijado y no se puede modificar.',
   porcentajeYaFijado:
     'El porcentaje ya está fijado y no se puede modificar.',
+  presupuestoYaFijado:
+    'El presupuesto ya está fijado y no se puede modificar.',
   mesNoEncontrado: 'Mes no encontrado.',
 };
 
@@ -135,15 +145,20 @@ export const inicio = {
   sinGastosMes: 'Aún no hay gastos registrados este mes.',
   sinDatos:
     'Todavía no hay datos para este mes. Aporta tu sueldo o registra un gasto para empezar.',
+  teHasPasadoPresupuesto: (monto: string) =>
+    `Te has pasado ${monto} del presupuesto del mes.`,
 };
 
 export const resumen = {
   aportado: 'Aportado',
   gastado: 'Gastado',
   disponible: 'Disponible',
+  presupuesto: 'Presupuesto',
   ahorro: 'Ahorro',
   deficit: 'Déficit',
   gastadoRing: 'gastado',
+  presupuestoRing: 'del presupuesto',
+  superado: 'presupuesto superado',
 };
 
 export const historico = {
