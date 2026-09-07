@@ -42,6 +42,42 @@ export function calcularTotalCuentaConjunta(
 }
 
 /**
+ * Suma los importes aportados de un conjunto de aportaciones (en céntimos).
+ * Ignora registros cuyo importeAportado aún no está calculado (null).
+ */
+export function sumarAportado(
+  aportaciones: Array<{ importeAportado: number | null | undefined }>,
+): number {
+  return aportaciones.reduce(
+    (acc, a) => acc + (a.importeAportado ?? 0),
+    0,
+  );
+}
+
+/**
+ * Suma los importes de un conjunto de gastos (en céntimos).
+ */
+export function sumarGastado(gastos: Array<{ importe: number }>): number {
+  return gastos.reduce((acc, g) => acc + g.importe, 0);
+}
+
+/**
+ * Totales agregados de un mes: aportado, gastado y número de gastos.
+ * Regla pura compartida por el resumen del mes actual, el histórico y los
+ * detalles de un mes concreto (DRY).
+ */
+export function calcularTotalesMes(
+  aportaciones: Array<{ importeAportado: number | null | undefined }>,
+  gastos: Array<{ importe: number }>,
+): { aportado: number; gastado: number; numeroGastos: number } {
+  return {
+    aportado: sumarAportado(aportaciones),
+    gastado: sumarGastado(gastos),
+    numeroGastos: gastos.length,
+  };
+}
+
+/**
  * Regla pura: ahorro del mes = aportado − presupuesto de gastos.
  *
  * Cuando aún no se ha fijado el presupuesto, el ahorro coincide con

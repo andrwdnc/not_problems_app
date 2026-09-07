@@ -5,6 +5,9 @@ import {
   calcularAhorro,
   calcularRestantePresupuesto,
   calcularPorcentajePresupuestoConsumido,
+  sumarAportado,
+  sumarGastado,
+  calcularTotalesMes,
 } from './CalculadoraAportacion';
 
 // Todas las cantidades se expresan en céntimos enteros (100 = 1 €).
@@ -52,6 +55,57 @@ describe('CalculadoraAportacion', () => {
 
     it('devuelve 0 para lista vacía', () => {
       expect(calcularTotalCuentaConjunta([])).toBe(0);
+    });
+  });
+
+  describe('sumarAportado', () => {
+    it('suma los importes ya calculados', () => {
+      expect(
+        sumarAportado([{ importeAportado: 1000 }, { importeAportado: 500 }]),
+      ).toBe(1500);
+    });
+
+    it('ignora aportaciones pendientes de porcentaje (null)', () => {
+      expect(
+        sumarAportado([
+          { importeAportado: 1000 },
+          { importeAportado: null },
+          { importeAportado: 500 },
+        ]),
+      ).toBe(1500);
+    });
+
+    it('devuelve 0 para lista vacía', () => {
+      expect(sumarAportado([])).toBe(0);
+    });
+  });
+
+  describe('sumarGastado', () => {
+    it('suma todos los gastos', () => {
+      expect(sumarGastado([{ importe: 100 }, { importe: 250 }])).toBe(350);
+    });
+
+    it('devuelve 0 para lista vacía', () => {
+      expect(sumarGastado([])).toBe(0);
+    });
+  });
+
+  describe('calcularTotalesMes', () => {
+    it('agrega aportado, gastado y el número de gastos', () => {
+      expect(
+        calcularTotalesMes(
+          [{ importeAportado: 1000 }, { importeAportado: null }],
+          [{ importe: 250 }, { importe: 250 }],
+        ),
+      ).toEqual({ aportado: 1000, gastado: 500, numeroGastos: 2 });
+    });
+
+    it('devuelve ceros cuando no hay datos', () => {
+      expect(calcularTotalesMes([], [])).toEqual({
+        aportado: 0,
+        gastado: 0,
+        numeroGastos: 0,
+      });
     });
   });
 

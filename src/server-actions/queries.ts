@@ -4,8 +4,15 @@ import {
   gastoRepository,
 } from '@/server-actions/repositories';
 import { generarMesAutomático } from '@/server-actions/meses-actions';
-import { calcularAhorro, calcularRestantePresupuesto, calcularPorcentajePresupuestoConsumido } from '@/domain/rules/CalculadoraAportacion';
-import type { Mes, Aportacion, Gasto } from '@/infrastructure/repositories';
+import {
+  calcularAhorro,
+  calcularRestantePresupuesto,
+  calcularPorcentajePresupuestoConsumido,
+  calcularTotalesMes,
+} from '@/domain/rules/CalculadoraAportacion';
+import { getCurrentUserId } from '@/server/auth';
+import { auditarMovimiento } from '@/infrastructure/audit/auditarMovimiento';
+import type { Mes, Aportacion, Gasto } from '@/domain/entities';
 
 /** Resumen de un mes. Las cifras están en céntimos enteros. */
 export interface ResumenMes {
@@ -34,11 +41,10 @@ export function calcularResumen(
   gastos: Gasto[],
   presupuesto: number | null,
 ): ResumenMes {
-  const aportado = aportaciones.reduce(
-    (acc, a) => acc + (a.importeAportado ?? 0),
-    0,
+  const { aportado, gastado, numeroGastos } = calcularTotalesMes(
+    aportaciones,
+    gastos,
   );
-  const gastado = gastos.reduce((acc, g) => acc + g.importe, 0);
 
   const disponible = aportado - gastado;
   const porcentajeGastado = aportado > 0 ? (gastado / aportado) * 100 : 0;
@@ -47,7 +53,7 @@ export function calcularResumen(
     aportado,
     gastado,
     disponible,
-    numeroGastos: gastos.length,
+    numeroGastos,
     porcentajeGastado,
     presupuesto,
     ahorro: calcularAhorro(aportado, presupuesto, gastado),
@@ -57,17 +63,6 @@ export function calcularResumen(
       presupuesto,
     ),
   };
-}
-
-export async function obtenerResumenMes(
-  mesId: string,
-  presupuesto: number | null,
-): Promise<ResumenMes> {
-  const [aportaciones, gastos] = await Promise.all([
-    aportacionRepository.findByMes(mesId),
-    gastoRepository.findByMes(mesId),
-  ]);
-  return calcularResumen(aportaciones, gastos, presupuesto);
 }
 
 function calcularMesAnterior(anio: number, mes: number): { anio: number; mes: number } {
@@ -113,7 +108,11 @@ async function resolverMesActual(anio: number, mes: number): Promise<Mes | null>
   const existente = await mesRepository.findByAnioAndMes(anio, mes);
   if (existente) return existente;
 
-  // No existe el mes actual → generarlo automáticamente.
+  // No existe el mes actual → generarlo automáticamente. La sesión del usuario
+  // se resuelve aquí (antes de mutar la BD) porque la auditoría del alta es
+  // obligatoria y exige conocer quién la realiza.
+  const usuarioId = await getCurrentUserId();
+
   const anterior = calcularMesAnterior(anio, mes);
   const mesAnterior = await mesRepository.findByAnioAndMes(
     anterior.anio,
@@ -122,10 +121,19 @@ async function resolverMesActual(anio: number, mes: number): Promise<Mes | null>
 
   if (mesAnterior) {
     // Encadena los recurrentes del mes anterior al nuevo mes.
-    return generarMesAutomático(anio, mes, mesAnterior.id);
+    return generarMesAutomático(anio, mes, mesAnterior.id, usuarioId);
   }
 
-  // Primer mes de uso: se crea vacío.
-  const { mes: mesVacio } = await mesRepository.findOrCreate({ anio, mes });
+  // Primer mes de uso: se crea vacío, auditando el alta (§5.5).
+  const { mes: mesVacio, creado } = await mesRepository.findOrCreate({ anio, mes });
+  if (creado && usuarioId) {
+    await auditarMovimiento({
+      usuarioId,
+      entidad: 'meses',
+      entidadId: mesVacio.id,
+      accion: 'crear',
+      valorNuevo: { anio, mes },
+    });
+  }
   return mesVacio;
 }

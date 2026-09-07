@@ -2,13 +2,13 @@
 
 import { mesRepository, gastoRepository } from './repositories';
 import { auditarMovimiento } from '@/infrastructure/audit/auditarMovimiento';
-import { getCurrentUserId } from '@/server/auth';
 import { prepararDuplicadoRecurrente } from '@/domain/rules/GastosRecurrentes';
-import type { Mes } from '@/infrastructure/repositories';
+import type { Mes } from '@/domain/entities';
 
 /**
  * Genera automáticamente el mes nuevo a partir del mes anterior:
- * 1. Crea el registro en `meses` (de forma atómica/única por año+mes).
+ * 1. Crea el registro en `meses` (de forma atómica/única por año+mes) y audita
+ *    su creación (§5.5).
  * 2. Si este llamador fue quien creó el mes, duplica los gastos recurrentes del
  *    mes anterior al nuevo mes, encadenando `gasto_recurrente_origen_id`.
  *
@@ -19,6 +19,7 @@ export async function generarMesAutomático(
   anioNuevo: number,
   mesNuevo: number,
   mesAnteriorId: string,
+  usuarioId: string | null,
 ): Promise<Mes> {
   const { mes: nuevoMes, creado } = await mesRepository.findOrCreate({
     anio: anioNuevo,
@@ -30,8 +31,17 @@ export async function generarMesAutomático(
     return nuevoMes;
   }
 
+  if (usuarioId) {
+    await auditarMovimiento({
+      usuarioId,
+      entidad: 'meses',
+      entidadId: nuevoMes.id,
+      accion: 'crear',
+      valorNuevo: { anio: anioNuevo, mes: mesNuevo },
+    });
+  }
+
   const recurrentes = await gastoRepository.findRecurrentesDeMes(mesAnteriorId);
-  const usuarioId = await getCurrentUserId();
 
   for (const gasto of recurrentes) {
     if (!usuarioId) {

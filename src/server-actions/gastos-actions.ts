@@ -6,7 +6,7 @@ import { gastoRepository, mesRepository } from './repositories';
 import { auditarMovimiento } from '@/infrastructure/audit/auditarMovimiento';
 import { ventanaEdicionGastos } from '@/domain/rules/VentanaEdicionGastos';
 import { getCurrentUserId } from '@/server/auth';
-import type { Gasto } from '@/infrastructure/repositories';
+import type { Gasto } from '@/domain/entities';
 import type { ActionResult } from './action-result';
 import { handleError } from './action-result';
 import { authErrores, gastosErrores } from '@/literals';
@@ -36,8 +36,20 @@ export async function crearGasto(
   // registro de ese mes aún no existe —p. ej. un gasto "olvidado" de un mes
   // previo— se crea, evitando asignar el gasto al mes equivocado.
   const { anio, mes } = mesDeFecha(data.fechaGasto);
-  const { mes: mesDelGasto } = await mesRepository.findOrCreate({ anio, mes });
+  const { mes: mesDelGasto, creado } = await mesRepository.findOrCreate({ anio, mes });
   const mesId = mesDelGasto.id;
+
+  // Si la creación del gasto "olvidado" materializó el registro del mes en la
+  // BD, ese alta también se audita (regla de auditoría obligatoria §5.5).
+  if (creado) {
+    await auditarMovimiento({
+      usuarioId,
+      entidad: 'meses',
+      entidadId: mesId,
+      accion: 'crear',
+      valorNuevo: { anio, mes },
+    });
+  }
 
   const ventana = ventanaEdicionGastos({
     hoy: new Date(),

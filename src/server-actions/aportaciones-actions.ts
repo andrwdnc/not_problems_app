@@ -6,7 +6,7 @@ import { aportacionRepository, mesRepository } from './repositories';
 import { auditarMovimiento } from '@/infrastructure/audit/auditarMovimiento';
 import { calcularImporteAportado } from '@/domain/rules/CalculadoraAportacion';
 import { getCurrentUserId } from '@/server/auth';
-import type { Aportacion, Mes } from '@/infrastructure/repositories';
+import type { Aportacion, Mes } from '@/domain/entities';
 import type { ActionResult } from './action-result';
 import { handleError } from './action-result';
 import { aportacionErrores, authErrores } from '@/literals';
@@ -34,7 +34,8 @@ export async function fijarSueldo(
     data.mesId,
     data.usuarioId,
   );
-  if (existente && existente.importeAportado != null) {
+  // Inmutabilidad del sueldo (§5.2): una vez guardado no se puede modificar.
+  if (existente && existente.sueldo != null) {
     return { ok: false, error: aportacionErrores.sueldoYaFijado };
   }
 
