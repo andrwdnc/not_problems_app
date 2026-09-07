@@ -260,6 +260,8 @@ export const historicoMovimientos = pgTable('historico_movimientos', {
 
 > **Conexión lazy (serverless):** la DB se accede siempre mediante `getDb()` (`src/infrastructure/db/connection.ts`), que crea un pool singleton cacheado a nivel global y establece la conexión **al primer uso**, no al importar el módulo. Esto evita fugas de sockets en Vercel (serverless) y permite que el build funcione sin la DB. Nunca crear un `Pool` nuevo en el cuerpo de una Server Action.
 
+> **Única base de datos (en pruebas):** mientras la app esté en fase de pruebas, **desarrollo y producción comparten la misma Supabase (Postgres)**. `DATABASE_URL`/`DIRECT_URL` apuntan a la misma instancia en todos los entornos de Vercel. Las operaciones que escriben o borran datos (`db:push`, `db:migrate`, `db:vaciar`) afectan por igual a dev y prod; no hay dataset separado por entorno. Al resetear se pierde cualquier dato (esperado: la app aún no está en producción real).
+
 ---
 
 ## 8. Comandos de Desarrollo
@@ -274,10 +276,10 @@ export const historicoMovimientos = pgTable('historico_movimientos', {
 | `npm run test` | Ejecutar tests unitarios una vez (Vitest) |
 | `npm run test:watch` | Vitest en modo watch durante desarrollo |
 | `npm run db:generate` | Generar migraciones SQL a partir del schema |
-| `npm run db:push` | Aplicar el schema Drizzle a Supabase (desarrollo) |
+| `npm run db:push` | Aplicar el schema Drizzle a la Supabase (única: dev y prod comparten instancia) |
 | `npm run db:migrate` | Aplicar las migraciones SQL generadas (producción) |
 | `npm run db:studio` | Abrir Drizzle Studio |
-| `npm run db:vaciar` | Reset de la DB local (solo dev; script excluido del build) |
+| `npm run db:vaciar` | Vaciar la Supabase (gastos, aportaciones, histórico, meses, usuarios). Afecta a dev y prod porque comparten la misma BD; solo para fase de pruebas |
 
 > Si algún script aún no existe en `package.json`, créalo en lugar de asumir que funciona.
 
@@ -315,6 +317,8 @@ DATABASE_URL=...                  # Conexión Postgres de Supabase (pooler) — 
 DIRECT_URL=...                    # Conexión directa para migraciones de Drizzle
 AUTH_SECRET=...                   # Secreto (>= 32 chars) para firmar la cookie de sesión (HMAC-SHA256)
 ```
+
+> Apuntan a la **única** Supabase del proyecto, compartida por todos los entornos de Vercel (en pruebas, no hay separación dev/prod).
 
 Reglas:
 - **PROHIBIDO** commitear cualquier archivo con secretos reales. Los valores de ejemplo van en `.env.example` (sin valores reales).

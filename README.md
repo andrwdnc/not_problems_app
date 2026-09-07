@@ -52,7 +52,7 @@ AUTH_SECRET=...    # Secreto (>= 32 chars) para firmar la cookie de sesión (HMA
 ```bash
 npm install            # Instalar dependencias
 cp .env.example .env.local   # Y rellena con tus credenciales reales
-npx drizzle-kit push   # Aplicar el schema a Supabase (desarrollo)
+npx drizzle-kit push   # Aplicar el schema a la Supabase (única: dev y prod comparten)
 npm run dev            # http://localhost:3000
 ```
 
@@ -67,10 +67,10 @@ npm run dev            # http://localhost:3000
 | `npm run test` | Tests unitarios (Vitest) |
 | `npm run test:watch` | Vitest en modo watch |
 | `npm run db:generate` | Generar migraciones SQL |
-| `npm run db:push` | Aplicar schema a la DB |
+| `npm run db:push` | Aplicar schema a la Supabase (única: dev y prod comparten instancia) |
 | `npm run db:migrate` | Aplicar migraciones SQL (producción) |
 | `npm run db:studio` | Abrir Drizzle Studio |
-| `npm run db:vaciar` | Reset de la DB local (solo dev) |
+| `npm run db:vaciar` | Vaciar la Supabase. **Afecta a dev y prod** porque comparten la misma BD; solo para fase de pruebas |
 
 ## Despliegue (Vercel)
 
@@ -78,6 +78,7 @@ npm run dev            # http://localhost:3000
 - **Preview**: otras ramas (p. ej. `develop`) generan despliegues de vista previa.
 - Las variables de entorno se configuran como **Secrets** en Vercel (nunca en el repo).
 - URL de producción: `https://notproblemsapp.vercel.app`
+- **Base de datos compartida:** mientras la app está en pruebas, `DATABASE_URL`/`DIRECT_URL` apuntan a la **misma** Supabase en todos los entornos de Vercel (sin separación dev/prod). `db:push`, `db:migrate` y `db:vaciar` afectan por igual a preview y producción.
 
 ## Convenciones de Git
 

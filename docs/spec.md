@@ -19,11 +19,12 @@ La app no gestiona gastos personales ni dinero real: todo lo registrado en ella 
 |---|---|---|
 | Frontend + backend | Next.js (App Router) | Un único framework para UI y lógica de servidor (Server Actions), sin API separada |
 | Despliegue | Vercel (plan gratuito) | Integración nativa con Next.js, despliegue automático por push a Git |
-| Base de datos | Supabase (Postgres) | Free tier permanente, persistencia de datos |
-| ORM | Drizzle | Capa fina sobre SQL, sin generación de cliente, migraciones en SQL crudo legible |
+| Base de datos | Supabase (Postgres) | Free tier permanente, persistencia de datos || ORM | Drizzle | Capa fina sobre SQL, sin generación de cliente, migraciones en SQL crudo legible |
 | Autenticación | Propia (username + bcrypt + cookie) | Login por usuario + contraseña hasheada; sesión en cookie HTTP-only firmada HMAC-SHA256. No usa Supabase Auth |
 | Estilos | Tailwind CSS | Desarrollo rápido sin diseñar un sistema de componentes desde cero |
 | Control de versiones | GitHub (repo privado) | Conecta directamente con Vercel para despliegue continuo |
+
+> **Una única base de datos:** mientras la app esté en pruebas, **desarrollo y producción comparten la misma Supabase (Postgres)**. No hay un dataset separado por entorno: las operaciones que escriben o borran datos (`db:push`, `db:migrate`, `db:vaciar`) afectan a dev y a prod por igual. Al ejecutar el reset se borran los datos (la app aún está en pruebas, no hay datos de producción real que preservar).
 
 ### Pasos de arranque sugeridos
 1. `npx create-next-app@latest` (TypeScript + Tailwind + App Router).
