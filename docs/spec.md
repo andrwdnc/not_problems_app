@@ -19,11 +19,12 @@ La app no gestiona gastos personales ni dinero real: todo lo registrado en ella 
 |---|---|---|
 | Frontend + backend | Next.js (App Router) | Un único framework para UI y lógica de servidor (Server Actions), sin API separada |
 | Despliegue | Vercel (plan gratuito) | Integración nativa con Next.js, despliegue automático por push a Git |
-| Base de datos | Supabase (Postgres) | Free tier permanente, persistencia de datos |
-| ORM | Drizzle | Capa fina sobre SQL, sin generación de cliente, migraciones en SQL crudo legible |
+| Base de datos | Supabase (Postgres) | Free tier permanente, persistencia de datos || ORM | Drizzle | Capa fina sobre SQL, sin generación de cliente, migraciones en SQL crudo legible |
 | Autenticación | Propia (username + bcrypt + cookie) | Login por usuario + contraseña hasheada; sesión en cookie HTTP-only firmada HMAC-SHA256. No usa Supabase Auth |
 | Estilos | Tailwind CSS | Desarrollo rápido sin diseñar un sistema de componentes desde cero |
 | Control de versiones | GitHub (repo privado) | Conecta directamente con Vercel para despliegue continuo |
+
+> **Una única base de datos:** mientras la app esté en pruebas, **desarrollo y producción comparten la misma Supabase (Postgres)**. No hay un dataset separado por entorno: las operaciones que escriben o borran datos (`db:push`, `db:migrate`, `db:vaciar`) afectan a dev y a prod por igual. Al ejecutar el reset se borran los datos (la app aún está en pruebas, no hay datos de producción real que preservar).
 
 ### Pasos de arranque sugeridos
 1. `npx create-next-app@latest` (TypeScript + Tailwind + App Router).
@@ -53,9 +54,14 @@ Representa cada periodo mensual. Se crea automáticamente el día 1 de cada mes.
 | porcentaje | decimal (nullable) | **Porcentaje único de aportación del mes, compartido por los dos usuarios.** Lo puede fijar cualquiera de los dos. Inmutable una vez guardado |
 | porcentaje_fijado_por | FK → usuarios (nullable) | Quién fijó el porcentaje |
 | porcentaje_fecha_registro | timestamp (nullable) | Cuándo se fijó |
+| presupuesto | money (nullable) | Tope de gasto compartido del mes (céntimos). Único y compartido como el porcentaje; inmutable una vez guardado |
+| presupuesto_fijado_por | FK → usuarios (nullable) | Quién fijó el presupuesto |
+| presupuesto_fecha_registro | timestamp (nullable) | Cuándo se fijó |
 | fecha_apertura | timestamp | Momento en que se creó el mes automáticamente |
 
 > ⚠️ Importante: el porcentaje **no** es un valor por usuario. Es un único dato del mes que se aplica igual a los dos sueldos. No debe existir un campo `porcentaje` en `aportaciones`.
+
+> 💶 El esquema almacena todo importe monetario (`presupuesto`, `sueldo`, `importe_aportado`, `importe`) como **céntimos enteros** (`bigint`), para evitar errores de coma flotante. El único campo decimal es `porcentaje`.
 
 ### 3.3 `aportaciones`
 Sueldo declarado por cada usuario para un mes. Inmutable una vez guardado.
@@ -167,9 +173,9 @@ Regla de color: verde y coral están **reservados exclusivamente** para signific
 
 Pantalla de apertura de la app, la más visitada.
 - Selector de mes en cabecera (por defecto el mes en curso).
-- Anillo de progreso central: % del total aportado ya gastado. Elemento con más peso visual de toda la app.
-- Tres tarjetas de estado, siempre en este orden: **Aportado** (azul) / **Gastado** (coral) / **Disponible** (verde), cifras en monoespaciada.
-- Debajo: nota del total aportado del mes y número de gastos.
+- Anillo de progreso central: % del presupuesto de gastos ya consumido (o, sin presupuesto, % de lo aportado ya gastado). Elemento con más peso visual de toda la app.
+- Bajo el anillo: línea de resumen "Presupuesto: X € · N gastos" (el presupuesto se muestra aquí, no como tarjeta).
+- Tres tarjetas de estado: **Aportado** (azul) / **Gastado** (coral) / **Ahorro** (verde; pasa a rojo "Déficit" si se gasta más de lo aportado), cifras en monoespaciada.
 - Lista "Últimos gastos" (los 3 más recientes) con acceso a "Ver todos".
 
 ### 6.2 Aportación del mes
@@ -180,7 +186,8 @@ Pantalla de apertura de la app, la más visitada.
 - El porcentaje es un **único selector compartido para el mes** (no uno por tarjeta de usuario — corregir respecto al mockup, que mostraba un % independiente por persona). Al fijarlo, queda igual de inmutable y visible en ambas tarjetas.
 - Cada tarjeta muestra el `importe_aportado` resultante de ese usuario (sueldo × porcentaje del mes).
 - Tarjeta inferior de "Total cuenta conjunta" en azul marino, suma de ambos `importe_aportado`.
-- Aviso fijo al pie: sueldo y porcentaje son inamovibles una vez guardados.
+- Tarjeta de **"Presupuesto de gastos"** del mes: tope compartido fijable por cualquiera de los dos, inmutable tras guardar (como el porcentaje y los sueldos).
+- Aviso fijo al pie: sueldo, porcentaje y presupuesto son inamovibles una vez guardados.
 
 ### 6.3 Gastos
 ![Gastos](./mockups/screen_3_gastos.png)

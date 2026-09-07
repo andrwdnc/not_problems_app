@@ -50,13 +50,14 @@ src/
 │   └── layout/                 # Layouts específicos y Navegación Inferior
 ├── domain/                     # Capa del Dominio (Lógica de Negocio Pura)
 │   ├── entities/               # Tipos e interfaces del dominio (Mes, Usuario, Gasto, Aportacion)
-│   ├── rules/                  # Reglas de negocio puras (CalculadoraAportacion, VentanaEdicionGastos)
+│   ├── ports/                  # Puertos: interfaces de repositorio (contratos a implementar por infra)
+│   ├── rules/                  # Reglas de negocio puras (CalculadoraAportacion, VentanaEdicionGastos, GastosRecurrentes)
 │   └── value-objects/          # Objetos de valor (ImporteMoneda, Porcentaje, Categoria)
 ├── infrastructure/             # Capa de Infraestructura (DB & Servicios Externos)
 │   ├── db/                     # Drizzle Schema, conexión lazy (getDb) y migraciones
-│   ├── repositories/           # Implementación de acceso a datos (Drizzle Repositories)
+│   ├── repositories/           # Implementación Drizzle de los puertos del dominio (DIP)
 │   ├── audit/                  # Helper de auditoría (auditarMovimiento)
-│   └── config.ts               # Configuración validada con Zod (getConnectionUrl, getAuthSecret)
+│   └── config.ts               # Configuración validada con Zod (getConnectionUrl, getAuthSecret, esProduccion)
 ├── server-actions/             # Casos de Uso / Controladores (Server Actions de Next.js)
 │   ├── gastos-actions.ts       # Acciones relativas a gastos (crear, editar, eliminar)
 │   ├── aportaciones-actions.ts # Acciones de sueldo y porcentaje
@@ -74,7 +75,7 @@ src/
     └── utils.ts                # Merge de clases Tailwind (cn) y helpers generales
 ```
 
-> **Convención obligatoria de literales:** todo texto visible de la interfaz y los mensajes de validación deben vivir en `src/literals/` (importado como `literalesX`), **nunca** hardcodeado en un componente o server action. Esto mantiene la UI neutra y lista para la futura evolución individual.
+> **Convención obligatoria de literales:** todo texto visible de la interfaz y los mensajes de validación deben vivir en `src/literals/` (importado como `literalesX`), **nunca** hardcodeado en un componente o server action. Incluye los marcadores de formato neutros (`formatos.vacio`, `formatos.sufijoEuro`, `formatos.importeEjemplo`) y etiquetas de accesibilidad (`app.cargando`). Esto mantiene la UI neutra y lista para la futura evolución individual.
 
 > **Configuración centralizada:** el acceso a variables de entorno pasa siempre por `src/infrastructure/config.ts` (validado con Zod), nunca por `process.env` directo en el cuerpo de funciones.
 
@@ -90,16 +91,18 @@ El agente **DEBE** respetar estrictamente los siguientes principios al generar o
 - **Reglas del Dominio (`/domain/rules`):** Funciones puras que reciben datos y devuelven cálculos o booleanos de permiso. No dependen de Next.js ni de Drizzle.
 
 ### O — Open/Closed Principle (OCP)
-- El sistema de reglas de edición de gastos o cálculo de porcentajes está diseñado mediante estrategias o funciones puras extensibles. Añadir un nuevo estado o regla no debe requerir modificar la estructura interna de las funciones existentes.
+- Las reglas con estados o variantes están declaradas como **tablas de reglas** (datos) en lugar de cadenas `if/else`. Ejemplo: `VentanaEdicionGastos` decide el estado de cada mes mediante una tabla `REGLAS` + `PERMISOS`; añadir un nuevo estado (p. ej. "solo_altas hasta el día 10") significa añadir una entrada en su tabla, sin modificar la función.
 
 ### L — Liskov Substitution Principle (LSP)
-- Las capas de infraestructura implementan interfaces declaradas en la capa de aplicación/dominio. Se debe poder sustituir un repositorio de Drizzle por un mock en tests unitarios sin romper la aplicación.
+- Las capas de infraestructura implementan las interfaces declaradas en `src/domain/ports/repositories.ts`. Se debe poder sustituir un repositorio de Drizzle por un mock en tests unitarios sin romper la aplicación.
 
 ### I — Interface Segregation Principle (ISP)
 - No pasar objetos gigantes a los componentes visuales. Si un componente solo necesita el `importe` y la `categoria` de un gasto, su `props` debe requerir únicamente esos campos.
+- El usuario canónico de dominio es público (`{ id, username }`). Las credenciales (`passwordHash`) son internas de la autenticación (`UsuarioConCredenciales`) y **nunca** deben llegar a la capa de presentación.
 
 ### D — Dependency Inversion Principle (DIP)
-- Las Server Actions no deben importar directamente librerías o SQL crudo en medio de la función. Deben apoyarse en la abstracción de repositorios (`infrastructure/repositories`) y en la capa de configuración (`infrastructure/config.ts`) para las variables de entorno.
+- Los contratos de persistencia se declaran en el dominio (`src/domain/ports/repositories.ts`) y las Server Actions, queries y páginas dependen de esas abstracciones. La infraestructura (`infrastructure/repositories`) **implementa** esos puertos y los re-exporta por conveniencia (DIP).
+- Las Server Actions no deben importar directamente librerías o SQL crudo en medio de la función. Deben apoyarse en los repositorios (`infrastructure/repositories`) y en la capa de configuración (`infrastructure/config.ts`) para las variables de entorno (incluido `esProduccion()`, nunca `process.env.NODE_ENV` suelto).
 - Todo texto visible de la interfaz y de validación se importa desde `src/literals/`, manteniendo la UI desacoplada de valores hardcodeados.
 
 ---
@@ -180,12 +183,14 @@ Consumo como utilidades: `bg-brand-navy`, `text-financial-negative`, `bg-financi
 
 ## 7. Esquema de Base de Datos (Drizzle ORM Guidelines)
 
-Al definir o consultar con Drizzle:
+Al definir o consultar con Drizzle (schema real en `src/infrastructure/db/schema.ts`):
 
 ```typescript
-// Ejemplo de referencia del schema en src/infrastructure/db/schema.ts
+import { pgEnum, pgTable, uuid, text, integer, numeric, timestamp, date, boolean, jsonb, uniqueIndex, bigint, index } from 'drizzle-orm/pg-core';
 
-import { pgTable, uuid, text, integer, numeric, timestamp, date, boolean, jsonb, pgEnum, uniqueIndex } from 'drizzle-orm/pg-core';
+export const categoriaEnum = pgEnum('categoria_enum', [
+  'Vivienda', 'Suministros', 'Alimentacion', 'Ocio', 'Transporte', 'Salud', 'Otros',
+]);
 
 export const usuarios = pgTable('usuarios', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -201,8 +206,11 @@ export const meses = pgTable('meses', {
   mes: integer('mes').notNull(),
   porcentaje: numeric('porcentaje', { precision: 5, scale: 2, mode: 'number' }),
   porcentajeFijadoPor: uuid('porcentaje_fijado_por').references(() => usuarios.id),
-  porcentajeFechaRegistro: timestamp('porcentaje_fecha_registro'),
-  fechaApertura: timestamp('fecha_apertura').defaultNow().notNull(),
+  porcentajeFechaRegistro: timestamp('porcentaje_fecha_registro', { withTimezone: true }),
+  presupuesto: bigint('presupuesto', { mode: 'number' }), // céntimos; único e inmutable
+  presupuestoFijadoPor: uuid('presupuesto_fijado_por').references(() => usuarios.id),
+  presupuestoFechaRegistro: timestamp('presupuesto_fecha_registro', { withTimezone: true }),
+  fechaApertura: timestamp('fecha_apertura', { withTimezone: true }).defaultNow().notNull(),
 }, (table) => [
   uniqueIndex('meses_anio_mes_unique').on(table.anio, table.mes),
 ]);
@@ -211,13 +219,11 @@ export const aportaciones = pgTable('aportaciones', {
   id: uuid('id').primaryKey().defaultRandom(),
   mesId: uuid('mes_id').references(() => meses.id).notNull(),
   usuarioId: uuid('usuario_id').references(() => usuarios.id).notNull(),
-  sueldo: numeric('sueldo', { precision: 10, scale: 2, mode: 'number' }).notNull(),
-  importeAportado: numeric('importe_aportado', { precision: 10, scale: 2, mode: 'number' }),
-  fechaRegistro: timestamp('fecha_registro').defaultNow().notNull(),
-});
-
-export const categoriaEnum = pgEnum('categoria_enum', [
-  'Vivienda', 'Suministros', 'Alimentacion', 'Ocio', 'Transporte', 'Salud', 'Otros'
+  sueldo: bigint('sueldo', { mode: 'number' }).notNull(), // céntimos
+  importeAportado: bigint('importe_aportado', { mode: 'number' }), // céntimos
+  fechaRegistro: timestamp('fecha_registro', { withTimezone: true }).defaultNow().notNull(),
+}, (table) => [
+  uniqueIndex('aportaciones_mes_usuario_unique').on(table.mesId, table.usuarioId),
 ]);
 
 export const gastos = pgTable('gastos', {
@@ -225,29 +231,36 @@ export const gastos = pgTable('gastos', {
   mesId: uuid('mes_id').references(() => meses.id).notNull(),
   categoria: categoriaEnum('categoria').notNull(),
   detalle: text('detalle').notNull(),
-  importe: numeric('importe', { precision: 10, scale: 2, mode: 'number' }).notNull(),
+  importe: bigint('importe', { mode: 'number' }).notNull(), // céntimos
   fechaGasto: date('fecha_gasto', { mode: 'string' }).notNull(),
   esRecurrente: boolean('es_recurrente').default(false).notNull(),
   gastoRecurrenteOrigenId: uuid('gasto_recurrente_origen_id'),
   creadoPor: uuid('creado_por').references(() => usuarios.id).notNull(),
-  fechaCreacion: timestamp('fecha_creacion').defaultNow().notNull(),
+  fechaCreacion: timestamp('fecha_creacion', { withTimezone: true }).defaultNow().notNull(),
 });
 
 export const accionEnum = pgEnum('accion_enum', ['crear', 'editar', 'eliminar']);
+export const entidadEnum = pgEnum('entidad_enum', ['meses', 'aportaciones', 'gastos']);
 
 export const historicoMovimientos = pgTable('historico_movimientos', {
   id: uuid('id').primaryKey().defaultRandom(),
   usuarioId: uuid('usuario_id').references(() => usuarios.id).notNull(),
-  entidad: text('entidad').notNull(), // 'meses' | 'aportaciones' | 'gastos'
+  entidad: entidadEnum('entidad').notNull(),
   entidadId: uuid('entidad_id').notNull(),
   accion: accionEnum('accion').notNull(),
   valorAnterior: jsonb('valor_anterior'),
   valorNuevo: jsonb('valor_nuevo'),
-  fecha: timestamp('fecha').defaultNow().notNull(),
-});
+  fecha: timestamp('fecha', { withTimezone: true }).defaultNow().notNull(),
+}, (table) => [
+  index('historico_usuario_idx').on(table.usuarioId),
+]);
 ```
 
+> **Convención monetaria:** todos los importes monetarios (`sueldo`, `importeAportado`, `presupuesto`, `importe`) se guardan como `bigint` en **céntimos enteros** (`mode: 'number'`), nunca como `numeric`/`float`, para evitar errores de coma flotante. El único campo `numeric` es `meses.porcentaje` (%).
+
 > **Conexión lazy (serverless):** la DB se accede siempre mediante `getDb()` (`src/infrastructure/db/connection.ts`), que crea un pool singleton cacheado a nivel global y establece la conexión **al primer uso**, no al importar el módulo. Esto evita fugas de sockets en Vercel (serverless) y permite que el build funcione sin la DB. Nunca crear un `Pool` nuevo en el cuerpo de una Server Action.
+
+> **Única base de datos (en pruebas):** mientras la app esté en fase de pruebas, **desarrollo y producción comparten la misma Supabase (Postgres)**. `DATABASE_URL`/`DIRECT_URL` apuntan a la misma instancia en todos los entornos de Vercel. Las operaciones que escriben o borran datos (`db:push`, `db:migrate`, `db:vaciar`) afectan por igual a dev y prod; no hay dataset separado por entorno. Al resetear se pierde cualquier dato (esperado: la app aún no está en producción real).
 
 ---
 
@@ -263,9 +276,10 @@ export const historicoMovimientos = pgTable('historico_movimientos', {
 | `npm run test` | Ejecutar tests unitarios una vez (Vitest) |
 | `npm run test:watch` | Vitest en modo watch durante desarrollo |
 | `npm run db:generate` | Generar migraciones SQL a partir del schema |
-| `npm run db:push` | Aplicar el schema Drizzle a Supabase (desarrollo) |
+| `npm run db:push` | Aplicar el schema Drizzle a la Supabase (única: dev y prod comparten instancia) |
+| `npm run db:migrate` | Aplicar las migraciones SQL generadas (producción) |
 | `npm run db:studio` | Abrir Drizzle Studio |
-| `npm run db:vaciar` | Reset de la DB local (solo dev; script excluido del build) |
+| `npm run db:vaciar` | Vaciar la Supabase (gastos, aportaciones, histórico, meses, usuarios). Afecta a dev y prod porque comparten la misma BD; solo para fase de pruebas |
 
 > Si algún script aún no existe en `package.json`, créalo en lugar de asumir que funciona.
 
@@ -274,7 +288,8 @@ export const historicoMovimientos = pgTable('historico_movimientos', {
 ## 9. Testing
 
 - **Framework:** Vitest.
-- Las **reglas puras del dominio** (`src/domain/rules/**`) deben tener **tests unitarios obligatorios**: `VentanaEdicionGastos` (ventana de gracia, §5.4) y `CalculadoraAportacion` (§5.3) son candidatas críticas.
+- Las **reglas puras del dominio** (`src/domain/rules/**`) deben tener **tests unitarios obligatorios**: `VentanaEdicionGastos` (ventana de gracia, §5.4) y `CalculadoraAportacion` (§5.3, incluyendo los totales agregados) son críticas.
+- Los **value objects** (`src/domain/value-objects/**`) también llevan tests: `ImporteMoneda`, `Porcentaje` y `Categoria`.
 - Los tests viven junto al código testado, con sufijo `.test.ts` (ej. `src/domain/rules/VentanaEdicionGastos.test.ts`).
 - Las reglas del dominio son funciones puras: no requieren mocks ni conexión a base de datos.
 - Antes de cada commit: `npm run typecheck && npm run lint && npm run test`.
@@ -303,6 +318,8 @@ DIRECT_URL=...                    # Conexión directa para migraciones de Drizzl
 AUTH_SECRET=...                   # Secreto (>= 32 chars) para firmar la cookie de sesión (HMAC-SHA256)
 ```
 
+> Apuntan a la **única** Supabase del proyecto, compartida por todos los entornos de Vercel (en pruebas, no hay separación dev/prod).
+
 Reglas:
 - **PROHIBIDO** commitear cualquier archivo con secretos reales. Los valores de ejemplo van en `.env.example` (sin valores reales).
 - Ninguna variable sin prefijo `NEXT_PUBLIC_` puede llegar al bundle del cliente.
@@ -324,8 +341,9 @@ Cuando el usuario te pida construir o avanzar en la aplicación, sigue esta secu
    - Escribir los tests unitarios de ambas reglas (§9).
 
 3. **Paso 3: Infraestructura y Repositorios**
+   - Declarar los **puertos** (`src/domain/ports/repositories.ts`) y que los repositorios Drizzle los implementen (DIP).
    - Implementar las queries de Drizzle desacopladas de las Server Actions.
-   - Añadir la función helper de auditoría para que sea trivial llamar `auditarMovimiento(...)` tras cada mutación.
+   - Añadir la función helper de auditoría para que sea trivial llamar `auditarMovimiento(...)` tras cada mutación (incluida la creación de `meses`, §5.5).
 
 4. **Paso 4: Server Actions y Validaciones**
    - Crear Server Actions con esquemas de validación Zod.

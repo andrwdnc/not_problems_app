@@ -1,12 +1,13 @@
 import { cn } from '@/lib/utils';
 import { formatCurrency } from '@/lib/formatters/currency';
+import { formatos } from '@/literals';
 
-type Variante = 'aportado' | 'gastado' | 'disponible';
+type Variante = 'aportado' | 'gastado' | 'ahorro';
 
 interface TarjetaEstadoProps {
   variante: Variante;
   etiqueta: string;
-  importe: number;
+  importe: number | null;
 }
 
 const estilos: Record<
@@ -23,7 +24,7 @@ const estilos: Record<
     fondo: 'bg-financial-negativeBg',
     borde: 'border-financial-negative/20',
   },
-  disponible: {
+  ahorro: {
     texto: 'text-financial-positive',
     fondo: 'bg-financial-positiveBg',
     borde: 'border-financial-positive/20',
@@ -35,13 +36,11 @@ export function TarjetaEstado({
   etiqueta,
   importe,
 }: TarjetaEstadoProps) {
-  // "Disponible" es verde mientras haya saldo positivo; en cuanto se gasta más
-  // de lo ingresado (negativo), pasa a rojo para indicar déficit.
-  const esNegativo = importe < 0;
+  // "Ahorro" es verde mientras haya saldo positivo; en cuanto se gasta más de
+  // lo ingresado (negativo), pasa a rojo para indicar déficit.
+  const esNegativo = (importe ?? 0) < 0;
   const estilo =
-    variante === 'disponible' && esNegativo
-      ? estilos.gastado
-      : estilos[variante];
+    variante === 'ahorro' && esNegativo ? estilos.gastado : estilos[variante];
 
   return (
     <div
@@ -52,14 +51,20 @@ export function TarjetaEstado({
       )}
     >
       <p className="truncate text-xs font-medium text-brand-muted">{etiqueta}</p>
-      <p
-        className={cn(
-          'mt-1 min-w-0 break-words font-mono text-lg font-bold tabular-nums sm:text-xl',
-          estilo.texto,
-        )}
-      >
-        {formatCurrency(importe)}
-      </p>
+      {importe != null ? (
+        <p
+          className={cn(
+            'mt-1 min-w-0 break-words font-mono text-lg font-bold tabular-nums sm:text-xl',
+            estilo.texto,
+          )}
+        >
+          {formatCurrency(importe)}
+        </p>
+      ) : (
+        <p className="mt-1 font-mono text-lg font-bold tabular-nums text-brand-muted sm:text-xl">
+          {formatos.vacio}
+        </p>
+      )}
     </div>
   );
 }

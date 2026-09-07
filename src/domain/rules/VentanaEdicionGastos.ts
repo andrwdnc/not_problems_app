@@ -27,9 +27,54 @@ function diffMeses(anioHoy: number, mesHoy: number, anioGasto: number, mesGasto:
   return (anioHoy - anioGasto) * 12 + (mesHoy - mesGasto);
 }
 
-function esMismoMes(anioHoy: number, mesHoy: number, anioGasto: number, mesGasto: number): boolean {
-  return anioHoy === anioGasto && mesHoy === mesGasto;
+interface ContextoRegla {
+  /** Diferencia en meses (hoy − mes del gasto). Negativa: gasto a futuro. */
+  diferencia: number;
+  /** Día del mes en el momento de la consulta (1-31). */
+  diaHoy: number;
 }
+
+interface ReglaVentana {
+  estado: EstadoEdicion;
+  /** Predicado que decide si esta regla aplica al contexto. */
+  aplicar: (contexto: ContextoRegla) => boolean;
+}
+
+/**
+ * Tabla de reglas de la ventana de edición (OCP): las condiciones están
+ * declaradas como datos, de modo que añadir un nuevo estado (p. ej.
+ * "solo_altas hasta el día 10") implica añadir una entrada a `REGLAS` y su
+ * permiso a `PERMISOS`, sin tocar la estructura de `ventanaEdicionGastos`.
+ *
+ * Fecha del gasto > mes actual (diferencia negativa): sin regla específica, cae
+ * al fallback `congelado` (un gasto del futuro no es éditable).
+ */
+const REGLAS: ReglaVentana[] = [
+  // Mes actual → editable/eliminable/crear.
+  {
+    estado: 'editable',
+    aplicar: ({ diferencia }) => diferencia === 0,
+  },
+  // Mes anterior, hasta el día 5 inclusive → ventana de gracia (editable).
+  {
+    estado: 'gracia',
+    aplicar: ({ diferencia, diaHoy }) => diferencia === 1 && diaHoy <= 5,
+  },
+  // Mes anterior, desde el día 6 → solo altas (olvidos).
+  {
+    estado: 'solo_altas',
+    aplicar: ({ diferencia }) => diferencia === 1,
+  },
+  // Fallback: 2+ meses atrás o gasto del futuro → congelado (solo lectura).
+  { estado: 'congelado', aplicar: () => true },
+];
+
+const PERMISOS: Record<EstadoEdicion, PermisosEdicion> = {
+  editable: { estado: 'editable', puedeCrear: true, puedeEditar: true, puedeEliminar: true },
+  gracia: { estado: 'gracia', puedeCrear: true, puedeEditar: true, puedeEliminar: true },
+  solo_altas: { estado: 'solo_altas', puedeCrear: true, puedeEditar: false, puedeEliminar: false },
+  congelado: { estado: 'congelado', puedeCrear: false, puedeEditar: false, puedeEliminar: false },
+};
 
 /**
  * Regla pura que determina qué se puede hacer con un gasto según la fecha
@@ -49,39 +94,8 @@ export function ventanaEdicionGastos(contexto: FechaContexto): PermisosEdicion {
 
   const diferencia = diffMeses(anioHoy, mesHoy, anioGasto, mesGasto);
 
-  if (esMismoMes(anioHoy, mesHoy, anioGasto, mesGasto)) {
-    return {
-      estado: 'editable',
-      puedeCrear: true,
-      puedeEditar: true,
-      puedeEliminar: true,
-    };
-  }
-
-  if (diferencia === 1) {
-    if (diaHoy <= 5) {
-      return {
-        estado: 'gracia',
-        puedeCrear: true,
-        puedeEditar: true,
-        puedeEliminar: true,
-      };
-    }
-
-    return {
-      estado: 'solo_altas',
-      puedeCrear: true,
-      puedeEditar: false,
-      puedeEliminar: false,
-    };
-  }
-
-  return {
-    estado: 'congelado',
-    puedeCrear: false,
-    puedeEditar: false,
-    puedeEliminar: false,
-  };
+  const regla = REGLAS.find((r) => r.aplicar({ diferencia, diaHoy }));
+  return { ...PERMISOS[regla!.estado] };
 }
 
 /**

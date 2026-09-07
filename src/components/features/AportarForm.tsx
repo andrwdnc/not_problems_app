@@ -1,16 +1,21 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { fijarSueldo, fijarPorcentaje } from '@/server-actions/aportaciones-actions';
+import { fijarSueldo, fijarPorcentaje, fijarPresupuesto } from '@/server-actions/aportaciones-actions';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Badge } from '@/components/ui/Badge';
 import { Card } from '@/components/ui/Card';
 import { Lock } from 'lucide-react';
 import { formatCurrency } from '@/lib/formatters/currency';
-import type { Aportacion, Mes, Usuario } from '@/infrastructure/repositories';
-import { aportar } from '@/literals';
+import { formatShortDate } from '@/lib/formatters/date';
+import {
+  calcularTotalCuentaConjunta,
+  calcularImporteAportado,
+} from '@/domain/rules/CalculadoraAportacion';
+import type { Aportacion, Mes, Usuario } from '@/domain/entities';
+import { aportar, formatos } from '@/literals';
 
 interface AportarFormProps {
   mes: Mes;
@@ -19,13 +24,29 @@ interface AportarFormProps {
 }
 
 export function AportarForm({
-  mes,
+  mes: mesInicial,
   usuarios,
-  aportaciones,
+  aportaciones: aportacionesIniciales,
 }: AportarFormProps) {
   const router = useRouter();
   const [mensaje, setMensaje] = useState<string | null>(null);
   const [porcentajeValor, setPorcentajeValor] = useState('');
+  const [presupuestoValor, setPresupuestoValor] = useState('');
+
+  // Estado local síncrono con el servidor: tras una mutación confirmada se
+  // refleja al instante en la UI, sin depender del refresco del router.
+  const [mes, setMes] = useState(mesInicial);
+  const [aportaciones, setAportaciones] = useState(aportacionesIniciales);
+
+  // Cuando el servidor responde con datos frescos (router.refresh) se
+  // reconcilian sin sobrescribir una mutación local todavía no recargada.
+  useEffect(() => {
+    setMes(mesInicial);
+  }, [mesInicial]);
+
+  useEffect(() => {
+    setAportaciones(aportacionesIniciales);
+  }, [aportacionesIniciales]);
 
   const aportacionPorUsuario = new Map(
     aportaciones.map((a) => [a.usuarioId, a]),
@@ -44,6 +65,12 @@ export function AportarForm({
         setMensaje(resultado.error);
         return;
       }
+      setAportaciones((prev) => {
+        const existe = prev.some((a) => a.id === resultado.data.id);
+        return existe
+          ? prev.map((a) => (a.id === resultado.data.id ? resultado.data : a))
+          : [...prev, resultado.data];
+      });
       router.refresh();
     } catch {
       setMensaje(aportar.errorGuardarSueldo);
@@ -59,10 +86,40 @@ export function AportarForm({
         setMensaje(resultado.error);
         return;
       }
+      setMes(resultado.data);
+      // El servidor recalcula el importe aportado de los sueldos ya fijados;
+      // se replica aquí con la misma regla pura para que luzca al instante.
+      setAportaciones((prev) =>
+        prev.map((a) => {
+          if (a.importeAportado != null) return a;
+          const importe = calcularImporteAportado(
+            a.sueldo,
+            resultado.data.porcentaje as number,
+          );
+          return importe != null ? { ...a, importeAportado: importe } : a;
+        }),
+      );
       setPorcentajeValor('');
       router.refresh();
     } catch {
       setMensaje(aportar.errorFijarPorcentaje);
+    }
+  }
+
+  async function guardarPresupuesto(formData: FormData) {
+    const presupuesto = formData.get('presupuesto') as string;
+    setMensaje(null);
+    try {
+      const resultado = await fijarPresupuesto({ mesId: mes.id, presupuesto });
+      if (!resultado.ok) {
+        setMensaje(resultado.error);
+        return;
+      }
+      setMes(resultado.data);
+      setPresupuestoValor('');
+      router.refresh();
+    } catch {
+      setMensaje(aportar.errorFijarPresupuesto);
     }
   }
 
@@ -111,10 +168,11 @@ export function AportarForm({
                 <Input
                   label={aportar.sueldoIntegro}
                   name="sueldo"
-                  type="number"
+                  type="text"
                   inputMode="decimal"
-                  step="0.01"
-                  placeholder="0,00 €"
+                  autoComplete="off"
+                  pattern="[0-9]*[.,]?[0-9]*"
+                  placeholder={formatos.importeEjemplo}
                   required
                 />
                 <Button type="submit" fullWidth className="mt-3">
@@ -140,9 +198,10 @@ export function AportarForm({
             <Input
               label={aportar.porcentajeUnico}
               name="porcentaje"
-              type="number"
+              type="text"
               inputMode="decimal"
-              step="0.01"
+              autoComplete="off"
+              pattern="[0-9]*[.,]?[0-9]*"
               value={porcentajeValor}
               onChange={(e) => setPorcentajeValor(e.target.value)}
               placeholder="50"
@@ -155,14 +214,59 @@ export function AportarForm({
         )}
       </Card>
 
+      <Card className="border-brand-primary/30 bg-brand-pale/40">
+        <h3 className="mb-2 flex items-center gap-2 text-sm font-semibold text-brand-navy">
+          {aportar.presupuestoGastos}
+          {mes.presupuesto != null && <Lock size={14} className="text-brand-muted" />}
+        </h3>
+        {mes.presupuesto != null ? (
+          <>
+            <p className="font-mono text-3xl font-bold text-brand-navy">
+              {formatCurrency(mes.presupuesto)}
+            </p>
+            {(() => {
+              const fijadoPorUsuario = mes.presupuestoFijadoPor
+                ? usuarios.find((u) => u.id === mes.presupuestoFijadoPor)
+                : null;
+              if (!fijadoPorUsuario || !mes.presupuestoFechaRegistro) return null;
+              return (
+                <p className="mt-1 text-xs text-brand-muted">
+                  {aportar.fijadoPor(
+                    fijadoPorUsuario.username,
+                    formatShortDate(mes.presupuestoFechaRegistro),
+                  )}
+                </p>
+              );
+            })()}
+          </>
+        ) : (
+          <form action={guardarPresupuesto}>
+            <Input
+              label={aportar.presupuestoUnicoMes}
+              name="presupuesto"
+              type="text"
+              inputMode="decimal"
+              autoComplete="off"
+              pattern="[0-9]*[.,]?[0-9]*"
+              value={presupuestoValor}
+              onChange={(e) => setPresupuestoValor(e.target.value)}
+              placeholder={formatos.importeEjemplo}
+              required
+            />
+            <Button type="submit" fullWidth className="mt-3">
+              {aportar.fijarPresupuesto}
+            </Button>
+          </form>
+        )}
+      </Card>
+
       {mes.porcentaje != null && (
         <Card className="bg-brand-navy">
           <p className="text-xs text-brand-sky">{aportar.totalCuentaConjunta}</p>
           <p className="font-mono text-2xl font-bold text-white">
             {formatCurrency(
-              aportaciones.reduce(
-                (acc, a) => acc + (a.importeAportado ?? 0),
-                0,
+              calcularTotalCuentaConjunta(
+                aportaciones.map((a) => a.importeAportado),
               ),
             )}
           </p>

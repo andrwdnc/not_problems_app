@@ -22,14 +22,13 @@ import { Card } from '@/components/ui/Card';
 import { formatCurrency } from '@/lib/formatters/currency';
 import { formatShortDate } from '@/lib/formatters/date';
 import { CATEGORIAS, type Categoria } from '@/domain/value-objects/Categoria';
-import type { Gasto } from '@/infrastructure/repositories';
+import type { Gasto } from '@/domain/entities';
 import { eliminarGasto } from '@/server-actions/gastos-actions';
-import { gastos as gastosLiterales } from '@/literals';
+import { gastos as gastosLiterales, formatos } from '@/literals';
 
 interface GastosListProps {
   gastos: Gasto[];
   usuarios: Map<string, string>;
-  mesId: string;
 }
 
 const ICONOS: Record<Categoria, LucideIcon> = {
@@ -42,11 +41,13 @@ const ICONOS: Record<Categoria, LucideIcon> = {
   Otros: Package,
 };
 
-export function GastosList({ gastos, usuarios, mesId }: GastosListProps) {
-  const [filtro, setFiltro] = useState<Categoria | 'Todos'>('Todos');
+export function GastosList({ gastos, usuarios }: GastosListProps) {
+  // Filtro "Todos" se modela como null (intervalor/dead-state de instancia)
+  // en vez de un magic string, cumpliendo ISP/OCP.
+  const [filtro, setFiltro] = useState<Categoria | null>(null);
 
   const filtrados = useMemo(() => {
-    if (filtro === 'Todos') return gastos;
+    if (filtro === null) return gastos;
     return gastos.filter((g) => g.categoria === filtro);
   }, [gastos, filtro]);
 
@@ -60,7 +61,7 @@ export function GastosList({ gastos, usuarios, mesId }: GastosListProps) {
   return (
     <div className="relative space-y-4 pb-20">
       <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1">
-        <Chip active={filtro === 'Todos'} onClick={() => setFiltro('Todos')}>
+        <Chip active={filtro === null} onClick={() => setFiltro(null)}>
           {gastosLiterales.todos}
         </Chip>
         {CATEGORIAS.map((c) => (
@@ -89,7 +90,7 @@ export function GastosList({ gastos, usuarios, mesId }: GastosListProps) {
                       {g.detalle}
                     </p>
                     <p className="text-xs text-brand-muted">
-                      {g.categoria} · {usuarios.get(g.creadoPor) ?? '—'} ·{' '}
+                      {g.categoria} · {usuarios.get(g.creadoPor) ?? formatos.vacio} ·{' '}
                       {formatShortDate(g.fechaGasto)}
                     </p>
                     {g.esRecurrente && (

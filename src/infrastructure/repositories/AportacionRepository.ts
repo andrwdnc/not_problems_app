@@ -1,25 +1,8 @@
-import { eq, inArray } from 'drizzle-orm';
+import { eq, and, inArray, isNull } from 'drizzle-orm';
 import { db } from '../db';
 import { aportaciones } from '../db/schema';
-
-export interface Aportacion {
-  id: string;
-  mesId: string;
-  usuarioId: string;
-  sueldo: number;
-  importeAportado: number | null;
-  fechaRegistro: Date;
-}
-
-export interface AportacionRepository {
-  findById(id: string): Promise<Aportacion | null>;
-  findByMesAndUsuario(mesId: string, usuarioId: string): Promise<Aportacion | null>;
-  findByMes(mesId: string): Promise<Aportacion[]>;
-  findByMesIds(mesIds: string[]): Promise<Aportacion[]>;
-  create(data: Omit<Aportacion, 'id' | 'fechaRegistro'>): Promise<Aportacion>;
-  update(id: string, data: Partial<Aportacion>): Promise<Aportacion>;
-  delete(id: string): Promise<void>;
-}
+import type { Aportacion } from '@/domain/entities';
+import type { AportacionRepository } from '@/domain/ports/repositories';
 
 export class AportacionDrizzleRepository implements AportacionRepository {
   async findById(id: string): Promise<Aportacion | null> {
@@ -57,6 +40,21 @@ export class AportacionDrizzleRepository implements AportacionRepository {
     return result as Aportacion;
   }
 
+  async createSiNoExiste(
+    data: Omit<Aportacion, 'id' | 'fechaRegistro'>,
+  ): Promise<Aportacion> {
+    const [result] = await db
+      .insert(aportaciones)
+      .values(data)
+      .onConflictDoNothing({
+        target: [aportaciones.mesId, aportaciones.usuarioId],
+      })
+      .returning();
+    if (result) return result as Aportacion;
+    const existente = await this.findByMesAndUsuario(data.mesId, data.usuarioId);
+    return existente as Aportacion;
+  }
+
   async update(id: string, data: Partial<Aportacion>): Promise<Aportacion> {
     const [result] = await db
       .update(aportaciones)
@@ -68,5 +66,17 @@ export class AportacionDrizzleRepository implements AportacionRepository {
 
   async delete(id: string): Promise<void> {
     await db.delete(aportaciones).where(eq(aportaciones.id, id));
+  }
+
+  async fijarImporteAportadoSiNulo(
+    id: string,
+    importeAportado: number,
+  ): Promise<Aportacion | null> {
+    const [result] = await db
+      .update(aportaciones)
+      .set({ importeAportado })
+      .where(and(eq(aportaciones.id, id), isNull(aportaciones.importeAportado)))
+      .returning();
+    return (result as Aportacion) ?? null;
   }
 }

@@ -11,8 +11,9 @@ import { formatCurrency } from '@/lib/formatters/currency';
 import { formatShortDate, nombreMes } from '@/lib/formatters/date';
 import { notFound } from 'next/navigation';
 import { ventanaDeMes } from '@/domain/rules/VentanaEdicionGastos';
+import { calcularAhorro, calcularTotalesMes } from '@/domain/rules/CalculadoraAportacion';
 import { GastoMesAcciones } from '@/components/features/GastoMesAcciones';
-import { historicoDetalle, resumen, gastos as gastosLiterales } from '@/literals';
+import { historicoDetalle, resumen, gastos as gastosLiterales, formatos } from '@/literals';
 
 export const dynamic = 'force-dynamic';
 
@@ -24,16 +25,16 @@ export default async function HistoricoDetallePage({
   const mes = await mesRepository.findById(params.id);
   if (!mes) notFound();
 
-  const gastos = await gastoRepository.findByMes(mes.id);
-  const aportaciones = await aportacionRepository.findByMes(mes.id);
+  const [gastos, aportaciones] = await Promise.all([
+    gastoRepository.findByMes(mes.id),
+    aportacionRepository.findByMes(mes.id),
+  ]);
 
   const permisos = ventanaDeMes(new Date(), mes.anio, mes.mes);
 
-  const aportado = aportaciones.reduce(
-    (acc, a) => acc + (a.importeAportado ?? 0),
-    0,
-  );
-  const gastado = gastos.reduce((acc, g) => acc + g.importe, 0);
+  const { aportado, gastado } = calcularTotalesMes(aportaciones, gastos);
+  const ahorro = calcularAhorro(aportado, mes.presupuesto, gastado);
+  const conDeficit = ahorro < 0;
 
   return (
     <div className="space-y-4">
@@ -57,6 +58,26 @@ export default async function HistoricoDetallePage({
           <p className="text-xs text-brand-muted">{resumen.gastado}</p>
           <p className="font-mono text-lg font-bold text-financial-negative">
             {formatCurrency(gastado)}
+          </p>
+        </Card>
+        <Card className="flex-1">
+          <p className="text-xs text-brand-muted">{resumen.presupuesto}</p>
+          {mes.presupuesto != null ? (
+            <p className="font-mono text-lg font-bold text-brand-navy">
+              {formatCurrency(mes.presupuesto)}
+            </p>
+          ) : (
+            <p className="font-mono text-lg font-bold text-brand-muted">{formatos.vacio}</p>
+          )}
+        </Card>
+        <Card className="flex-1">
+          <p className="text-xs text-brand-muted">
+            {conDeficit ? resumen.deficit : resumen.ahorro}
+          </p>
+          <p
+            className={`font-mono text-lg font-bold ${conDeficit ? 'text-financial-negative' : 'text-financial-positive'}`}
+          >
+            {formatCurrency(Math.abs(ahorro))}
           </p>
         </Card>
       </div>

@@ -1,12 +1,12 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { sueldoSchema, porcentajeSchema } from './schemas/aportacion';
+import { sueldoSchema, porcentajeSchema, presupuestoSchema } from './schemas/aportacion';
 import { aportacionRepository, mesRepository } from './repositories';
 import { auditarMovimiento } from '@/infrastructure/audit/auditarMovimiento';
 import { calcularImporteAportado } from '@/domain/rules/CalculadoraAportacion';
 import { getCurrentUserId } from '@/server/auth';
-import type { Aportacion, Mes } from '@/infrastructure/repositories';
+import type { Aportacion, Mes } from '@/domain/entities';
 import type { ActionResult } from './action-result';
 import { handleError } from './action-result';
 import { aportacionErrores, authErrores } from '@/literals';
@@ -34,7 +34,8 @@ export async function fijarSueldo(
     data.mesId,
     data.usuarioId,
   );
-  if (existente && existente.importeAportado != null) {
+  // Inmutabilidad del sueldo (§5.2): una vez guardado no se puede modificar.
+  if (existente && existente.sueldo != null) {
     return { ok: false, error: aportacionErrores.sueldoYaFijado };
   }
 
@@ -44,7 +45,9 @@ export async function fijarSueldo(
       sueldo: data.sueldo,
     });
   } else {
-    aportacion = await aportacionRepository.create({
+    // Upsert idempotente: si otro llamado creó la fila entre medias (carrera),
+    // se reutiliza la ganadora en lugar de violar el índice único.
+    aportacion = await aportacionRepository.createSiNoExiste({
       mesId: data.mesId,
       usuarioId: data.usuarioId,
       sueldo: data.sueldo,
@@ -57,9 +60,14 @@ export async function fijarSueldo(
   if (mes?.porcentaje != null) {
     const importe = calcularImporteAportado(data.sueldo, mes.porcentaje);
     if (importe != null) {
-      aportacion = await aportacionRepository.update(aportacion.id, {
-        importeAportado: importe,
-      });
+      const fijado = await aportacionRepository.fijarImporteAportadoSiNulo(
+        aportacion.id,
+        importe,
+      );
+      // Solo escribe la auditoría del cálculo si realmente pudo fijarlo.
+      if (fijado) {
+        aportacion = fijado;
+      }
     }
   }
 
@@ -103,25 +111,83 @@ export async function fijarPorcentaje(
     return { ok: false, error: aportacionErrores.mesNoEncontrado };
   }
 
-  if (mes.porcentaje != null) {
+  // Fijación atómica: solo el primer llamador que encuentre el porcentaje aún
+  // nulo podrá fijarlo; los concurrentes reciben null y no duplican auditoría.
+  const actualizado = await mesRepository.fijarPorcentajeSiNulo(
+    mesId,
+    porcentaje,
+    usuarioId,
+  );
+
+  if (!actualizado) {
     return { ok: false, error: aportacionErrores.porcentajeYaFijado };
   }
 
-  const actualizado = await mesRepository.update(mesId, {
-    porcentaje,
-    porcentajeFijadoPor: usuarioId,
-    porcentajeFechaRegistro: new Date(),
-  });
-
-  // Recalcular importe_aportado de todas las aportaciones del mes.
+  // Recalcular importe_aportado de todas las aportaciones del mes. Cada una se
+  // fija atómicamente (solo si aún no tenía importe) para mantener la
+  // inmutabilidad ante carreras concurrentes.
   const aportaciones = await aportacionRepository.findByMes(mesId);
   for (const aportacion of aportaciones) {
     const importe = calcularImporteAportado(aportacion.sueldo, porcentaje);
     if (importe != null) {
-      await aportacionRepository.update(aportacion.id, {
-        importeAportado: importe,
-      });
+      await aportacionRepository.fijarImporteAportadoSiNulo(
+        aportacion.id,
+        importe,
+      );
     }
+  }
+
+  await auditarMovimiento({
+    usuarioId,
+    entidad: 'meses',
+    entidadId: mesId,
+    accion: 'editar',
+    valorAnterior: mes,
+    valorNuevo: actualizado,
+  });
+
+  revalidatePath('/aportar');
+  revalidatePath('/');
+  revalidatePath('/historico');
+
+  return { ok: true, data: actualizado };
+}
+
+/**
+ * Fija el presupuesto de gastos único y compartido del mes. Inmutable una vez
+ * guardado y fijable por cualquiera de los dos usuarios (como el porcentaje).
+ * No afecta a los importes aportados: solo marca el tope de gasto del mes.
+ */
+export async function fijarPresupuesto(
+  input: unknown,
+): Promise<ActionResult<Mes>> {
+  const usuarioId = await getCurrentUserId();
+  if (!usuarioId) {
+    return { ok: false, error: authErrores.noAutenticado };
+  }
+
+  const parsed = presupuestoSchema.safeParse(input);
+  if (!parsed.success) {
+    return handleError(parsed.error);
+  }
+
+  const { mesId, presupuesto } = parsed.data;
+
+  const mes = await mesRepository.findById(mesId);
+  if (!mes) {
+    return { ok: false, error: aportacionErrores.mesNoEncontrado };
+  }
+
+  // Fijación atómica: solo el primer llamador que encuentre el presupuesto aún
+  // nulo podrá fijarlo; los concurrentes reciben null y no duplican auditoría.
+  const actualizado = await mesRepository.fijarPresupuestoSiNulo(
+    mesId,
+    presupuesto,
+    usuarioId,
+  );
+
+  if (!actualizado) {
+    return { ok: false, error: aportacionErrores.presupuestoYaFijado };
   }
 
   await auditarMovimiento({

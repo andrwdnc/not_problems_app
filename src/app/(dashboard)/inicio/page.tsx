@@ -1,21 +1,45 @@
-import { obtenerMesActual, obtenerResumenMes } from '@/server-actions/queries';
+import { obtenerMesActual, calcularResumen } from '@/server-actions/queries';
 
 export const dynamic = 'force-dynamic';
+import { aportacionRepository, gastoRepository, usuarioRepository } from '@/server-actions/repositories';
 import { AnilloProgreso } from '@/components/features/AnilloProgreso';
 import { TarjetaEstado } from '@/components/features/TarjetaEstado';
 import { Card } from '@/components/ui/Card';
 import { nombreMes } from '@/lib/formatters/date';
 import Link from 'next/link';
-import { gastoRepository, usuarioRepository } from '@/server-actions/repositories';
 import { formatCurrency } from '@/lib/formatters/currency';
-import { inicio, resumen as literalesResumen } from '@/literals';
+import { inicio, resumen as literalesResumen, formatos } from '@/literals';
 
 export default async function InicioPage() {
-  const mes = await obtenerMesActual();
-  const resumen = mes ? await obtenerResumenMes(mes.id) : null;
-  const ultimosGastos = mes ? (await gastoRepository.findByMes(mes.id)).slice(0, 3) : [];
-  const usuarios = await usuarioRepository.findAll();
+  // 1º pasada en paralelo: mes actual + usuarios (no dependen entre sí).
+  const [mes, usuarios] = await Promise.all([
+    obtenerMesActual(),
+    usuarioRepository.findAll(),
+  ]);
+
+  // 2º pasada en paralelo: aportaciones + gastos del mes. Los gastos se
+  // reutilizan para el resumen y para los "últimos gastos" (una sola query).
+  const [aportaciones, gastos] = mes
+    ? await Promise.all([
+        aportacionRepository.findByMes(mes.id),
+        gastoRepository.findByMes(mes.id),
+      ])
+    : [[], []];
+
+  const resumen = mes ? calcularResumen(aportaciones, gastos, mes.presupuesto) : null;
+  const ultimosGastos = gastos.slice(0, 3);
   const usuarioPorId = new Map(usuarios.map((u) => [u.id, u.username]));
+
+  const porcentajeAnillo =
+    resumen && resumen.porcentajePresupuesto != null
+      ? resumen.porcentajePresupuesto
+      : resumen?.porcentajeGastado ?? 0;
+  const etiquetaAnillo =
+    resumen && resumen.porcentajePresupuesto != null
+      ? literalesResumen.presupuestoRing
+      : literalesResumen.gastadoRing;
+  const superadoPresupuesto =
+    resumen?.restantePresupuesto != null && resumen.restantePresupuesto < 0;
 
   return (
     <div className="space-y-5">
@@ -28,12 +52,16 @@ export default async function InicioPage() {
       {resumen ? (
         <>
           <Card className="flex flex-col items-center gap-4 py-6">
-            <AnilloProgreso porcentaje={resumen.porcentajeGastado} />
+            <AnilloProgreso porcentaje={porcentajeAnillo} etiqueta={etiquetaAnillo} />
             <p className="text-center text-sm text-brand-muted">
-              {inicio.totalAportado}:{' '}
-              <span className="font-mono font-semibold text-brand-ink">
-                {formatCurrency(resumen.aportado)}
-              </span>{' '}
+              {literalesResumen.presupuesto}:{' '}
+              {resumen.presupuesto != null ? (
+                <span className="font-mono font-semibold text-brand-ink">
+                  {formatCurrency(resumen.presupuesto)}
+                </span>
+              ) : (
+                <span className="font-mono font-semibold text-brand-muted">{formatos.vacio}</span>
+              )}{' '}
               · {inicio.contadorGastos(resumen.numeroGastos)}
             </p>
           </Card>
@@ -50,11 +78,19 @@ export default async function InicioPage() {
               importe={resumen.gastado}
             />
             <TarjetaEstado
-              variante="disponible"
-              etiqueta={literalesResumen.disponible}
-              importe={resumen.disponible}
+              variante="ahorro"
+              etiqueta={literalesResumen.ahorro}
+              importe={resumen.ahorro}
             />
           </div>
+
+          {superadoPresupuesto && (
+            <p className="rounded-xl bg-financial-negativeBg p-3 text-center text-sm font-medium text-financial-negative">
+              {inicio.teHasPasadoPresupuesto(
+                formatCurrency(-(resumen.restantePresupuesto as number)),
+              )}
+            </p>
+          )}
 
           <section>
             <div className="mb-2 flex items-center justify-between">
@@ -83,7 +119,7 @@ export default async function InicioPage() {
                         {g.detalle}
                       </p>
                       <p className="text-xs text-brand-muted">
-                        {g.categoria} · {usuarioPorId.get(g.creadoPor) ?? '—'}
+                        {g.categoria} · {usuarioPorId.get(g.creadoPor) ?? formatos.vacio}
                       </p>
                     </div>
                     <span className="ml-4 shrink-0 font-mono text-sm font-semibold text-financial-negative">

@@ -7,13 +7,14 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Card } from '@/components/ui/Card';
 import { CATEGORIAS, type Categoria } from '@/domain/value-objects/Categoria';
+import { centimosAEuros } from '@/domain/value-objects/ImporteMoneda';
 import { eliminarGasto, editarGasto } from '@/server-actions/gastos-actions';
-import type { Gasto } from '@/infrastructure/repositories';
-import { gastoForm } from '@/literals';
+import type { Gasto } from '@/domain/entities';
+import { gastoForm, formatos } from '@/literals';
 
 export function EditarGastoForm({ gasto }: { gasto: Gasto }) {
   const router = useRouter();
-  const [importe, setImporte] = useState(String(gasto.importe));
+  const [importe, setImporte] = useState(() => String(centimosAEuros(gasto.importe)));
   const [categoria, setCategoria] = useState<Categoria>(gasto.categoria);
   const [detalle, setDetalle] = useState(gasto.detalle);
   const [fecha, setFecha] = useState(gasto.fechaGasto);
@@ -59,15 +60,16 @@ export function EditarGastoForm({ gasto }: { gasto: Gasto }) {
         <p className="text-sm text-brand-sky">{gastoForm.importe}</p>
         <input
           name="importe"
-          type="number"
+          type="text"
           inputMode="decimal"
-          step="0.01"
+          autoComplete="off"
+          pattern="[0-9]*[.,]?[0-9]*"
           value={importe}
           onChange={(e) => setImporte(e.target.value)}
           required
           className="mt-1 w-full bg-transparent text-center font-mono text-5xl font-bold text-white outline-none placeholder:text-white/30"
         />
-        <p className="mt-1 font-mono text-sm text-brand-sky">€</p>
+        <p className="mt-1 font-mono text-sm text-brand-sky">{formatos.sufijoEuro}</p>
       </div>
 
       <Card className="space-y-4">

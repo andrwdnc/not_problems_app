@@ -10,6 +10,17 @@
 export const app = {
   nombre: 'Nest',
   descripcion: 'Tu espacio financiero compartido',
+  cargando: 'Cargando',
+};
+
+/** Textos de formato neutros (sin anclar la UI a un idioma concreto). */
+export const formatos = {
+  /** Marcador de valor vacío/pendiente en cifras. */
+  vacio: '—',
+  /** Ejemplo de importe para inputs de dinero. */
+  importeEjemplo: '0,00 €',
+  /** Sufijo de unidad monetaria. */
+  sufijoEuro: '€',
 };
 
 export const auth = {
@@ -29,6 +40,8 @@ export const auth = {
   entrando: 'Entrando…',
   crearCuenta: 'Crear cuenta',
   creando: 'Creando…',
+  espacioCompleto:
+    'El espacio compartido ya está completo con 2 usuarios.',
 };
 
 export const authErrores = {
@@ -39,14 +52,18 @@ export const authErrores = {
   credencialesIncorrectas: 'Nombre de usuario o contraseña incorrectos.',
   usuarioEnUso: (username: string) =>
     `El nombre de usuario "${username}" ya está en uso.`,
+  maximoUsuariosAlcanzado:
+    'El espacio compartido ya está completo (2 usuarios). No se pueden registrar más cuentas.',
   noAutenticado: 'No autenticado',
   errorInesperado: 'Error inesperado',
+  errorConexion:
+    'No se pudo conectar con la base de datos. Revisa la configuración del servidor e inténtalo de nuevo.',
 };
 
 export const nav = {
   inicio: 'Inicio',
   gastos: 'Gastos',
-  aportar: 'Aportar',
+  aportar: 'Aportes',
   historico: 'Histórico',
   salir: 'Salir',
   cerrarSesion: 'Cerrar sesión',
@@ -88,8 +105,16 @@ export const gastos = {
   verDetalle: 'Ver detalle',
 };
 
+export const gastosErrores = {
+  mesCongeladoNuevos:
+    'Este mes está congelado y no admite nuevos gastos.',
+  gastoNoEncontrado: 'Gasto no encontrado.',
+  gastoNoEditable: 'Este gasto ya no es editable.',
+  gastoNoEliminable: 'Este gasto ya no se puede eliminar.',
+};
+
 export const aportar = {
-  titulo: 'Aportar',
+  titulo: 'Aportes y presupuesto',
   sueldoIntegro: 'Sueldo íntegro',
   guardarSueldo: 'Guardar sueldo',
   errorGuardarSueldo: 'Error al guardar el sueldo. Inténtalo de nuevo.',
@@ -101,8 +126,15 @@ export const aportar = {
   porcentajeUnico: 'Porcentaje único del mes',
   fijarPorcentaje: 'Fijar porcentaje',
   errorFijarPorcentaje: 'Error al fijar el porcentaje. Inténtalo de nuevo.',
+  presupuestoGastos: 'Presupuesto de gastos',
+  presupuestoUnicoMes: 'Presupuesto de gastos del mes',
+  fijarPresupuesto: 'Fijar presupuesto',
+  errorFijarPresupuesto:
+    'Error al fijar el presupuesto. Inténtalo de nuevo.',
+  fijadoPor: (username: string, fecha: string) => `Fijado por ${username} el ${fecha}`,
   totalCuentaConjunta: 'Total cuenta conjunta',
-  notaInamovible: 'El sueldo y el porcentaje son inamovibles una vez guardados.',
+  notaInamovible:
+    'El sueldo, el porcentaje y el presupuesto de gastos son inamovibles una vez guardados.',
   sinMesAbierto: 'No hay un mes abierto todavía.',
 };
 
@@ -110,30 +142,37 @@ export const aportacionErrores = {
   sueldoPositivo: 'El sueldo debe ser mayor que 0',
   porcentajePositivo: 'El porcentaje debe ser mayor que 0',
   porcentajeMaximo: 'El porcentaje no puede superar 100',
+  presupuestoPositivo: 'El presupuesto debe ser mayor que 0',
   sueldoYaFijado: 'El sueldo ya está fijado y no se puede modificar.',
   porcentajeYaFijado:
     'El porcentaje ya está fijado y no se puede modificar.',
+  presupuestoYaFijado:
+    'El presupuesto ya está fijado y no se puede modificar.',
   mesNoEncontrado: 'Mes no encontrado.',
 };
 
 export const inicio = {
   sinMesAbierto: 'Sin mes abierto',
-  totalAportado: 'Total aportado',
   contadorGastos: (n: number) => `${n} gastos`,
   ultimosGastos: 'Últimos gastos',
   verTodos: 'Ver todos',
   sinGastosMes: 'Aún no hay gastos registrados este mes.',
   sinDatos:
     'Todavía no hay datos para este mes. Aporta tu sueldo o registra un gasto para empezar.',
+  teHasPasadoPresupuesto: (monto: string) =>
+    `Te has pasado ${monto} del presupuesto del mes.`,
 };
 
 export const resumen = {
   aportado: 'Aportado',
   gastado: 'Gastado',
   disponible: 'Disponible',
+  presupuesto: 'Presupuesto',
   ahorro: 'Ahorro',
   deficit: 'Déficit',
   gastadoRing: 'gastado',
+  presupuestoRing: 'del presupuesto',
+  superado: 'presupuesto superado',
 };
 
 export const historico = {
@@ -149,4 +188,15 @@ export const historico = {
 
 export const historicoDetalle = {
   sinGastos: 'Sin gastos en este mes.',
+};
+
+export const errores = {
+  noEncontradoTitulo: 'Página no encontrada',
+  noEncontradoDescripcion:
+    'La página que buscas no existe o ha cambiado de dirección.',
+  errorTitulo: 'Algo ha ido mal',
+  errorDescripcion:
+    'Ocurrió un error inesperado. Inténtalo de nuevo en unos segundos.',
+  reintentar: 'Reintentar',
+  volverInicio: 'Volver al inicio',
 };

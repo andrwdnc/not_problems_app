@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/Input';
 import { Card } from '@/components/ui/Card';
 import { CATEGORIAS, type Categoria } from '@/domain/value-objects/Categoria';
 import { crearGasto } from '@/server-actions/gastos-actions';
-import { gastoForm } from '@/literals';
+import { gastoForm, formatos } from '@/literals';
 
 interface GastoFormProps {
   mesId: string;
@@ -53,16 +53,17 @@ export function NuevoGastoForm({ mesId }: GastoFormProps) {
         <p className="text-sm text-brand-sky">{gastoForm.importe}</p>
         <input
           name="importe"
-          type="number"
+          type="text"
           inputMode="decimal"
-          step="0.01"
+          autoComplete="off"
+          pattern="[0-9]*[.,]?[0-9]*"
           value={importe}
           onChange={(e) => setImporte(e.target.value)}
           placeholder="0,00"
           required
           className="mt-1 w-full bg-transparent text-center font-mono text-5xl font-bold text-white outline-none placeholder:text-white/30"
         />
-        <p className="mt-1 font-mono text-sm text-brand-sky">€</p>
+        <p className="mt-1 font-mono text-sm text-brand-sky">{formatos.sufijoEuro}</p>
       </div>
 
       <Card className="space-y-4">

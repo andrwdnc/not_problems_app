@@ -1,37 +1,12 @@
-import { desc, eq, and } from 'drizzle-orm';
+import { desc, eq, and, isNull } from 'drizzle-orm';
 import { db } from '../db';
 import { meses } from '../db/schema';
-
-export interface Mes {
-  id: string;
-  anio: number;
-  mes: number;
-  porcentaje: number | null;
-  porcentajeFijadoPor: string | null;
-  porcentajeFechaRegistro: Date | null;
-  fechaApertura: Date;
-}
-
-export interface CrearMesInput {
-  anio: number;
-  mes: number;
-  porcentaje?: number | null;
-}
-
-export interface MesRepository {
-  findById(id: string): Promise<Mes | null>;
-  findByAnioAndMes(anio: number, mes: number): Promise<Mes | null>;
-  getMesesAnteriores(limit: number): Promise<Mes[]>;
-  create(data: CrearMesInput): Promise<Mes>;
-  findOrCreate(data: CrearMesInput): Promise<ResultadoFindOrCreate>;
-  update(id: string, data: Partial<Mes>): Promise<Mes>;
-}
-
-export interface ResultadoFindOrCreate {
-  mes: Mes;
-  /** true si este llamador creó el mes; false si ya existía. */
-  creado: boolean;
-}
+import type { Mes } from '@/domain/entities';
+import type {
+  CrearMesInput,
+  MesRepository,
+  ResultadoFindOrCreate,
+} from '@/domain/ports/repositories';
 
 export class MesDrizzleRepository implements MesRepository {
   async findById(id: string): Promise<Mes | null> {
@@ -65,6 +40,9 @@ export class MesDrizzleRepository implements MesRepository {
         porcentaje: data.porcentaje ?? null,
         porcentajeFijadoPor: null,
         porcentajeFechaRegistro: null,
+        presupuesto: null,
+        presupuestoFijadoPor: null,
+        presupuestoFechaRegistro: null,
       })
       .returning();
     return result as Mes;
@@ -84,6 +62,9 @@ export class MesDrizzleRepository implements MesRepository {
         porcentaje: data.porcentaje ?? null,
         porcentajeFijadoPor: null,
         porcentajeFechaRegistro: null,
+        presupuesto: null,
+        presupuestoFijadoPor: null,
+        presupuestoFechaRegistro: null,
       })
       .onConflictDoNothing()
       .returning();
@@ -108,5 +89,39 @@ export class MesDrizzleRepository implements MesRepository {
       .where(eq(meses.id, id))
       .returning();
     return result as Mes;
+  }
+
+  async fijarPorcentajeSiNulo(
+    id: string,
+    porcentaje: number,
+    fijadoPor: string,
+  ): Promise<Mes | null> {
+    const [result] = await db
+      .update(meses)
+      .set({
+        porcentaje,
+        porcentajeFijadoPor: fijadoPor,
+        porcentajeFechaRegistro: new Date(),
+      })
+      .where(and(eq(meses.id, id), isNull(meses.porcentaje)))
+      .returning();
+    return (result as Mes) ?? null;
+  }
+
+  async fijarPresupuestoSiNulo(
+    id: string,
+    presupuesto: number,
+    fijadoPor: string,
+  ): Promise<Mes | null> {
+    const [result] = await db
+      .update(meses)
+      .set({
+        presupuesto,
+        presupuestoFijadoPor: fijadoPor,
+        presupuestoFechaRegistro: new Date(),
+      })
+      .where(and(eq(meses.id, id), isNull(meses.presupuesto)))
+      .returning();
+    return (result as Mes) ?? null;
   }
 }

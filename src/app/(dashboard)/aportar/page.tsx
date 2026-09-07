@@ -7,8 +7,10 @@ import { Card } from '@/components/ui/Card';
 import { aportar } from '@/literals';
 
 export default async function AportarPage() {
-  const mes = await obtenerMesActual();
-  const usuarios = await usuarioRepository.findAll();
+  const [mes, usuarios] = await Promise.all([
+    obtenerMesActual(),
+    usuarioRepository.findAll(),
+  ]);
   const aportaciones = mes
     ? await aportacionRepository.findByMes(mes.id)
     : [];

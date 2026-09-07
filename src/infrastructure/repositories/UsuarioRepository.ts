@@ -1,42 +1,53 @@
-import { eq } from 'drizzle-orm';
+import { count, eq } from 'drizzle-orm';
 import { db } from '../db';
 import { usuarios } from '../db/schema';
+import type { Usuario } from '@/domain/entities';
+import type {
+  NuevoUsuario,
+  UsuarioConCredenciales,
+  UsuarioRepository,
+} from '@/domain/ports/repositories';
 
-export interface Usuario {
-  id: string;
-  username: string;
-  passwordHash: string;
-}
-
-export interface UsuarioRepository {
-  findById(id: string): Promise<Usuario | null>;
-  findByUsername(username: string): Promise<Usuario | null>;
-  findAll(): Promise<Usuario[]>;
-  create(data: Omit<Usuario, 'id'>): Promise<Usuario>;
-}
-
+/**
+ * Implementación Drizzle del puerto `UsuarioRepository`.
+ *
+ * Las credenciales (`passwordHash`) solo se exponen en `findByUsername`, de uso
+ * exclusivo del login. El resto de métodos devuelven el usuario público
+ * (`{ id, username }`) para que el hash nunca llegue a la capa de presentación.
+ */
 export class UsuarioDrizzleRepository implements UsuarioRepository {
   async findById(id: string): Promise<Usuario | null> {
     const result = await db.query.usuarios.findFirst({
       where: eq(usuarios.id, id),
     });
-    return (result as Usuario) ?? null;
+    if (!result) return null;
+    return { id: result.id, username: result.username };
   }
 
-  async findByUsername(username: string): Promise<Usuario | null> {
+  async findByUsername(username: string): Promise<UsuarioConCredenciales | null> {
     const result = await db.query.usuarios.findFirst({
       where: eq(usuarios.username, username),
     });
-    return (result as Usuario) ?? null;
+    if (!result) return null;
+    return {
+      id: result.id,
+      username: result.username,
+      passwordHash: result.passwordHash,
+    };
   }
 
   async findAll(): Promise<Usuario[]> {
     const result = await db.query.usuarios.findMany();
-    return result as Usuario[];
+    return result.map(({ id, username }) => ({ id, username }));
   }
 
-  async create(data: Omit<Usuario, 'id'>): Promise<Usuario> {
+  async count(): Promise<number> {
+    const [result] = await db.select({ value: count() }).from(usuarios);
+    return result?.value ?? 0;
+  }
+
+  async create(data: NuevoUsuario): Promise<Usuario> {
     const [result] = await db.insert(usuarios).values(data).returning();
-    return result as Usuario;
+    return { id: result.id, username: result.username };
   }
 }

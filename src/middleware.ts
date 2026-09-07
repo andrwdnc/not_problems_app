@@ -1,67 +1,12 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import { getAuthSecret } from '@/infrastructure/config';
-
-const COOKIE_NAME = 'auth_session';
-
-/**
- * Verifica la cookie de sesión firmada (HMAC-SHA256) usando Web Crypto, que es
- * el runtime disponible en Edge (Middleware).
- */
-async function sesionValida(token: string | undefined): Promise<boolean> {
-  if (!token) return false;
-
-  const partes = token.split('.');
-  if (partes.length !== 3) return false;
-
-  const [userId, expira, firma] = partes;
-  const expMs = Number(expira);
-  if (!Number.isFinite(expMs) || Date.now() >= expMs) return false;
-
-  let secret: string;
-  try {
-    secret = getAuthSecret();
-  } catch {
-    return false;
-  }
-
-  const data = new TextEncoder().encode(`${userId}.${expira}`);
-  const firmaBytes = base64urlToBytes(firma);
-
-  try {
-    const key = await crypto.subtle.importKey(
-      'raw',
-      new TextEncoder().encode(secret),
-      { name: 'HMAC', hash: 'SHA-256' },
-      false,
-      ['verify'],
-    );
-    return await crypto.subtle.verify(
-      'HMAC',
-      key,
-      firmaBytes,
-      data,
-    );
-  } catch {
-    return false;
-  }
-}
-
-function base64urlToBytes(value: string): Uint8Array<ArrayBuffer> {
-  const base64 = value.replace(/-/g, '+').replace(/_/g, '/');
-  const padded = base64.padEnd(base64.length + ((4 - (base64.length % 4)) % 4), '=');
-  const binary = atob(padded);
-  const bytes = new Uint8Array(binary.length) as Uint8Array<ArrayBuffer>;
-  for (let i = 0; i < binary.length; i++) {
-    bytes[i] = binary.charCodeAt(i);
-  }
-  return bytes;
-}
+import { COOKIE_NAME, verificarToken } from '@/lib/session/token';
 
 export async function middleware(request: NextRequest) {
   const token = request.cookies.get(COOKIE_NAME)?.value;
-  const user = (await sesionValida(token)) ? true : false;
+  const user = token ? await verificarToken(token) : null;
 
-  const isDashboard = request.nextUrl.pathname.startsWith('/inicio') ||
+  const isDashboard =
+    request.nextUrl.pathname.startsWith('/inicio') ||
     request.nextUrl.pathname.startsWith('/gastos') ||
     request.nextUrl.pathname.startsWith('/aportar') ||
     request.nextUrl.pathname.startsWith('/historico');
