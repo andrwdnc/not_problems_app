@@ -29,6 +29,8 @@ export const auth = {
   entrando: 'Entrando…',
   crearCuenta: 'Crear cuenta',
   creando: 'Creando…',
+  espacioCompleto:
+    'El espacio compartido ya está completo con 2 usuarios.',
 };
 
 export const authErrores = {

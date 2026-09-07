@@ -1,8 +1,18 @@
+import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { SignupForm } from '@/components/features/SignupForm';
+import { espacioCompleto } from '@/server/auth';
 import { auth } from '@/literals';
 
-export default function SignupPage() {
+export const dynamic = 'force-dynamic';
+
+export default async function SignupPage() {
+  // El espacio compartido tiene un máximo de 2 usuarios: si ya está completo,
+  // la ruta de registro queda protegida y se redirige al login.
+  if (await espacioCompleto()) {
+    redirect('/login');
+  }
+
   return (
     <div className="space-y-6">
       <div className="text-center">
