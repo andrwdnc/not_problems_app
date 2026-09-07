@@ -2,16 +2,7 @@ import { eq, desc, and, inArray } from 'drizzle-orm';
 import { db } from '../db';
 import { gastos } from '../db/schema';
 import type { Gasto } from '@/domain/entities';
-
-export interface GastoRepository {
-  findById(id: string): Promise<Gasto | null>;
-  findByMes(mesId: string): Promise<Gasto[]>;
-  findByMesIds(mesIds: string[]): Promise<Gasto[]>;
-  create(data: Omit<Gasto, 'id' | 'fechaCreacion'>): Promise<Gasto>;
-  update(id: string, data: Partial<Gasto>): Promise<Gasto>;
-  delete(id: string): Promise<void>;
-  findRecurrentesDeMes(mesId: string): Promise<Gasto[]>;
-}
+import type { GastoRepository } from '@/domain/ports/repositories';
 
 export class GastoDrizzleRepository implements GastoRepository {
   async findById(id: string): Promise<Gasto | null> {

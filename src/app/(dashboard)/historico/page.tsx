@@ -7,7 +7,7 @@ import { formatCurrency } from '@/lib/formatters/currency';
 import { nombreMes } from '@/lib/formatters/date';
 import Link from 'next/link';
 import { Info, ChevronRight } from 'lucide-react';
-import { historico as historicoLiterales, resumen } from '@/literals';
+import { historico as historicoLiterales, resumen, formatos } from '@/literals';
 
 export default async function HistoricoPage() {
   const historico = await obtenerHistorico();
@@ -70,7 +70,7 @@ export default async function HistoricoPage() {
                           {formatCurrency(h.presupuesto)}
                         </p>
                       ) : (
-                        <p className="font-mono text-sm font-semibold text-brand-muted">—</p>
+                        <p className="font-mono text-sm font-semibold text-brand-muted">{formatos.vacio}</p>
                       )}
                     </div>
                     <div>

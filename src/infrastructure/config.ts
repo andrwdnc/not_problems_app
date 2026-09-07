@@ -29,3 +29,11 @@ const authSecretSchema = z
 export function getAuthSecret(): string {
   return authSecretSchema.parse(process.env.AUTH_SECRET);
 }
+
+/**
+ * Indica si el entorno de despliegue es producción. Centraliza el acceso a
+ * `process.env.NODE_ENV` para que ninguna capa dependa de env vars directamente.
+ */
+export function esProduccion(): boolean {
+  return process.env.NODE_ENV === 'production';
+}

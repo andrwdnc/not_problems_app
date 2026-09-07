@@ -2,45 +2,11 @@ import { desc, eq, and, isNull } from 'drizzle-orm';
 import { db } from '../db';
 import { meses } from '../db/schema';
 import type { Mes } from '@/domain/entities';
-
-export interface CrearMesInput {
-  anio: number;
-  mes: number;
-  porcentaje?: number | null;
-}
-
-export interface MesRepository {
-  findById(id: string): Promise<Mes | null>;
-  findByAnioAndMes(anio: number, mes: number): Promise<Mes | null>;
-  getMesesAnteriores(limit: number): Promise<Mes[]>;
-  create(data: CrearMesInput): Promise<Mes>;
-  findOrCreate(data: CrearMesInput): Promise<ResultadoFindOrCreate>;
-  update(id: string, data: Partial<Mes>): Promise<Mes>;
-  /**
-   * Fija el porcentaje del mes solo si aún no estaba definido (evita que una
-   * carrera concurrente lo sobrescriba). Devuelve null si ya estaba fijado.
-   */
-  fijarPorcentajeSiNulo(
-    id: string,
-    porcentaje: number,
-    fijadoPor: string,
-  ): Promise<Mes | null>;
-  /**
-   * Fija el presupuesto de gastos del mes solo si aún no estaba definido.
-   * Mismo contrato atómico que `fijarPorcentajeSiNulo`.
-   */
-  fijarPresupuestoSiNulo(
-    id: string,
-    presupuesto: number,
-    fijadoPor: string,
-  ): Promise<Mes | null>;
-}
-
-export interface ResultadoFindOrCreate {
-  mes: Mes;
-  /** true si este llamador creó el mes; false si ya existía. */
-  creado: boolean;
-}
+import type {
+  CrearMesInput,
+  MesRepository,
+  ResultadoFindOrCreate,
+} from '@/domain/ports/repositories';
 
 export class MesDrizzleRepository implements MesRepository {
   async findById(id: string): Promise<Mes | null> {

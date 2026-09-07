@@ -11,9 +11,9 @@ import { formatCurrency } from '@/lib/formatters/currency';
 import { formatShortDate, nombreMes } from '@/lib/formatters/date';
 import { notFound } from 'next/navigation';
 import { ventanaDeMes } from '@/domain/rules/VentanaEdicionGastos';
-import { calcularAhorro } from '@/domain/rules/CalculadoraAportacion';
+import { calcularAhorro, calcularTotalesMes } from '@/domain/rules/CalculadoraAportacion';
 import { GastoMesAcciones } from '@/components/features/GastoMesAcciones';
-import { historicoDetalle, resumen, gastos as gastosLiterales } from '@/literals';
+import { historicoDetalle, resumen, gastos as gastosLiterales, formatos } from '@/literals';
 
 export const dynamic = 'force-dynamic';
 
@@ -32,11 +32,7 @@ export default async function HistoricoDetallePage({
 
   const permisos = ventanaDeMes(new Date(), mes.anio, mes.mes);
 
-  const aportado = aportaciones.reduce(
-    (acc, a) => acc + (a.importeAportado ?? 0),
-    0,
-  );
-  const gastado = gastos.reduce((acc, g) => acc + g.importe, 0);
+  const { aportado, gastado } = calcularTotalesMes(aportaciones, gastos);
   const ahorro = calcularAhorro(aportado, mes.presupuesto, gastado);
   const conDeficit = ahorro < 0;
 
@@ -71,7 +67,7 @@ export default async function HistoricoDetallePage({
               {formatCurrency(mes.presupuesto)}
             </p>
           ) : (
-            <p className="font-mono text-lg font-bold text-brand-muted">—</p>
+            <p className="font-mono text-lg font-bold text-brand-muted">{formatos.vacio}</p>
           )}
         </Card>
         <Card className="flex-1">

@@ -16,11 +16,7 @@ export default async function GastosPage() {
   return (
     <div className="space-y-4">
       <h1 className="text-xl font-bold text-brand-navy">{nav.gastos}</h1>
-      <GastosList
-        gastos={gastos}
-        usuarios={usuarioPorId}
-        mesId={mes?.id ?? ''}
-      />
+      <GastosList gastos={gastos} usuarios={usuarioPorId} />
     </div>
   );
 }

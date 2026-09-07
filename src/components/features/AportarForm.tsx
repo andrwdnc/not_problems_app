@@ -14,8 +14,8 @@ import {
   calcularTotalCuentaConjunta,
   calcularImporteAportado,
 } from '@/domain/rules/CalculadoraAportacion';
-import type { Aportacion, Mes, Usuario } from '@/infrastructure/repositories';
-import { aportar } from '@/literals';
+import type { Aportacion, Mes, Usuario } from '@/domain/entities';
+import { aportar, formatos } from '@/literals';
 
 interface AportarFormProps {
   mes: Mes;
@@ -172,7 +172,7 @@ export function AportarForm({
                   inputMode="decimal"
                   autoComplete="off"
                   pattern="[0-9]*[.,]?[0-9]*"
-                  placeholder="0,00 €"
+                  placeholder={formatos.importeEjemplo}
                   required
                 />
                 <Button type="submit" fullWidth className="mt-3">
@@ -250,7 +250,7 @@ export function AportarForm({
               pattern="[0-9]*[.,]?[0-9]*"
               value={presupuestoValor}
               onChange={(e) => setPresupuestoValor(e.target.value)}
-              placeholder="200,00 €"
+              placeholder={formatos.importeEjemplo}
               required
             />
             <Button type="submit" fullWidth className="mt-3">

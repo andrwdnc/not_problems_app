@@ -5,6 +5,7 @@ import {
   firmarToken,
   verificarToken,
 } from './token';
+import { esProduccion } from '@/infrastructure/config';
 
 /**
  * Establece la cookie de sesión del usuario autenticado (HTTP-only, firmada).
@@ -14,7 +15,7 @@ export async function crearSesion(userId: string): Promise<void> {
   const token = await firmarToken(userId);
   cookies().set(COOKIE_NAME, token, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
+    secure: esProduccion(),
     sameSite: 'lax',
     path: '/',
     expires: new Date(expira),

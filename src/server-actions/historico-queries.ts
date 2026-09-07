@@ -1,7 +1,7 @@
 import { mesRepository, aportacionRepository, gastoRepository } from './repositories';
 import { ventanaDeMes } from '@/domain/rules/VentanaEdicionGastos';
 import type { PermisosEdicion } from '@/domain/rules/VentanaEdicionGastos';
-import { calcularAhorro } from '@/domain/rules/CalculadoraAportacion';
+import { calcularAhorro, sumarAportado, sumarGastado } from '@/domain/rules/CalculadoraAportacion';
 
 export interface MesHistorico {
   mes: {
@@ -34,18 +34,18 @@ export async function obtenerHistorico(): Promise<MesHistorico[]> {
   ]);
 
   const aportadoPorMes = new Map<string, number>();
-  for (const a of aportaciones) {
+  for (const mes of meses) {
     aportadoPorMes.set(
-      a.mesId,
-      (aportadoPorMes.get(a.mesId) ?? 0) + (a.importeAportado ?? 0),
+      mes.id,
+      sumarAportado(aportaciones.filter((a) => a.mesId === mes.id)),
     );
   }
 
   const gastadoPorMes = new Map<string, number>();
-  for (const g of gastos) {
+  for (const mes of meses) {
     gastadoPorMes.set(
-      g.mesId,
-      (gastadoPorMes.get(g.mesId) ?? 0) + g.importe,
+      mes.id,
+      sumarGastado(gastos.filter((g) => g.mesId === mes.id)),
     );
   }
 

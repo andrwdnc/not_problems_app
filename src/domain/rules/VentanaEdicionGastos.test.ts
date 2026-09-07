@@ -81,6 +81,31 @@ describe('ventanaEdicionGastos', () => {
       expect(permisos.puedeEditar).toBe(true);
     });
   });
+
+  describe('gasto a futuro', () => {
+    it('queda congelado (no es un mes pasado válido para la ventana)', () => {
+      const hoy = new Date(2026, 7, 15); // 15 agosto 2026
+      const permisos = ventanaEdicionGastos({
+        hoy,
+        anioGasto: 2026,
+        mesGasto: 9,
+      });
+      expect(permisos.estado).toBe('congelado');
+      expect(permisos.puedeCrear).toBe(false);
+      expect(permisos.puedeEditar).toBe(false);
+      expect(permisos.puedeEliminar).toBe(false);
+    });
+
+    it('el día 5 del mes actual sigue siendo editable aunque sea el "día tope"', () => {
+      const hoy = new Date(2026, 7, 5); // 5 agosto 2026
+      const permisos = ventanaEdicionGastos({
+        hoy,
+        anioGasto: 2026,
+        mesGasto: 8,
+      });
+      expect(permisos.estado).toBe('editable');
+    });
+  });
 });
 
 describe('ventanaDeMes', () => {

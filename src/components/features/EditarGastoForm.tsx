@@ -9,8 +9,8 @@ import { Card } from '@/components/ui/Card';
 import { CATEGORIAS, type Categoria } from '@/domain/value-objects/Categoria';
 import { centimosAEuros } from '@/domain/value-objects/ImporteMoneda';
 import { eliminarGasto, editarGasto } from '@/server-actions/gastos-actions';
-import type { Gasto } from '@/infrastructure/repositories';
-import { gastoForm } from '@/literals';
+import type { Gasto } from '@/domain/entities';
+import { gastoForm, formatos } from '@/literals';
 
 export function EditarGastoForm({ gasto }: { gasto: Gasto }) {
   const router = useRouter();
@@ -69,7 +69,7 @@ export function EditarGastoForm({ gasto }: { gasto: Gasto }) {
           required
           className="mt-1 w-full bg-transparent text-center font-mono text-5xl font-bold text-white outline-none placeholder:text-white/30"
         />
-        <p className="mt-1 font-mono text-sm text-brand-sky">€</p>
+        <p className="mt-1 font-mono text-sm text-brand-sky">{formatos.sufijoEuro}</p>
       </div>
 
       <Card className="space-y-4">

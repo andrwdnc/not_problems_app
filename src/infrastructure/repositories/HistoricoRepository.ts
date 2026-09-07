@@ -1,10 +1,7 @@
 import { db } from '../db';
 import { historicoMovimientos } from '../db/schema';
 import type { Accion, MovimientoAuditoria } from '@/domain/entities';
-
-export interface HistoricoRepository {
-  registrar(data: Omit<MovimientoAuditoria, 'id' | 'fecha'>): Promise<MovimientoAuditoria>;
-}
+import type { HistoricoRepository } from '@/domain/ports/repositories';
 
 export class HistoricoDrizzleRepository implements HistoricoRepository {
   async registrar(

@@ -2,28 +2,7 @@ import { eq, and, inArray, isNull } from 'drizzle-orm';
 import { db } from '../db';
 import { aportaciones } from '../db/schema';
 import type { Aportacion } from '@/domain/entities';
-
-export interface AportacionRepository {
-  findById(id: string): Promise<Aportacion | null>;
-  findByMesAndUsuario(mesId: string, usuarioId: string): Promise<Aportacion | null>;
-  findByMes(mesId: string): Promise<Aportacion[]>;
-  findByMesIds(mesIds: string[]): Promise<Aportacion[]>;
-  create(data: Omit<Aportacion, 'id' | 'fechaRegistro'>): Promise<Aportacion>;
-  /**
-   * Crea la aportación solo si aún no existe el par (mes, usuario). Ante una
-   * carrera concurrente reaprovecha la fila ganadora en lugar de lanzar una
-   * violación del índice único. Devuelve siempre la fila vigente.
-   */
-  createSiNoExiste(data: Omit<Aportacion, 'id' | 'fechaRegistro'>): Promise<Aportacion>;
-  update(id: string, data: Partial<Aportacion>): Promise<Aportacion>;
-  delete(id: string): Promise<void>;
-  /**
-   * Fija el importe aportado solo si aún no estaba calculado (evita que una
-   * carrera concurrente sobrescriba un valor ya fijado). Devuelve null si ya
-   * existía un valor (inaplicable).
-   */
-  fijarImporteAportadoSiNulo(id: string, importeAportado: number): Promise<Aportacion | null>;
-}
+import type { AportacionRepository } from '@/domain/ports/repositories';
 
 export class AportacionDrizzleRepository implements AportacionRepository {
   async findById(id: string): Promise<Aportacion | null> {
