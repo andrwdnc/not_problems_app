@@ -9,6 +9,12 @@ para no re-plantearlo en cada revisión.
 - **Next.js 14.2.0 → 14.2.35**: corrige el advisory de alta sobre divulgación de
   *function* endpoints del servidor (GHSA-955p-x3mx-jcvp). Actualizado el
   07/09/2026 junto a `eslint-config-next`.
+- **Fuga de `passwordHash` al cliente (politica de diseño)**: el usuario canónico
+  de dominio es público (`{ id, username }`); las credenciales (`passwordHash`)
+  solo se exponen en `UsuarioRepository.findByUsername` (uso exclusivo del login)
+  mediante `UsuarioConCredenciales`, y los repositorios (`findById`, `findAll`)
+  proyectan el usuario sin el hash. Las Server Actions y los componentes de tipo
+  `'use client'` reciben únicamente el objeto público.
 
 ## Advisories restantes (12: 5 moderate, 6 high, 1 critical)
 

@@ -28,8 +28,8 @@ Clean Architecture. Los textos de la interfaz están centralizados en `src/liter
 src/
 ├── app/                    # Rutas (auth + dashboard) y layouts
 ├── components/             # Componentes UI (ui/, features/, layout/)
-├── domain/                 # Entidades, reglas puras y value objects
-├── infrastructure/         # Drizzle (db/), repositorios y auditoría
+├── domain/                 # Entidades, reglas puras, puertos y value objects
+├── infrastructure/         # Drizzle (db/), implementación de repositorios y auditoría
 ├── server-actions/         # Casos de uso / Server Actions y queries
 ├── server/auth/            # Autenticación de servidor (sesión actual)
 ├── literals/               # Textos centralizados de la interfaz
@@ -68,6 +68,7 @@ npm run dev            # http://localhost:3000
 | `npm run test:watch` | Vitest en modo watch |
 | `npm run db:generate` | Generar migraciones SQL |
 | `npm run db:push` | Aplicar schema a la DB |
+| `npm run db:migrate` | Aplicar migraciones SQL (producción) |
 | `npm run db:studio` | Abrir Drizzle Studio |
 | `npm run db:vaciar` | Reset de la DB local (solo dev) |
 
