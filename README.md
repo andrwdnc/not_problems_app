@@ -80,6 +80,8 @@ npm run dev            # http://localhost:3000
 - URL de producción: `https://notproblemsapp.vercel.app`
 - **Base de datos compartida:** mientras la app está en pruebas, `DATABASE_URL`/`DIRECT_URL` apuntan a la **misma** Supabase en todos los entornos de Vercel (sin separación dev/prod). `db:push`, `db:migrate` y `db:vaciar` afectan por igual a preview y producción.
 
+> **Estado actual (pendiente de confirmar con Vercel):** en la última revisión no había deployment de producción activo — el alias respondía `DEPLOYMENT_NOT_FOUND`. Antes de dar la URL por válida, verificar que el proyecto Vercel está conectado y que `master` produce un deployment real (p. ej. `npx vercel ls` / panel Vercel).
+
 ## Convenciones de Git
 
 - Commits en inglés con [Conventional Commits](https://www.conventionalcommits.org/) (`feat:`, `fix:`, `refactor:`, `test:`, `docs:`, `chore:`).
