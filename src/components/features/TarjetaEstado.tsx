@@ -1,7 +1,8 @@
 import { cn } from '@/lib/utils';
 import { formatCurrency } from '@/lib/formatters/currency';
+import { formatos } from '@/literals';
 
-type Variante = 'aportado' | 'gastado' | 'disponible' | 'presupuesto' | 'ahorro';
+type Variante = 'aportado' | 'gastado' | 'ahorro';
 
 interface TarjetaEstadoProps {
   variante: Variante;
@@ -18,20 +19,10 @@ const estilos: Record<
     fondo: 'bg-brand-surface',
     borde: 'border-brand-border',
   },
-  presupuesto: {
-    texto: 'text-brand-navy',
-    fondo: 'bg-brand-pale/50',
-    borde: 'border-brand-border',
-  },
   gastado: {
     texto: 'text-financial-negative',
     fondo: 'bg-financial-negativeBg',
     borde: 'border-financial-negative/20',
-  },
-  disponible: {
-    texto: 'text-financial-positive',
-    fondo: 'bg-financial-positiveBg',
-    borde: 'border-financial-positive/20',
   },
   ahorro: {
     texto: 'text-financial-positive',
@@ -45,13 +36,11 @@ export function TarjetaEstado({
   etiqueta,
   importe,
 }: TarjetaEstadoProps) {
-  // "Disponible" y "Ahorro" son verdes mientras haya saldo positivo; en cuanto
-  // se gasta más de lo ingresado (negativo), pasan a rojo para indicar déficit.
+  // "Ahorro" es verde mientras haya saldo positivo; en cuanto se gasta más de
+  // lo ingresado (negativo), pasa a rojo para indicar déficit.
   const esNegativo = (importe ?? 0) < 0;
   const estilo =
-    (variante === 'disponible' || variante === 'ahorro') && esNegativo
-      ? estilos.gastado
-      : estilos[variante];
+    variante === 'ahorro' && esNegativo ? estilos.gastado : estilos[variante];
 
   return (
     <div
@@ -73,7 +62,7 @@ export function TarjetaEstado({
         </p>
       ) : (
         <p className="mt-1 font-mono text-lg font-bold tabular-nums text-brand-muted sm:text-xl">
-          —
+          {formatos.vacio}
         </p>
       )}
     </div>

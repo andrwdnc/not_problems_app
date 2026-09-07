@@ -10,6 +10,17 @@
 export const app = {
   nombre: 'Nest',
   descripcion: 'Tu espacio financiero compartido',
+  cargando: 'Cargando',
+};
+
+/** Textos de formato neutros (sin anclar la UI a un idioma concreto). */
+export const formatos = {
+  /** Marcador de valor vacío/pendiente en cifras. */
+  vacio: '—',
+  /** Ejemplo de importe para inputs de dinero. */
+  importeEjemplo: '0,00 €',
+  /** Sufijo de unidad monetaria. */
+  sufijoEuro: '€',
 };
 
 export const auth = {
@@ -142,7 +153,6 @@ export const aportacionErrores = {
 
 export const inicio = {
   sinMesAbierto: 'Sin mes abierto',
-  totalAportado: 'Total aportado',
   contadorGastos: (n: number) => `${n} gastos`,
   ultimosGastos: 'Últimos gastos',
   verTodos: 'Ver todos',

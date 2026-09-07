@@ -8,7 +8,7 @@ import { Card } from '@/components/ui/Card';
 import { nombreMes } from '@/lib/formatters/date';
 import Link from 'next/link';
 import { formatCurrency } from '@/lib/formatters/currency';
-import { inicio, resumen as literalesResumen } from '@/literals';
+import { inicio, resumen as literalesResumen, formatos } from '@/literals';
 
 export default async function InicioPage() {
   // 1º pasada en paralelo: mes actual + usuarios (no dependen entre sí).
@@ -54,10 +54,14 @@ export default async function InicioPage() {
           <Card className="flex flex-col items-center gap-4 py-6">
             <AnilloProgreso porcentaje={porcentajeAnillo} etiqueta={etiquetaAnillo} />
             <p className="text-center text-sm text-brand-muted">
-              {inicio.totalAportado}:{' '}
-              <span className="font-mono font-semibold text-brand-ink">
-                {formatCurrency(resumen.aportado)}
-              </span>{' '}
+              {literalesResumen.presupuesto}:{' '}
+              {resumen.presupuesto != null ? (
+                <span className="font-mono font-semibold text-brand-ink">
+                  {formatCurrency(resumen.presupuesto)}
+                </span>
+              ) : (
+                <span className="font-mono font-semibold text-brand-muted">{formatos.vacio}</span>
+              )}{' '}
               · {inicio.contadorGastos(resumen.numeroGastos)}
             </p>
           </Card>
@@ -67,11 +71,6 @@ export default async function InicioPage() {
               variante="aportado"
               etiqueta={literalesResumen.aportado}
               importe={resumen.aportado}
-            />
-            <TarjetaEstado
-              variante="presupuesto"
-              etiqueta={literalesResumen.presupuesto}
-              importe={resumen.presupuesto}
             />
             <TarjetaEstado
               variante="gastado"
@@ -120,7 +119,7 @@ export default async function InicioPage() {
                         {g.detalle}
                       </p>
                       <p className="text-xs text-brand-muted">
-                        {g.categoria} · {usuarioPorId.get(g.creadoPor) ?? '—'}
+                        {g.categoria} · {usuarioPorId.get(g.creadoPor) ?? formatos.vacio}
                       </p>
                     </div>
                     <span className="ml-4 shrink-0 font-mono text-sm font-semibold text-financial-negative">
