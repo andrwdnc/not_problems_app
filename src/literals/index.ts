@@ -43,6 +43,8 @@ export const authErrores = {
     'El espacio compartido ya está completo (2 usuarios). No se pueden registrar más cuentas.',
   noAutenticado: 'No autenticado',
   errorInesperado: 'Error inesperado',
+  errorConexion:
+    'No se pudo conectar con la base de datos. Revisa la configuración del servidor e inténtalo de nuevo.',
 };
 
 export const nav = {

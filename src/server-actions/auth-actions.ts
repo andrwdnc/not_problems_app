@@ -24,22 +24,29 @@ export async function login(input: unknown): Promise<ActionResult> {
 
   const { username, password } = parsed.data;
 
-  const usuario = await usuarioRepository.findByUsername(username);
-  if (!usuario) {
-    // Respuesta idéntica para usuario inexistente o contraseña incorrecta
-    // (evita enumerar usuarios).
-    return { ok: false, error: authErrores.credencialesIncorrectas };
+  try {
+    const usuario = await usuarioRepository.findByUsername(username);
+    if (!usuario) {
+      // Respuesta idéntica para usuario inexistente o contraseña incorrecta
+      // (evita enumerar usuarios).
+      return { ok: false, error: authErrores.credencialesIncorrectas };
+    }
+
+    const coincide = await bcrypt.compare(password, usuario.passwordHash);
+    if (!coincide) {
+      return { ok: false, error: authErrores.credencialesIncorrectas };
+    }
+
+    await crearSesion(usuario.id);
+
+    revalidatePath('/', 'layout');
+    return { ok: true, data: undefined };
+  } catch {
+    // Falla de conexión a la base de datos u otro error inesperado: se devuelve
+    // un ActionResult controlado para que la UI muestre el error en vez de un
+    // 500 silencioso que deja el formulario cargando.
+    return { ok: false, error: authErrores.errorConexion };
   }
-
-  const coincide = await bcrypt.compare(password, usuario.passwordHash);
-  if (!coincide) {
-    return { ok: false, error: authErrores.credencialesIncorrectas };
-  }
-
-  await crearSesion(usuario.id);
-
-  revalidatePath('/', 'layout');
-  return { ok: true, data: undefined };
 }
 
 /**
@@ -56,24 +63,28 @@ export async function signup(input: unknown): Promise<ActionResult> {
 
   // La cuenta compartida está pensada para exactamente dos usuarios: impedir
   // el registro superada esa cifra mantiene intactas las reglas de negocio.
-  const totalUsuarios = await usuarioRepository.count();
-  if (totalUsuarios >= 2) {
-    return { ok: false, error: authErrores.maximoUsuariosAlcanzado };
+  try {
+    const totalUsuarios = await usuarioRepository.count();
+    if (totalUsuarios >= 2) {
+      return { ok: false, error: authErrores.maximoUsuariosAlcanzado };
+    }
+
+    const existente = await usuarioRepository.findByUsername(username);
+    if (existente) {
+      return { ok: false, error: authErrores.usuarioEnUso(username) };
+    }
+
+    const passwordHash = await bcrypt.hash(password, COSTO_BCRYPT);
+
+    const usuario = await usuarioRepository.create({ username, passwordHash });
+
+    await crearSesion(usuario.id);
+
+    revalidatePath('/', 'layout');
+    return { ok: true, data: undefined };
+  } catch {
+    return { ok: false, error: authErrores.errorConexion };
   }
-
-  const existente = await usuarioRepository.findByUsername(username);
-  if (existente) {
-    return { ok: false, error: authErrores.usuarioEnUso(username) };
-  }
-
-  const passwordHash = await bcrypt.hash(password, COSTO_BCRYPT);
-
-  const usuario = await usuarioRepository.create({ username, passwordHash });
-
-  await crearSesion(usuario.id);
-
-  revalidatePath('/', 'layout');
-  return { ok: true, data: undefined };
 }
 
 /**
