@@ -115,8 +115,8 @@ El Agente de IA debe velar por que estas reglas se cumplan al 100%:
    - `meses.porcentaje` es un valor **único para todo el mes** que aplica por igual a los dos usuarios.
    - **PROHIBIDO** crear campos de porcentaje por usuario o tarjetas con porcentajes distintos.
 
-2. **Inmutabilidad de Sueldos y Porcentaje:**
-   - Una vez fijado y guardado un `sueldo` o el `porcentaje` del mes, no se pueden editar ni borrar (marca visual 🔒).
+2. **Inmutabilidad de Sueldos, Porcentaje y Presupuesto:**
+   - Una vez fijado y guardado un `sueldo`, el `porcentaje` del mes o el `presupuesto` de gastos, no se pueden editar ni borrar (marca visual 🔒).
 
 3. **Cálculo Automático de `importe_aportado`:**
    - `importe_aportado = sueldo * (porcentaje / 100)`.
@@ -288,7 +288,7 @@ export const historicoMovimientos = pgTable('historico_movimientos', {
 ## 9. Testing
 
 - **Framework:** Vitest.
-- Las **reglas puras del dominio** (`src/domain/rules/**`) deben tener **tests unitarios obligatorios**: `VentanaEdicionGastos` (ventana de gracia, §5.4) y `CalculadoraAportacion` (§5.3, incluyendo los totales agregados) son críticas.
+- Las **reglas puras del dominio** (`src/domain/rules/**`) deben tener **tests unitarios obligatorios**: `VentanaEdicionGastos` (ventana de gracia, §5.4), `CalculadoraAportacion` (§5.3, incluyendo los totales agregados) y `GastosRecurrentes` (§5.6, duplicación mes a mes) son críticas.
 - Los **value objects** (`src/domain/value-objects/**`) también llevan tests: `ImporteMoneda`, `Porcentaje` y `Categoria`.
 - Los tests viven junto al código testado, con sufijo `.test.ts` (ej. `src/domain/rules/VentanaEdicionGastos.test.ts`).
 - Las reglas del dominio son funciones puras: no requieren mocks ni conexión a base de datos.
@@ -304,6 +304,7 @@ export const historicoMovimientos = pgTable('historico_movimientos', {
 - Commits pequeños y atómicos: una responsabilidad por commit, modo imperativo ("add", no "added").
 - Nunca commitear: `.env*`, claves, tokens ni `node_modules`.
 - **Flujo de ramas / despliegue:** el desarrollo se hace sobre `develop`; `master` es la rama de producción con despliegue automático a Vercel. Los commits de trabajos intermedios y de documentación quedan en `develop`. Promociona a `master` (con su commit en Conventional Commits) cuando el trabajo esté listo y verificado para producción.
+  - **Estado operativo (a confirmar con el proyecto Vercel):** en la última revisión no había deployment de producción activo (el alias respondía `DEPLOYMENT_NOT_FOUND`). Antes de dar por válido un despliegue a `master`, verificar que el proyecto Vercel está conectado y que la rama `master` produce un deployment de producción real.
 - Antes de confirmar un trabajo: `npm run typecheck && npm run lint && npm run test` (y `npm run build` si es un cambio relevante).
 
 ---
@@ -350,7 +351,7 @@ Cuando el usuario te pida construir o avanzar en la aplicación, sigue esta secu
    - Implementar el cálculo reactivo de `importe_aportado`.
 
 5. **Paso 5: Componentes UI y Pantallas**
-   - **Inicio (`/`):** Anillo visual de porcentaje gastado + 3 tarjetas estadísticas (Aportado / Gastado / Disponible) + Lista de últimos 3 gastos.
+   - **Inicio (`/`):** Anillo visual de porcentaje gastado + 3 tarjetas estadísticas (Aportado / Gastado / Ahorro) + Lista de últimos 3 gastos.
    - **Aportaciones (`/aportar`):** Formulario de sueldo + porcentaje compartido único.
    - **Gastos (`/gastos` y `/gastos/nuevo`):** Listado filtrable por categoría + Formulario con bloque de importe grande en tipografía mono.
    - **Histórico (`/historico`):** Tarjetas resumen de meses cerrados con badges de estado ("Editable hasta el 5" / "Cerrado").

@@ -19,8 +19,11 @@ La app no gestiona gastos personales ni dinero real: todo lo registrado en ella 
 |---|---|---|
 | Frontend + backend | Next.js (App Router) | Un único framework para UI y lógica de servidor (Server Actions), sin API separada |
 | Despliegue | Vercel (plan gratuito) | Integración nativa con Next.js, despliegue automático por push a Git |
-| Base de datos | Supabase (Postgres) | Free tier permanente, persistencia de datos || ORM | Drizzle | Capa fina sobre SQL, sin generación de cliente, migraciones en SQL crudo legible |
+| Base de datos | Supabase (Postgres) | Free tier permanente, persistencia de datos |
+| ORM | Drizzle | Capa fina sobre SQL, sin generación de cliente, migraciones en SQL crudo legible |
+| Validación | Zod | Validación de entradas en Server Actions y formularios |
 | Autenticación | Propia (username + bcrypt + cookie) | Login por usuario + contraseña hasheada; sesión en cookie HTTP-only firmada HMAC-SHA256. No usa Supabase Auth |
+| Testing | Vitest | Tests unitarios de las reglas puras del dominio |
 | Estilos | Tailwind CSS | Desarrollo rápido sin diseñar un sistema de componentes desde cero |
 | Control de versiones | GitHub (repo privado) | Conecta directamente con Vercel para despliegue continuo |
 
@@ -54,7 +57,7 @@ Representa cada periodo mensual. Se crea automáticamente el día 1 de cada mes.
 | porcentaje | decimal (nullable) | **Porcentaje único de aportación del mes, compartido por los dos usuarios.** Lo puede fijar cualquiera de los dos. Inmutable una vez guardado |
 | porcentaje_fijado_por | FK → usuarios (nullable) | Quién fijó el porcentaje |
 | porcentaje_fecha_registro | timestamp (nullable) | Cuándo se fijó |
-| presupuesto | money (nullable) | Tope de gasto compartido del mes (céntimos). Único y compartido como el porcentaje; inmutable una vez guardado |
+| presupuesto | bigint (céntimos, nullable) | Tope de gasto compartido del mes (céntimos). Único y compartido como el porcentaje; inmutable una vez guardado |
 | presupuesto_fijado_por | FK → usuarios (nullable) | Quién fijó el presupuesto |
 | presupuesto_fecha_registro | timestamp (nullable) | Cuándo se fijó |
 | fecha_apertura | timestamp | Momento en que se creó el mes automáticamente |
@@ -71,8 +74,8 @@ Sueldo declarado por cada usuario para un mes. Inmutable una vez guardado.
 | id | uuid | Identificador único |
 | mes_id | FK → meses | Mes al que pertenece |
 | usuario_id | FK → usuarios | Usuario al que corresponde el sueldo |
-| sueldo | decimal | Sueldo íntegro declarado, inmutable tras guardar |
-| importe_aportado | decimal (nullable) | `sueldo × meses.porcentaje`, calculado y guardado en cuanto ambos valores existen (ver regla 4.1) |
+| sueldo | bigint (céntimos) | Sueldo íntegro declarado, inmutable tras guardar |
+| importe_aportado | bigint (céntimos, nullable) | `sueldo × meses.porcentaje`, calculado y guardado en cuanto ambos valores existen (ver regla 4.1) |
 | fecha_registro | timestamp | Cuándo se guardó el sueldo |
 
 El total de la cuenta conjunta del mes = suma de `importe_aportado` de ambos usuarios.
@@ -84,7 +87,7 @@ El total de la cuenta conjunta del mes = suma de `importe_aportado` de ambos usu
 | mes_id | FK → meses | Mes al que afecta el gasto (según su fecha, no según cuándo se registró) |
 | categoria | enum/text | Vivienda · Suministros · Alimentación · Ocio · Transporte · Salud · Otros |
 | detalle | text | Campo libre específico (ej. "cerveza Sully") |
-| importe | decimal | Importe del gasto |
+| importe | bigint (céntimos) | Importe del gasto |
 | fecha_gasto | date | Fecha del gasto; por defecto la actual, editable al crear |
 | es_recurrente | boolean | Indica si es un gasto recurrente (alquiler, agua, luz...) |
 | gasto_recurrente_origen_id | FK → gastos (nullable) | Si viene de duplicación automática, referencia al gasto del mes anterior del que procede |
@@ -98,7 +101,7 @@ Auditoría completa. Toda acción relevante genera una entrada aquí.
 |---|---|---|
 | id | uuid | Identificador único |
 | usuario_id | FK → usuarios | Quién hizo la acción |
-| entidad | text | Tabla afectada: `meses`, `aportaciones`, `gastos` |
+| entidad | enum | Tabla afectada: `meses`, `aportaciones`, `gastos` |
 | entidad_id | uuid | Registro afectado |
 | accion | enum | `crear` · `editar` · `eliminar` |
 | valor_anterior | jsonb (nullable) | Estado antes del cambio (null si es creación) |
@@ -133,7 +136,7 @@ Auditoría completa. Toda acción relevante genera una entrada aquí.
 
 ## 5. Sistema de diseño
 
-Estilo azul. Mobile-first: una sola columna, navegación inferior fija, tarjetas grandes y táctiles. El protagonista visual constante es el estado del mes: aportado / gastado / disponible.
+Estilo azul. Mobile-first: una sola columna, navegación inferior fija, tarjetas grandes y táctiles. El protagonista visual constante es el estado del mes: aportado / gastado / ahorro (o déficit).
 
 ### 5.1 Color
 | Token | Hex | Uso |
@@ -219,7 +222,7 @@ Pantalla de apertura de la app, la más visitada.
 
 | Sección | Contenido |
 |---|---|
-| Inicio | Resumen del mes en curso: aportado, gastado, disponible, últimos gastos |
+| Inicio | Resumen del mes en curso: aportado, gastado, ahorro, últimos gastos |
 | Gastos | Listado completo del mes, filtro por categoría, alta rápida |
 | Aportar | Sueldo de cada usuario + porcentaje único del mes |
 | Histórico | Meses cerrados, balance y acceso al detalle de cada uno |
