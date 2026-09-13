@@ -3,7 +3,7 @@ import type { Accion } from '@/domain/entities';
 
 export interface AuditarMovimientoParams {
   usuarioId: string;
-  entidad: 'meses' | 'aportaciones' | 'gastos' | 'gastos_anuales';
+  entidad: 'meses' | 'aportaciones' | 'gastos' | 'gastos_anuales' | 'gastos_individuales';
   entidadId: string;
   accion: Accion;
   valorAnterior?: unknown | null;
