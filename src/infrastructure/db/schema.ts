@@ -59,6 +59,24 @@ export const gastos = pgTable('gastos', {
   fechaCreacion: timestamp('fecha_creacion', { withTimezone: true }).defaultNow().notNull(),
 });
 
+export const gastosIndividuales = pgTable('gastos_individuales', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  mesId: uuid('mes_id').references(() => meses.id).notNull(),
+  // Dueño del gasto individual: frontera de privacidad (siempre desde sesión).
+  usuarioId: uuid('usuario_id').references(() => usuarios.id).notNull(),
+  categoria: categoriaEnum('categoria').notNull(),
+  detalle: text('detalle').notNull(),
+  importe: bigint('importe', { mode: 'number' }).notNull(),
+  fechaGasto: date('fecha_gasto', { mode: 'string' }).notNull(),
+  esRecurrente: boolean('es_recurrente').default(false).notNull(),
+  gastoRecurrenteOrigenId: uuid('gasto_recurrente_origen_id'),
+  creadoPor: uuid('creado_por').references(() => usuarios.id).notNull(),
+  fechaCreacion: timestamp('fecha_creacion', { withTimezone: true }).defaultNow().notNull(),
+}, (table) => [
+  // Índice compuesto mes + dueño: consultas de privacidad del área individual.
+  index('gastos_individuales_mes_usuario_idx').on(table.mesId, table.usuarioId),
+]);
+
 export const gastosAnuales = pgTable('gastos_anuales', {
   id: uuid('id').primaryKey().defaultRandom(),
   importeTotal: bigint('importe_total', { mode: 'number' }).notNull(), // céntimos
@@ -75,7 +93,7 @@ export const gastosAnuales = pgTable('gastos_anuales', {
 
 export const accionEnum = pgEnum('accion_enum', ['crear', 'editar', 'eliminar']);
 
-export const entidadEnum = pgEnum('entidad_enum', ['meses', 'aportaciones', 'gastos', 'gastos_anuales']);
+export const entidadEnum = pgEnum('entidad_enum', ['meses', 'aportaciones', 'gastos', 'gastos_anuales', 'gastos_individuales']);
 
 export const historicoMovimientos = pgTable('historico_movimientos', {
   id: uuid('id').primaryKey().defaultRandom(),
