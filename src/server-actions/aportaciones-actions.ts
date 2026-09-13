@@ -2,9 +2,9 @@
 
 import { revalidatePath } from 'next/cache';
 import { sueldoSchema, porcentajeSchema, presupuestoSchema } from './schemas/aportacion';
+import { fijarSueldoCore, fijarPorcentajeCore } from './aportaciones-core';
 import { aportacionRepository, mesRepository } from './repositories';
 import { auditarMovimiento } from '@/infrastructure/audit/auditarMovimiento';
-import { calcularImporteAportado } from '@/domain/rules/CalculadoraAportacion';
 import { getCurrentUserId } from '@/server/auth';
 import type { Aportacion, Mes } from '@/domain/entities';
 import type { ActionResult } from './action-result';
@@ -13,7 +13,8 @@ import { aportacionErrores, authErrores } from '@/literals';
 
 /**
  * Guarda (o fija) el sueldo de un usuario para un mes. Inmutable una vez guardado.
- * Si el porcentaje del mes ya está fijado, calcula y persiste importe_aportado.
+ * Wrapper delgado: sesión + validación Zod + revalidación; la persistencia, el
+ * recálculo reactivo y la auditoría viven en `fijarSueldoCore` (D4).
  */
 export async function fijarSueldo(
   input: unknown,
@@ -28,68 +29,23 @@ export async function fijarSueldo(
     return handleError(parsed.error);
   }
 
-  const data = parsed.data;
+  const { usuarioId: usuarioObjetivo, ...datos } = parsed.data;
 
-  const existente = await aportacionRepository.findByMesAndUsuario(
-    data.mesId,
-    data.usuarioId,
-  );
-  // Inmutabilidad del sueldo (§5.2): una vez guardado no se puede modificar.
-  if (existente && existente.sueldo != null) {
-    return { ok: false, error: aportacionErrores.sueldoYaFijado };
+  const resultado = await fijarSueldoCore(usuarioId, usuarioObjetivo, datos);
+
+  if (resultado.ok) {
+    revalidatePath('/aportar');
+    revalidatePath('/');
+    revalidatePath('/historico');
   }
 
-  let aportacion: Aportacion;
-  if (existente) {
-    aportacion = await aportacionRepository.update(existente.id, {
-      sueldo: data.sueldo,
-    });
-  } else {
-    // Upsert idempotente: si otro llamado creó la fila entre medias (carrera),
-    // se reutiliza la ganadora en lugar de violar el índice único.
-    aportacion = await aportacionRepository.createSiNoExiste({
-      mesId: data.mesId,
-      usuarioId: data.usuarioId,
-      sueldo: data.sueldo,
-      importeAportado: null,
-    });
-  }
-
-  // Cálculo reactivo: si el porcentaje del mes ya existe, calcular importe.
-  const mes = await mesRepository.findById(data.mesId);
-  if (mes?.porcentaje != null) {
-    const importe = calcularImporteAportado(data.sueldo, mes.porcentaje);
-    if (importe != null) {
-      const fijado = await aportacionRepository.fijarImporteAportadoSiNulo(
-        aportacion.id,
-        importe,
-      );
-      // Solo escribe la auditoría del cálculo si realmente pudo fijarlo.
-      if (fijado) {
-        aportacion = fijado;
-      }
-    }
-  }
-
-  await auditarMovimiento({
-    usuarioId,
-    entidad: 'aportaciones',
-    entidadId: aportacion.id,
-    accion: existente ? 'editar' : 'crear',
-    valorAnterior: existente ?? null,
-    valorNuevo: aportacion,
-  });
-
-  revalidatePath('/aportar');
-  revalidatePath('/');
-  revalidatePath('/historico');
-
-  return { ok: true, data: aportacion };
+  return resultado;
 }
 
 /**
  * Fija el porcentaje único y compartido del mes. Inmutable una vez guardado.
- * Dispara el cálculo reactivo del importe_aportado de TODAS las aportaciones del mes.
+ * Wrapper delgado: sesión + validación Zod + revalidación; la persistencia, el
+ * recálculo reactivo y la auditoría viven en `fijarPorcentajeCore` (D4).
  */
 export async function fijarPorcentaje(
   input: unknown,
@@ -106,51 +62,15 @@ export async function fijarPorcentaje(
 
   const { mesId, porcentaje } = parsed.data;
 
-  const mes = await mesRepository.findById(mesId);
-  if (!mes) {
-    return { ok: false, error: aportacionErrores.mesNoEncontrado };
+  const resultado = await fijarPorcentajeCore(usuarioId, mesId, porcentaje);
+
+  if (resultado.ok) {
+    revalidatePath('/aportar');
+    revalidatePath('/');
+    revalidatePath('/historico');
   }
 
-  // Fijación atómica: solo el primer llamador que encuentre el porcentaje aún
-  // nulo podrá fijarlo; los concurrentes reciben null y no duplican auditoría.
-  const actualizado = await mesRepository.fijarPorcentajeSiNulo(
-    mesId,
-    porcentaje,
-    usuarioId,
-  );
-
-  if (!actualizado) {
-    return { ok: false, error: aportacionErrores.porcentajeYaFijado };
-  }
-
-  // Recalcular importe_aportado de todas las aportaciones del mes. Cada una se
-  // fija atómicamente (solo si aún no tenía importe) para mantener la
-  // inmutabilidad ante carreras concurrentes.
-  const aportaciones = await aportacionRepository.findByMes(mesId);
-  for (const aportacion of aportaciones) {
-    const importe = calcularImporteAportado(aportacion.sueldo, porcentaje);
-    if (importe != null) {
-      await aportacionRepository.fijarImporteAportadoSiNulo(
-        aportacion.id,
-        importe,
-      );
-    }
-  }
-
-  await auditarMovimiento({
-    usuarioId,
-    entidad: 'meses',
-    entidadId: mesId,
-    accion: 'editar',
-    valorAnterior: mes,
-    valorNuevo: actualizado,
-  });
-
-  revalidatePath('/aportar');
-  revalidatePath('/');
-  revalidatePath('/historico');
-
-  return { ok: true, data: actualizado };
+  return resultado;
 }
 
 /**
