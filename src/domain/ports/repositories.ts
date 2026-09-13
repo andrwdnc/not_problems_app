@@ -3,6 +3,7 @@ import type {
   Aportacion,
   Gasto,
   GastoAnual,
+  GastoIndividual,
   Mes,
   MovimientoAuditoria,
   Usuario,
@@ -58,6 +59,12 @@ export interface AportacionRepository {
   findByMesAndUsuario(mesId: string, usuarioId: string): Promise<Aportacion | null>;
   findByMes(mesId: string): Promise<Aportacion[]>;
   findByMesIds(mesIds: string[]): Promise<Aportacion[]>;
+  /**
+   * Aportaciones de un usuario concreto para un conjunto de meses. El filtro
+   * por usuario se aplica en SQL (D8): el histórico individual solo consulta
+   * las filas del propietario de la sesión.
+   */
+  findByMesIdsYUsuario(mesIds: string[], usuarioId: string): Promise<Aportacion[]>;
   create(data: Omit<Aportacion, 'id' | 'fechaRegistro'>): Promise<Aportacion>;
   /**
    * Crea la aportación solo si aún no existe el par (mes, usuario). Ante una
@@ -83,6 +90,39 @@ export interface GastoRepository {
   update(id: string, data: Partial<Gasto>): Promise<Gasto>;
   delete(id: string): Promise<void>;
   findRecurrentesDeMes(mesId: string): Promise<Gasto[]>;
+}
+
+/**
+ * Puertos de persistencia de los gastos individuales (IA-1, D5): owner-first.
+ *
+ * Cada método de lectura/borrado recibe `usuarioId` y la implementación DEBE
+ * aplicar el filtro de propiedad en el WHERE (nunca solo en la capa de
+ * acciones). Si una fila no existe O no pertenece al usuario, findById/update
+ * devuelven null y delete devuelve false: el cruce de privacidad es
+ * estructuralmente imposible de saltar.
+ */
+export interface GastoIndividualRepository {
+  findById(usuarioId: string, id: string): Promise<GastoIndividual | null>;
+  findByMes(usuarioId: string, mesId: string): Promise<GastoIndividual[]>;
+  findByMesIds(usuarioId: string, mesIds: string[]): Promise<GastoIndividual[]>;
+  create(data: Omit<GastoIndividual, 'id' | 'fechaCreacion'>): Promise<GastoIndividual>;
+  update(
+    usuarioId: string,
+    id: string,
+    data: Partial<GastoIndividual>,
+  ): Promise<GastoIndividual | null>;
+  delete(usuarioId: string, id: string): Promise<boolean>;
+  /** Recurrentes de un mes que pertenecen a un usuario (duplicación por dueño). */
+  findRecurrentesDeMesPorUsuario(
+    mesId: string,
+    usuarioId: string,
+  ): Promise<GastoIndividual[]>;
+  /**
+   * Dueños con gastos recurrentes en un mes. Al abrir el mes N, la duplicación
+   * recorre estos propietarios (no solo al usuario que crea el mes) para que
+   * cada uno conserve sus recurrentes individuales (IA-3 Recurrent, D7).
+   */
+  findPropietariosConRecurrentes(mesId: string): Promise<Array<{ usuarioId: string }>>;
 }
 
 export interface HistoricoRepository {
