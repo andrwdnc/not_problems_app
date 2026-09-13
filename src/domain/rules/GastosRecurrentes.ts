@@ -1,4 +1,4 @@
-import type { Gasto } from '../entities';
+import type { Gasto, GastoIndividual } from '../entities';
 
 /**
  * Regla pura (§5.6): calcula la fecha del gasto duplicado en el mes destino.
@@ -34,6 +34,31 @@ export function prepararDuplicadoRecurrente(
 ): Omit<Gasto, 'id' | 'fechaCreacion'> {
   return {
     mesId: destino.mesId,
+    categoria: original.categoria,
+    detalle: original.detalle,
+    importe: original.importe,
+    fechaGasto: fechaGastoDestino(original.fechaGasto, destino.anio, destino.mes),
+    esRecurrente: true,
+    gastoRecurrenteOrigenId: original.id,
+    creadoPor: original.creadoPor,
+  };
+}
+
+/**
+ * Regla pura (§5.6, IA-3 Recurrent): prepara el duplicado de un gasto
+ * individual recurrente para el mes destino. Igual que
+ * `prepararDuplicadoRecurrente` pero conservando el dueño (`usuarioId`):
+ * la duplicación mensual debe respetar la frontera de privacidad del gasto
+ * individual (IA-1). Reutiliza `fechaGastoDestino` para el clamping de día
+ * (p. ej. 31 -> 28 en febrero).
+ */
+export function prepararDuplicadoRecurrenteIndividual(
+  original: GastoIndividual,
+  destino: { mesId: string; anio: number; mes: number },
+): Omit<GastoIndividual, 'id' | 'fechaCreacion'> {
+  return {
+    mesId: destino.mesId,
+    usuarioId: original.usuarioId,
     categoria: original.categoria,
     detalle: original.detalle,
     importe: original.importe,
