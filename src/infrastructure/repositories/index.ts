@@ -1,6 +1,7 @@
 export { AportacionDrizzleRepository } from './AportacionRepository';
 export { MesDrizzleRepository } from './MesRepository';
 export { GastoDrizzleRepository } from './GastoRepository';
+export { GastoIndividualDrizzleRepository } from './GastoIndividualRepository';
 export { HistoricoDrizzleRepository } from './HistoricoRepository';
 export { UsuarioDrizzleRepository } from './UsuarioRepository';
 export { GastoAnualDrizzleRepository } from './GastoAnualRepository';
@@ -11,6 +12,7 @@ export type {
   AportacionRepository,
   CrearMesInput,
   GastoRepository,
+  GastoIndividualRepository,
   HistoricoRepository,
   MesRepository,
   NuevoUsuario,
@@ -26,6 +28,7 @@ export type {
 export type {
   Aportacion,
   Gasto,
+  GastoIndividual,
   Mes,
   MovimientoAuditoria,
   Usuario,
