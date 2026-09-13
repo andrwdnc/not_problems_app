@@ -1,8 +1,8 @@
-import { mesRepository, aportacionRepository, gastoRepository, provisionRepository } from './repositories';
+import { mesRepository, aportacionRepository, gastoRepository, gastoAnualRepository } from './repositories';
 import { ventanaDeMes } from '@/domain/rules/VentanaEdicionGastos';
 import type { PermisosEdicion } from '@/domain/rules/VentanaEdicionGastos';
 import { calcularAhorro, sumarAportado, sumarGastado } from '@/domain/rules/CalculadoraAportacion';
-import { calcularProvisionadoMes, calcularDevengoPrevio } from '@/domain/rules/CalculadoraProvision';
+import { calcularCuotaMes, calcularDevengoPrevio } from '@/domain/rules/CalculadoraGastoAnual';
 
 export interface MesHistorico {
   mes: {
@@ -12,8 +12,8 @@ export interface MesHistorico {
   };
   aportado: number;
   gastado: number;
-  /** Importe provisionado devengado este mes (en céntimos). */
-  provisionado: number;
+  /** Importe apartado devengado este mes (en céntimos). */
+  apartado: number;
   /** Presupuesto de gastos en céntimos; null si nunca se fijó. */
   presupuesto: number | null;
   /** Ahorro = aportado − presupuesto; sin presupuesto, aportado − gastado. */
@@ -32,11 +32,11 @@ export async function obtenerHistorico(): Promise<MesHistorico[]> {
   const mesIds = meses.map((m) => m.id);
 
   // 4 queries en total: una para todos los meses, otra para todas sus aportaciones,
-  // otra para todos sus gastos, y otra para todas las provisiones.
-  const [aportaciones, gastos, provisiones] = await Promise.all([
+  // otra para todos sus gastos, y otra para todos los gastos anuales.
+  const [aportaciones, gastos, gastosAnuales] = await Promise.all([
     aportacionRepository.findByMesIds(mesIds),
     gastoRepository.findByMesIds(mesIds),
-    provisionRepository.findAll(),
+    gastoAnualRepository.findAll(),
   ]);
 
   const aportadoPorMes = new Map<string, number>();
@@ -55,39 +55,39 @@ export async function obtenerHistorico(): Promise<MesHistorico[]> {
     );
   }
 
-  // Calcular provisionado para cada mes
-  const provisionadoPorMes = new Map<string, number>();
+  // Calcular apartado para cada mes
+  const apartadoPorMes = new Map<string, number>();
   for (const mes of meses) {
-    let provisionadoMes = 0;
-    // Para cada provisión, calcular cuánto devenga en este mes
-    for (const prov of provisiones) {
-      // Solo considerar provisiones cuyo ciclo incluye este mes
+    let apartadoMes = 0;
+    // Para cada gasto anual, calcular cuánto devenga en este mes
+    for (const gastoAnual of gastosAnuales) {
+      // Solo considerar gastos anuales cuyo ciclo incluye este mes
       // El ciclo va desde enero del anioCiclo hasta diciembre del anioCiclo
-      if (mes.anio === prov.anioCiclo) {
+      if (mes.anio === gastoAnual.anioCiclo) {
         // mesCiclo es 1-indexed: enero = 1, diciembre = 12
         const mesCiclo = mes.mes;
-        // Usar la regla pura para calcular el provisionado de este mes
-        provisionadoMes += calcularProvisionadoMes(
-          prov.importeTotal,
+        // Usar la regla pura para calcular el apartado de este mes
+        apartadoMes += calcularCuotaMes(
+          gastoAnual.importeTotal,
           12, // siempre 12 meses por ciclo anual
           mesCiclo,
         );
       }
     }
-    provisionadoPorMes.set(mes.id, provisionadoMes);
+    apartadoPorMes.set(mes.id, apartadoMes);
   }
 
   return meses.map((mes) => {
     const aportado = aportadoPorMes.get(mes.id) ?? 0;
     const gastado = gastadoPorMes.get(mes.id) ?? 0;
-    const provisionado = provisionadoPorMes.get(mes.id) ?? 0;
+    const apartado = apartadoPorMes.get(mes.id) ?? 0;
     const ahorro = calcularAhorro(aportado, mes.presupuesto, gastado);
 
     return {
       mes: { id: mes.id, anio: mes.anio, mes: mes.mes },
       aportado,
       gastado,
-      provisionado,
+      apartado,
       presupuesto: mes.presupuesto,
       ahorro,
       permisos: ventanaDeMes(hoy, mes.anio, mes.mes),

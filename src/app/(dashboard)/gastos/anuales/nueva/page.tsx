@@ -1,12 +1,12 @@
 import { obtenerMesActual } from '@/server-actions/queries';
 
 export const dynamic = 'force-dynamic';
-import { NuevaProvisionForm } from '@/components/features/NuevaProvisionForm';
+import { NuevoGastoAnualForm } from '@/components/features/NuevoGastoAnualForm';
 import Link from 'next/link';
 import { ChevronLeft } from 'lucide-react';
-import { provision } from '@/literals';
+import { gastosAnuales } from '@/literals';
 
-export default async function NuevaProvisionPage() {
+export default async function NuevoGastoAnualPage() {
   const mes = await obtenerMesActual();
 
   if (!mes) {
@@ -16,9 +16,9 @@ export default async function NuevaProvisionPage() {
           <Link href="/gastos" className="text-brand-muted">
             <ChevronLeft />
           </Link>
-          <h1 className="text-xl font-bold text-brand-navy">{provision.nuevo}</h1>
+          <h1 className="text-xl font-bold text-brand-navy">{gastosAnuales.nuevo}</h1>
         </div>
-        <p className="text-sm text-brand-muted">{provision.sinProvisiones}</p>
+        <p className="text-sm text-brand-muted">{gastosAnuales.sinGastosAnuales}</p>
       </div>
     );
   }
@@ -29,9 +29,9 @@ export default async function NuevaProvisionPage() {
         <Link href="/gastos" className="text-brand-muted">
           <ChevronLeft />
         </Link>
-        <h1 className="text-xl font-bold text-brand-navy">{provision.nuevo}</h1>
+        <h1 className="text-xl font-bold text-brand-navy">{gastosAnuales.nuevo}</h1>
       </div>
-      <NuevaProvisionForm />
+      <NuevoGastoAnualForm />
     </div>
   );
 }

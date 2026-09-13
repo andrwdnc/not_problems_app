@@ -1,12 +1,12 @@
 import { describe, it, expect } from 'vitest';
 import {
   calcularAnioCicloInicial,
-  calcularCuotaProvisionMes,
-  calcularProvisionadoMes,
+  calcularCuotaBase,
+  calcularCuotaMes,
   calcularDevengoPrevio,
-} from './CalculadoraProvision';
+} from './CalculadoraGastoAnual';
 
-describe('CalculadoraProvision', () => {
+describe('CalculadoraGastoAnual', () => {
   describe('calcularAnioCicloInicial', () => {
     it('retorna el año actual si mes actual < mesPago', () => {
       // Mes actual: septiembre (9), mesPago: 12 (diciembre)
@@ -26,9 +26,9 @@ describe('CalculadoraProvision', () => {
     });
   });
 
-  describe('calcularCuotaProvisionMes', () => {
+  describe('calcularCuotaBase', () => {
     it('1250 céntimos / 12 meses -> 11 meses de 104 + 1 de 106', () => {
-      const { cuotaBase, residuo, mesResiduo } = calcularCuotaProvisionMes(1250, 12);
+      const { cuotaBase, residuo, mesResiduo } = calcularCuotaBase(1250, 12);
 
       // 1250 / 12 = 104.166... -> cuotaBase = 104, residuo = 2 (1250 - 104*12 = 2)
       // El residuo se reparte en 1 céntimo extra en los primeros `residuo` meses
@@ -38,41 +38,41 @@ describe('CalculadoraProvision', () => {
     });
 
     it('10000 céntimos / 10 meses -> 1000 exacto sin residuo', () => {
-      const { cuotaBase, residuo } = calcularCuotaProvisionMes(10000, 10);
+      const { cuotaBase, residuo } = calcularCuotaBase(10000, 10);
       expect(cuotaBase).toBe(1000);
       expect(residuo).toBe(0);
     });
 
     it('reparte residuo en los primeros meses (ej: 100 céntimos / 3 = 34, 33, 33)', () => {
-      const { cuotaBase, residuo } = calcularCuotaProvisionMes(100, 3);
+      const { cuotaBase, residuo } = calcularCuotaBase(100, 3);
       // 100 / 3 = 33.33... -> cuotaBase = 33, residuo = 1 (100 - 33*3 = 1)
       expect(cuotaBase).toBe(33);
       expect(residuo).toBe(1);
     });
   });
 
-  describe('calcularProvisionadoMes', () => {
+  describe('calcularCuotaMes', () => {
     it('mes 1 con residuo -> cuotaBase + 1', () => {
       // 1250 / 12 = 104 con residuo 2 -> mes 1 y 2 reciben +1
-      expect(calcularProvisionadoMes(1250, 12, 1)).toBe(105);
+      expect(calcularCuotaMes(1250, 12, 1)).toBe(105);
     });
 
     it('mes 2 con residuo -> cuotaBase + 1', () => {
-      expect(calcularProvisionadoMes(1250, 12, 2)).toBe(105);
+      expect(calcularCuotaMes(1250, 12, 2)).toBe(105);
     });
 
     it('mes 3 sin residuo -> cuotaBase', () => {
-      expect(calcularProvisionadoMes(1250, 12, 3)).toBe(104);
+      expect(calcularCuotaMes(1250, 12, 3)).toBe(104);
     });
 
     it('mes 12 -> cuotaBase', () => {
-      expect(calcularProvisionadoMes(1250, 12, 12)).toBe(104);
+      expect(calcularCuotaMes(1250, 12, 12)).toBe(104);
     });
 
     it('suma de 12 meses = importeTotal (1250)', () => {
       let suma = 0;
       for (let m = 1; m <= 12; m++) {
-        suma += calcularProvisionadoMes(1250, 12, m);
+        suma += calcularCuotaMes(1250, 12, m);
       }
       expect(suma).toBe(1250);
     });
@@ -80,20 +80,20 @@ describe('CalculadoraProvision', () => {
     it('suma de 10 meses = importeTotal (10000)', () => {
       let suma = 0;
       for (let m = 1; m <= 10; m++) {
-        suma += calcularProvisionadoMes(10000, 10, m);
+        suma += calcularCuotaMes(10000, 10, m);
       }
       expect(suma).toBe(10000);
     });
 
-    it('dos provisiones sumadas en calcularProvisionadoMes (misma función, suma externa)', () => {
-      // Provisión A: 6000 en 6 meses (1000/mes)
-      // Provisión B: 3000 en 6 meses (500/mes)
+    it('dos gastos anuales sumados en calcularCuotaMes (misma función, suma externa)', () => {
+      // Gasto anual A: 6000 en 6 meses (1000/mes)
+      // Gasto anual B: 3000 en 6 meses (500/mes)
       // Mes 1: 1000 + 500 = 1500
-      const mes1 = calcularProvisionadoMes(6000, 6, 1) + calcularProvisionadoMes(3000, 6, 1);
+      const mes1 = calcularCuotaMes(6000, 6, 1) + calcularCuotaMes(3000, 6, 1);
       expect(mes1).toBe(1500);
 
       // Mes 6: 1000 + 500 = 1500
-      const mes6 = calcularProvisionadoMes(6000, 6, 6) + calcularProvisionadoMes(3000, 6, 6);
+      const mes6 = calcularCuotaMes(6000, 6, 6) + calcularCuotaMes(3000, 6, 6);
       expect(mes6).toBe(1500);
     });
   });

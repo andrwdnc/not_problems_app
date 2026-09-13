@@ -113,34 +113,33 @@ export const gastosErrores = {
   gastoNoEliminable: 'Este gasto ya no se puede eliminar.',
 };
 
-export const provisionValidaciones = {
+export const gastosAnualesValidaciones = {
   detalleObligatorio: 'El detalle es obligatorio',
   importePositivo: 'El importe debe ser mayor que 0',
   mesPagoInvalido: 'El mes de pago debe estar entre 1 y 12',
 };
 
-export const provisionErrores = {
-  provisionNoEncontrada: 'Provisión no encontrada.',
-  provisionYaPagada: 'Esta provisión ya está pagada para el ciclo actual.',
-  devengoPrevio: 'No se puede editar/eliminar: esta provisión ya tiene meses devengados en el ciclo actual.',
+export const gastosAnualesErrores = {
+  gastoAnualNoEncontrada: 'Gasto anual no encontrado.',
+  gastoAnualYaPagado: 'Este gasto anual ya está pagado para el ciclo actual.',
+  devengoPrevio: 'No se puede editar/eliminar: este gasto anual ya tiene meses devengados en el ciclo actual.',
 };
 
-export const provision = {
-  titulo: 'Provisiones anuales',
-  nuevo: 'Nueva provisión',
+export const gastosAnuales = {
+  titulo: 'Gastos anuales',
+  nuevo: 'Nuevo gasto anual',
   detalle: 'Detalle',
   placeholderDetalle: 'ej. Seguro hogar',
   importeTotal: 'Importe total anual',
   mesPago: 'Mes de pago',
-  guardar: 'Guardar provisión',
+  guardar: 'Guardar gasto anual',
   editar: 'Editar',
   eliminar: 'Eliminar',
-  pagar: 'Marcar como pagada',
-  pagada: 'Pagada',
-  sinProvisiones: 'Aún no hay provisiones registradas.',
-  nota: 'Las provisiones se devengan mes a mes. Al llegar el mes de pago, se marcan como pagadas y empieza un nuevo ciclo.',
+  pagar: 'Marcar como pagado',
+  sinGastosAnuales: 'Aún no hay gastos anuales registrados.',
+  nota: 'Los gastos anuales se cubren mes a mes. Al llegar el mes de pago, se marcan como pagados y empieza un nuevo ciclo.',
   badge: (cuota: number) => `Anual · cuota ${cuota}/12`,
-  progreso: (provisionado: string, total: string) => `Provisionado ${provisionado}/${total}`,
+  progreso: (apartado: string, total: string) => `Apartado ${apartado}/${total}`,
   pagado: 'Pagado',
 };
 

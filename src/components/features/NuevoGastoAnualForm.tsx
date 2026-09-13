@@ -5,10 +5,10 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Card } from '@/components/ui/Card';
-import { crearProvision } from '@/server-actions/provisiones-actions';
-import { provision, formatos } from '@/literals';
+import { crearGastoAnual } from '@/server-actions/gastos-anuales-actions';
+import { gastosAnuales, formatos } from '@/literals';
 
-export function NuevaProvisionForm() {
+export function NuevoGastoAnualForm() {
   const router = useRouter();
   const [importeTotal, setImporteTotal] = useState('');
   const [detalle, setDetalle] = useState('');
@@ -19,7 +19,7 @@ export function NuevaProvisionForm() {
   async function guardar(formData: FormData) {
     setEnviando(true);
     setError(null);
-    const resultado = await crearProvision({
+    const resultado = await crearGastoAnual({
       detalle,
       importeTotal: formData.get('importeTotal') as string,
       mesPago: Number(formData.get('mesPago')),
@@ -37,7 +37,7 @@ export function NuevaProvisionForm() {
   return (
     <form action={guardar} className="space-y-4">
       <div className="rounded-3xl bg-brand-navy p-6 text-center">
-        <p className="text-sm text-brand-sky">{provision.importeTotal}</p>
+        <p className="text-sm text-brand-sky">{gastosAnuales.importeTotal}</p>
         <input
           name="importeTotal"
           type="text"
@@ -55,17 +55,17 @@ export function NuevaProvisionForm() {
 
       <Card className="space-y-4">
         <Input
-          label={provision.detalle}
+          label={gastosAnuales.detalle}
           name="detalle"
           value={detalle}
           onChange={(e) => setDetalle(e.target.value)}
-          placeholder={provision.placeholderDetalle}
+          placeholder={gastosAnuales.placeholderDetalle}
           required
         />
 
         <div>
           <label className="block mb-2 text-sm font-medium text-brand-muted">
-            {provision.mesPago}
+            {gastosAnuales.mesPago}
           </label>
           <select
             name="mesPago"
@@ -84,7 +84,7 @@ export function NuevaProvisionForm() {
       </Card>
 
       <p className="text-center text-xs text-brand-muted">
-        {provision.nota}
+        {gastosAnuales.nota}
       </p>
 
       {error && (
@@ -94,7 +94,7 @@ export function NuevaProvisionForm() {
       )}
 
       <Button type="submit" fullWidth disabled={enviando}>
-        {enviando ? provision.guardar : provision.guardar}
+        {enviando ? gastosAnuales.guardar : gastosAnuales.guardar}
       </Button>
     </form>
   );

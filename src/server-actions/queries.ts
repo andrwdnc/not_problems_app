@@ -19,9 +19,9 @@ import type { Mes, Aportacion, Gasto } from '@/domain/entities';
 export interface ResumenMes {
   aportado: number;
   gastado: number;
-  /** Importe provisionado devengado este mes (solo para UI del ring/restante). */
-  provisionado: number;
-  /** Gasto comprometido = gastado + provisionado (alimenta ring, %, restante). */
+  /** Importe apartado devengado este mes (solo para UI del ring/restante). */
+  apartado: number;
+  /** Gasto comprometido = gastado + apartado (alimenta ring, %, restante). */
   gastadoComprometido: number;
   disponible: number;
   numeroGastos: number;
@@ -41,9 +41,9 @@ export interface ResumenMes {
  * permitir a las páginas reutilizar los mismos datos (p. ej. la lista de gastos
  * sin lanzar dos veces la misma query).
  *
- * El 4º parámetro `provisionadoCentimos` es el importe provisionado devengado
+ * El 4º parámetro `apartadoCentimos` es el importe apartado devengado
  * este mes. Se usa SOLO para:
- * - `gastadoComprometido` (gastado + provisionado)
+ * - `gastadoComprometido` (gastado + apartado)
  * - `porcentajeGastado` (sobre aportado)
  * - `disponible` (aportado - gastadoComprometido)
  *
@@ -54,21 +54,21 @@ export function calcularResumen(
   aportaciones: Aportacion[],
   gastos: Gasto[],
   presupuesto: number | null,
-  provisionadoCentimos: number = 0,
+  apartadoCentimos: number = 0,
 ): ResumenMes {
   const { aportado, gastado, numeroGastos } = calcularTotalesMes(
     aportaciones,
     gastos,
   );
 
-  const gastadoComprometido = calcularGastadoComprometido(gastado, provisionadoCentimos);
+  const gastadoComprometido = calcularGastadoComprometido(gastado, apartadoCentimos);
   const disponible = aportado - gastadoComprometido;
   const porcentajeGastado = aportado > 0 ? (gastadoComprometido / aportado) * 100 : 0;
 
   return {
     aportado,
     gastado,
-    provisionado: provisionadoCentimos,
+    apartado: apartadoCentimos,
     gastadoComprometido,
     disponible,
     numeroGastos,

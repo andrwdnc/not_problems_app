@@ -1,12 +1,12 @@
 /**
- * Reglas puras para el cálculo de provisiones anuales.
+ * Reglas puras para el cálculo de gastos anuales.
  *
  * Todas las operaciones trabajan en céntimos enteros (bigint en BD, number en dominio).
  * No tienen dependencias externas (Next.js, Drizzle, etc.).
  */
 
 /**
- * Calcula el año del ciclo inicial de una provisión.
+ * Calcula el año del ciclo inicial de un gasto anual.
  *
  * Regla: si el mes actual (1-12) es **menor** que el mes de pago (mesPago),
  * el primer ciclo empieza en el año actual. Si el mes actual es **mayor o igual**
@@ -36,7 +36,7 @@ export function calcularAnioCicloInicial(
  * El residuo se reparte sumando 1 céntimo a cada uno de los primeros `residuo` meses.
  * La suma de todas las cuotas mensuales siempre es igual a `importeTotal`.
  */
-export function calcularCuotaProvisionMes(
+export function calcularCuotaBase(
   importeTotal: number,
   numMeses: number,
 ): { cuotaBase: number; residuo: number; mesResiduo: number } {
@@ -46,19 +46,19 @@ export function calcularCuotaProvisionMes(
 }
 
 /**
- * Calcula el importe provisionado correspondiente a un mes concreto del ciclo.
+ * Calcula la cuota apartada correspondiente a un mes concreto del ciclo.
  *
  * - Meses 1 a `residuo`: cuotaBase + 1
  * - Meses `residuo + 1` a `numMeses`: cuotaBase
  *
- * La suma de `calcularProvisionadoMes` para m = 1..numMeses siempre es `importeTotal`.
+ * La suma de `calcularCuotaMes` para m = 1..numMeses siempre es `importeTotal`.
  */
-export function calcularProvisionadoMes(
+export function calcularCuotaMes(
   importeTotal: number,
   numMeses: number,
   mesCiclo: number, // 1-indexed dentro del ciclo
 ): number {
-  const { cuotaBase, residuo } = calcularCuotaProvisionMes(importeTotal, numMeses);
+  const { cuotaBase, residuo } = calcularCuotaBase(importeTotal, numMeses);
 
   if (mesCiclo <= 0 || mesCiclo > numMeses) {
     return 0;
@@ -68,10 +68,10 @@ export function calcularProvisionadoMes(
 }
 
 /**
- * Determina si el mes de pago de una provisión ya ha devengado (es decir,
+ * Determina si el mes de pago de un gasto anual ya ha devengado (es decir,
  * si su cuota ya debe considerarse "pasada" en el cálculo de devengo previo).
  *
- * Recibe el año y mes actuales, y el año de ciclo y mes de pago de la provisión.
+ * Recibe el año y mes actuales, y el año de ciclo y mes de pago del gasto anual.
  *
  * - Si (anioActual, mesActual) === (anioCiclo, mesPago): NO ha devengado aún (regMonth = false)
  * - Si anioActual > anioCiclo: YA ha devengado (next = true) — estamos en año posterior al ciclo

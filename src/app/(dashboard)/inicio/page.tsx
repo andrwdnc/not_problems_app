@@ -1,8 +1,8 @@
 import { obtenerMesActual, calcularResumen } from '@/server-actions/queries';
-import { calcularProvisionadoMes, calcularDevengoPrevio } from '@/domain/rules/CalculadoraProvision';
+import { calcularCuotaMes, calcularDevengoPrevio } from '@/domain/rules/CalculadoraGastoAnual';
 
 export const dynamic = 'force-dynamic';
-import { aportacionRepository, gastoRepository, usuarioRepository, provisionRepository } from '@/server-actions/repositories';
+import { aportacionRepository, gastoRepository, usuarioRepository, gastoAnualRepository } from '@/server-actions/repositories';
 import { AnilloProgreso } from '@/components/features/AnilloProgreso';
 import { TarjetaEstado } from '@/components/features/TarjetaEstado';
 import { Card } from '@/components/ui/Card';
@@ -18,27 +18,27 @@ export default async function InicioPage() {
     usuarioRepository.findAll(),
   ]);
 
-  // 2º pasada en paralelo: aportaciones + gastos + provisiones del mes.
-  const [aportaciones, gastos, provisiones] = mes
+  // 2º pasada en paralelo: aportaciones + gastos + gastos anuales del mes.
+  const [aportaciones, gastos, gastosAnuales] = mes
     ? await Promise.all([
         aportacionRepository.findByMes(mes.id),
         gastoRepository.findByMes(mes.id),
-        provisionRepository.findAll(),
+        gastoAnualRepository.findAll(),
       ])
     : [[], [], []];
 
-  // Calcular provisionado del mes actual
+  // Calcular apartado del mes actual
   const hoy = new Date();
   const anioActual = hoy.getFullYear();
   const mesActual = hoy.getMonth() + 1;
-  let provisionadoMes = 0;
+  let apartadoMes = 0;
   if (mes) {
-    for (const prov of provisiones) {
-      // Solo considerar provisiones cuyo ciclo incluye este mes
-      if (mes.anio === prov.anioCiclo) {
+    for (const gastoAnual of gastosAnuales) {
+      // Solo considerar gastos anuales cuyo ciclo incluye este mes
+      if (mes.anio === gastoAnual.anioCiclo) {
         const mesCiclo = mes.mes; // 1-indexed
-        provisionadoMes += calcularProvisionadoMes(
-          prov.importeTotal,
+        apartadoMes += calcularCuotaMes(
+          gastoAnual.importeTotal,
           12,
           mesCiclo,
         );
@@ -46,7 +46,7 @@ export default async function InicioPage() {
     }
   }
 
-  const resumen = mes ? calcularResumen(aportaciones, gastos, mes.presupuesto, provisionadoMes) : null;
+  const resumen = mes ? calcularResumen(aportaciones, gastos, mes.presupuesto, apartadoMes) : null;
   const ultimosGastos = gastos.slice(0, 3);
   const usuarioPorId = new Map(usuarios.map((u) => [u.id, u.username]));
 

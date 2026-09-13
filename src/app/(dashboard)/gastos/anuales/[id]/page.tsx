@@ -1,20 +1,20 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { ChevronLeft, Lock, AlertCircle } from 'lucide-react';
-import { provisionRepository } from '@/server-actions/repositories';
-import { calcularDevengoPrevio } from '@/domain/rules/CalculadoraProvision';
+import { gastoAnualRepository } from '@/server-actions/repositories';
+import { calcularDevengoPrevio } from '@/domain/rules/CalculadoraGastoAnual';
 
 export const dynamic = 'force-dynamic';
-import { EditarProvisionForm } from '@/components/features/EditarProvisionForm';
-import { provision, provisionErrores } from '@/literals';
+import { EditarGastoAnualForm } from '@/components/features/EditarGastoAnualForm';
+import { gastosAnuales, gastosAnualesErrores } from '@/literals';
 
-export default async function EditarProvisionPage({
+export default async function EditarGastoAnualPage({
   params,
 }: {
   params: { id: string };
 }) {
-  const provisionData = await provisionRepository.findById(params.id);
-  if (!provisionData) {
+  const gastoAnualData = await gastoAnualRepository.findById(params.id);
+  if (!gastoAnualData) {
     notFound();
   }
 
@@ -24,8 +24,8 @@ export default async function EditarProvisionPage({
   const devengoPrevio = calcularDevengoPrevio(
     anioActual,
     mesActual,
-    provisionData.anioCiclo,
-    provisionData.mesPago,
+    gastoAnualData.anioCiclo,
+    gastoAnualData.mesPago,
   );
 
   return (
@@ -34,17 +34,17 @@ export default async function EditarProvisionPage({
         <Link href="/gastos" className="text-brand-muted">
           <ChevronLeft />
         </Link>
-        <h1 className="text-xl font-bold text-brand-navy">{provision.editar}</h1>
+        <h1 className="text-xl font-bold text-brand-navy">{gastosAnuales.editar}</h1>
       </div>
 
       {devengoPrevio && (
         <div className="flex items-center gap-2 rounded-xl bg-financial-negativeBg p-3 text-sm text-financial-negative">
           <AlertCircle size={16} />
-          {provisionErrores.devengoPrevio}
+          {gastosAnualesErrores.devengoPrevio}
         </div>
       )}
 
-      <EditarProvisionForm provision={provisionData} devengoPrevio={devengoPrevio} />
+      <EditarGastoAnualForm gastoAnual={gastoAnualData} devengoPrevio={devengoPrevio} />
     </div>
   );
 }

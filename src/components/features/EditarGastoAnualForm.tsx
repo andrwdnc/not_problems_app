@@ -6,30 +6,30 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Card } from '@/components/ui/Card';
 import { centimosAEuros } from '@/domain/value-objects/ImporteMoneda';
-import { editarProvision, marcarPagadaProvision, eliminarProvision } from '@/server-actions/provisiones-actions';
-import type { Provision } from '@/domain/entities';
-import { provision as provisionLiterales, provisionErrores, formatos } from '@/literals';
+import { editarGastoAnual, marcarPagadoGastoAnual, eliminarGastoAnual } from '@/server-actions/gastos-anuales-actions';
+import type { GastoAnual } from '@/domain/entities';
+import { gastosAnuales as gastosAnualesLiterales, gastosAnualesErrores, formatos } from '@/literals';
 
-interface EditarProvisionFormProps {
-  provision: Provision & { detalle: string };
+interface EditarGastoAnualFormProps {
+  gastoAnual: GastoAnual & { detalle: string };
   devengoPrevio: boolean;
 }
 
-export function EditarProvisionForm({ provision, devengoPrevio }: EditarProvisionFormProps) {
+export function EditarGastoAnualForm({ gastoAnual, devengoPrevio }: EditarGastoAnualFormProps) {
   const router = useRouter();
   const [importeTotal, setImporteTotal] = useState(() =>
-    String(centimosAEuros(provision.importeTotal)),
+    String(centimosAEuros(gastoAnual.importeTotal)),
   );
-  const [detalle, setDetalle] = useState(provision.detalle);
-  const [mesPago, setMesPago] = useState(String(provision.mesPago));
+  const [detalle, setDetalle] = useState(gastoAnual.detalle);
+  const [mesPago, setMesPago] = useState(String(gastoAnual.mesPago));
   const [error, setError] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
 
   async function guardar(formData: FormData) {
     setEnviando(true);
     setError(null);
-    const resultado = await editarProvision({
-      id: provision.id,
+    const resultado = await editarGastoAnual({
+      id: gastoAnual.id,
       detalle: detalle || undefined,
       importeTotal: formData.get('importeTotal') as string | undefined,
       mesPago: Number(formData.get('mesPago')) || undefined,
@@ -44,10 +44,10 @@ export function EditarProvisionForm({ provision, devengoPrevio }: EditarProvisio
     router.refresh();
   }
 
-  async function marcarPagada() {
+  async function marcarPagado() {
     setEnviando(true);
     setError(null);
-    const resultado = await marcarPagadaProvision({ id: provision.id });
+    const resultado = await marcarPagadoGastoAnual({ id: gastoAnual.id });
     setEnviando(false);
 
     if (!resultado.ok) {
@@ -59,10 +59,10 @@ export function EditarProvisionForm({ provision, devengoPrevio }: EditarProvisio
   }
 
   async function eliminar() {
-    if (!confirm(provisionErrores.provisionNoEncontrada)) return;
+    if (!confirm(gastosAnualesErrores.gastoAnualNoEncontrada)) return;
     setEnviando(true);
     setError(null);
-    const resultado = await eliminarProvision({ id: provision.id });
+    const resultado = await eliminarGastoAnual({ id: gastoAnual.id });
     setEnviando(false);
 
     if (!resultado.ok) {
@@ -73,14 +73,14 @@ export function EditarProvisionForm({ provision, devengoPrevio }: EditarProvisio
     router.refresh();
   }
 
-  const estaPagadaEsteCiclo = provision.fechaUltimoPago
+  const estaPagadaEsteCiclo = gastoAnual.fechaUltimoPago
     ? devengoPrevio
     : false;
 
   return (
     <form action={guardar} className="space-y-4">
       <div className="rounded-3xl bg-brand-navy p-6 text-center">
-        <p className="text-sm text-brand-sky">{provisionLiterales.importeTotal}</p>
+        <p className="text-sm text-brand-sky">{gastosAnualesLiterales.importeTotal}</p>
         <input
           name="importeTotal"
           type="text"
@@ -98,18 +98,18 @@ export function EditarProvisionForm({ provision, devengoPrevio }: EditarProvisio
 
       <Card className="space-y-4">
         <Input
-          label={provisionLiterales.detalle}
+          label={gastosAnualesLiterales.detalle}
           name="detalle"
           value={detalle}
           onChange={(e) => setDetalle(e.target.value)}
-          placeholder={provisionLiterales.placeholderDetalle}
+          placeholder={gastosAnualesLiterales.placeholderDetalle}
           required
           disabled={devengoPrevio}
         />
 
         <div>
           <label className="block mb-2 text-sm font-medium text-brand-muted">
-            {provisionLiterales.mesPago}
+            {gastosAnualesLiterales.mesPago}
           </label>
           <select
             name="mesPago"
@@ -129,7 +129,7 @@ export function EditarProvisionForm({ provision, devengoPrevio }: EditarProvisio
 
         {devengoPrevio && (
           <p className="text-xs text-financial-negative">
-            {provisionErrores.devengoPrevio}
+            {gastosAnualesErrores.devengoPrevio}
           </p>
         )}
       </Card>
@@ -139,21 +139,21 @@ export function EditarProvisionForm({ provision, devengoPrevio }: EditarProvisio
           type="button"
           variant="ghost"
           fullWidth
-          onClick={marcarPagada}
+          onClick={marcarPagado}
           disabled={enviando}
         >
-          {provisionLiterales.pagar}
+          {gastosAnualesLiterales.pagar}
         </Button>
       )}
 
       {estaPagadaEsteCiclo && (
         <p className="text-center text-sm text-financial-positive font-medium">
-          {provisionLiterales.pagada}
+          {gastosAnualesLiterales.pagado}
         </p>
       )}
 
       <p className="text-center text-xs text-brand-muted">
-        {provisionLiterales.nota}
+        {gastosAnualesLiterales.nota}
       </p>
 
       {error && (
@@ -163,10 +163,10 @@ export function EditarProvisionForm({ provision, devengoPrevio }: EditarProvisio
       )}
 
       <Button type="submit" fullWidth disabled={enviando || devengoPrevio}>
-        {enviando ? provisionLiterales.guardar : provisionLiterales.guardar}
+        {enviando ? gastosAnualesLiterales.guardar : gastosAnualesLiterales.guardar}
       </Button>
       <Button type="button" variant="danger" fullWidth onClick={eliminar} disabled={enviando || devengoPrevio}>
-        {provisionLiterales.eliminar}
+        {gastosAnualesLiterales.eliminar}
       </Button>
     </form>
   );

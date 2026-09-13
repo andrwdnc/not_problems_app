@@ -2,9 +2,9 @@ import type {
   Accion,
   Aportacion,
   Gasto,
+  GastoAnual,
   Mes,
   MovimientoAuditoria,
-  Provision,
   Usuario,
 } from '../entities';
 
@@ -89,30 +89,30 @@ export interface HistoricoRepository {
   registrar(data: Omit<MovimientoAuditoria, 'id' | 'fecha'>): Promise<MovimientoAuditoria>;
 }
 
-export interface CrearProvisionInput {
+export interface CrearGastoAnualInput {
   /** Importe total en céntimos enteros. */
   importeTotal: number;
   /** Mes de pago (1-12). */
   mesPago: number;
   /** Año del ciclo. */
   anioCiclo: number;
-  /** Detalle/descripción de la provisión. */
+  /** Detalle/descripción del gasto anual. */
   detalle: string;
-  /** Usuario que crea la provisión. */
+  /** Usuario que crea el gasto anual. */
   creadoPor: string;
 }
 
-export interface ProvisionRepository {
-  findById(id: string): Promise<Provision | null>;
-  findAll(): Promise<Provision[]>;
-  findByCiclo(anioCiclo: number): Promise<Provision[]>;
-  create(data: CrearProvisionInput): Promise<Provision>;
-  update(id: string, data: Partial<Provision>): Promise<Provision>;
+export interface GastoAnualRepository {
+  findById(id: string): Promise<GastoAnual | null>;
+  findAll(): Promise<GastoAnual[]>;
+  findByCiclo(anioCiclo: number): Promise<GastoAnual[]>;
+  create(data: CrearGastoAnualInput): Promise<GastoAnual>;
+  update(id: string, data: Partial<GastoAnual>): Promise<GastoAnual>;
   delete(id: string): Promise<void>;
   /**
-   * Actualiza la fecha del último pago de la provisión.
+   * Actualiza la fecha del último pago del gasto anual.
    */
-  actualizarFechaUltimoPago(id: string, fecha: Date): Promise<Provision | null>;
+  actualizarFechaUltimoPago(id: string, fecha: Date): Promise<GastoAnual | null>;
 }
 
 /** Credenciales internas de autenticación; nunca deben salir del servidor. */

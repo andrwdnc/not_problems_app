@@ -59,7 +59,7 @@ export const gastos = pgTable('gastos', {
   fechaCreacion: timestamp('fecha_creacion', { withTimezone: true }).defaultNow().notNull(),
 });
 
-export const provisiones = pgTable('provisiones', {
+export const gastosAnuales = pgTable('gastos_anuales', {
   id: uuid('id').primaryKey().defaultRandom(),
   importeTotal: bigint('importe_total', { mode: 'number' }).notNull(), // céntimos
   mesPago: integer('mes_pago').notNull(), // 1-12
@@ -69,13 +69,13 @@ export const provisiones = pgTable('provisiones', {
   creadoPor: uuid('creado_por').references(() => usuarios.id).notNull(),
   fechaCreacion: timestamp('fecha_creacion', { withTimezone: true }).defaultNow().notNull(),
 }, (table) => [
-  // Una provisión por ciclo (año de ciclo) y mes de pago.
-  uniqueIndex('provisiones_anio_ciclo_mes_pago_unique').on(table.anioCiclo, table.mesPago),
+  // Un gasto anual por ciclo (año de ciclo) y mes de pago.
+  uniqueIndex('gastos_anuales_anio_ciclo_mes_pago_unique').on(table.anioCiclo, table.mesPago),
 ]);
 
 export const accionEnum = pgEnum('accion_enum', ['crear', 'editar', 'eliminar']);
 
-export const entidadEnum = pgEnum('entidad_enum', ['meses', 'aportaciones', 'gastos', 'provisiones']);
+export const entidadEnum = pgEnum('entidad_enum', ['meses', 'aportaciones', 'gastos', 'gastos_anuales']);
 
 export const historicoMovimientos = pgTable('historico_movimientos', {
   id: uuid('id').primaryKey().defaultRandom(),

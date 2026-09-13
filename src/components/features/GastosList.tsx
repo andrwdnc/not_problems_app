@@ -26,9 +26,9 @@ import { formatShortDate } from '@/lib/formatters/date';
 import { CATEGORIAS, type Categoria } from '@/domain/value-objects/Categoria';
 import type { Gasto } from '@/domain/entities';
 import { eliminarGasto } from '@/server-actions/gastos-actions';
-import { gastos as gastosLiterales, gastoForm, formatos, provision as provisionLiterales } from '@/literals';
+import { gastos as gastosLiterales, gastoForm, formatos, gastosAnuales as gastosAnualesLiterales } from '@/literals';
 
-interface ProvisionVista {
+interface GastoAnualVista {
   id: string;
   detalle: string;
   importeTotal: number;
@@ -46,7 +46,7 @@ interface ProvisionVista {
 interface GastosListProps {
   gastos: Gasto[];
   usuarios: Map<string, string>;
-  provisiones?: ProvisionVista[];
+  gastosAnuales?: GastoAnualVista[];
 }
 
 const ICONOS: Record<Categoria, LucideIcon> = {
@@ -59,9 +59,9 @@ const ICONOS: Record<Categoria, LucideIcon> = {
   Otros: Package,
 };
 
-export { type ProvisionVista };
+export { type GastoAnualVista };
 
-export function GastosList({ gastos, usuarios, provisiones = [] }: GastosListProps) {
+export function GastosList({ gastos, usuarios, gastosAnuales = [] }: GastosListProps) {
   // Filtro "Todos" se modela como null (intervalor/dead-state de instancia)
   // en vez de un magic string, cumpliendo ISP/OCP.
   const [filtro, setFiltro] = useState<Categoria | null>(null);
@@ -78,9 +78,9 @@ export function GastosList({ gastos, usuarios, provisiones = [] }: GastosListPro
     }
   }
 
-  async function marcarPagadaProvision(id: string) {
-    const { marcarPagadaProvision } = await import('@/server-actions/provisiones-actions');
-    const resultado = await marcarPagadaProvision({ id });
+  async function marcarPagadoGastoAnual(id: string) {
+    const { marcarPagadoGastoAnual } = await import('@/server-actions/gastos-anuales-actions');
+    const resultado = await marcarPagadoGastoAnual({ id });
     if (!resultado.ok) {
       alert(resultado.error);
     } else {
@@ -88,10 +88,10 @@ export function GastosList({ gastos, usuarios, provisiones = [] }: GastosListPro
     }
   }
 
-  async function eliminarProvisionHandler(id: string) {
-    const { eliminarProvision } = await import('@/server-actions/provisiones-actions');
+  async function eliminarGastoAnualHandler(id: string) {
+    const { eliminarGastoAnual } = await import('@/server-actions/gastos-anuales-actions');
     if (!confirm(gastoForm.confirmarEliminar)) return;
-    const resultado = await eliminarProvision({ id });
+    const resultado = await eliminarGastoAnual({ id });
     if (!resultado.ok) {
       alert(resultado.error);
     } else {
@@ -168,12 +168,30 @@ export function GastosList({ gastos, usuarios, provisiones = [] }: GastosListPro
         </div>
       )}
 
-      {provisiones.length > 0 && (
-        <section className="space-y-2 pt-4 border-t border-brand-border">
+      <section className="space-y-2 pt-4 border-t border-brand-border">
+        <div className="flex items-center justify-between">
           <h2 className="text-base font-semibold text-brand-navy">
-            {provisionLiterales.titulo}
+            {gastosAnualesLiterales.titulo}
           </h2>
-          {provisiones.map((p) => {
+          <Link
+            href="/gastos/anuales/nueva"
+            className="text-sm font-medium text-brand-primary"
+          >
+            {gastosAnualesLiterales.nuevo}
+          </Link>
+        </div>
+
+        {gastosAnuales.length === 0 ? (
+          <Card>
+            <p className="text-sm text-brand-muted">
+              {gastosAnualesLiterales.sinGastosAnuales}
+            </p>
+            <p className="mt-1 text-xs text-brand-muted">
+              {gastosAnualesLiterales.nota}
+            </p>
+          </Card>
+        ) : (
+          gastosAnuales.map((p) => {
             const porcentaje = p.importeTotal > 0 ? Math.round((p.totalDevengado / p.importeTotal) * 100) : 0;
             const mesPagoNombre = Array.from({ length: 12 }, (_, i) => i + 1)[p.mesPago - 1];
             return (
@@ -187,11 +205,11 @@ export function GastosList({ gastos, usuarios, provisiones = [] }: GastosListPro
                       {p.detalle}
                     </p>
                     <p className="text-xs text-brand-muted">
-                      {provisionLiterales.badge(p.mesesDevengados + 1)}
+                      {gastosAnualesLiterales.badge(p.mesesDevengados + 1)}
                     </p>
                     {p.estaPagadaEsteCiclo && (
                       <Badge tone="positive" className="mt-1">
-                        {provisionLiterales.pagado}
+                        {gastosAnualesLiterales.pagado}
                       </Badge>
                     )}
                   </div>
@@ -202,29 +220,29 @@ export function GastosList({ gastos, usuarios, provisiones = [] }: GastosListPro
                     <div className="flex gap-1">
                       {p.puedeEditar && !p.estaPagadaEsteCiclo && (
                         <Link
-                          href={`/gastos/provisiones/${p.id}`}
+                          href={`/gastos/anuales/${p.id}`}
                           className="text-brand-muted hover:text-brand-primary"
-                          aria-label={provisionLiterales.editar}
+                          aria-label={gastosAnualesLiterales.editar}
                         >
                           <Pencil size={16} />
                         </Link>
                       )}
                       {p.puedeEliminar && !p.estaPagadaEsteCiclo && (
                         <button
-                          onClick={() => eliminarProvisionHandler(p.id)}
+                          onClick={() => eliminarGastoAnualHandler(p.id)}
                           className="text-brand-muted hover:text-financial-negative"
-                          aria-label={provisionLiterales.eliminar}
+                          aria-label={gastosAnualesLiterales.eliminar}
                         >
                           <Trash2 size={16} />
                         </button>
                       )}
                       {p.puedeEditar && !p.estaPagadaEsteCiclo && (
                         <button
-                          onClick={() => marcarPagadaProvision(p.id)}
+                          onClick={() => marcarPagadoGastoAnual(p.id)}
                           className="text-brand-primary hover:text-brand-navy font-medium text-sm"
-                          aria-label={provisionLiterales.pagar}
+                          aria-label={gastosAnualesLiterales.pagar}
                         >
-                          {provisionLiterales.pagar}
+                          {gastosAnualesLiterales.pagar}
                         </button>
                       )}
                     </div>
@@ -234,7 +252,7 @@ export function GastosList({ gastos, usuarios, provisiones = [] }: GastosListPro
                 <div className="space-y-1">
                   <div className="flex items-center justify-between text-xs">
                     <span className="text-brand-muted">
-                      {provisionLiterales.progreso(
+                      {gastosAnualesLiterales.progreso(
                         formatCurrency(p.totalDevengado),
                         formatCurrency(p.importeTotal),
                       )}
@@ -250,14 +268,14 @@ export function GastosList({ gastos, usuarios, provisiones = [] }: GastosListPro
                     />
                   </div>
                   <p className="text-xs text-brand-muted">
-                    {provisionLiterales.mesPago}: {mesPagoNombre} · {provisionLiterales.pagado} {p.mesesDevengados}/12
+                    {gastosAnualesLiterales.mesPago}: {mesPagoNombre} · {gastosAnualesLiterales.pagado} {p.mesesDevengados}/12
                   </p>
                 </div>
               </Card>
             );
-          })}
-        </section>
-      )}
+          })
+        )}
+      </section>
 
       <Link
         href="/gastos/nuevo"
