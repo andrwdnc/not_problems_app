@@ -168,6 +168,16 @@ export const aportar = {
   sinMesAbierto: 'No hay un mes abierto todavía.',
 };
 
+/**
+ * Errores de validación de los formularios de la cuenta individual. Los
+ * esquemas de servidor (T14) rechazan cualquier campo foráneo (usuarioId,
+ * mesId) y acotan el porcentaje individual al rango 1-99 (MP-2).
+ */
+export const individualErrores = {
+  campoNoPermitido: 'Campos no permitidos en esta operación',
+  porcentajeRango: 'El porcentaje debe estar entre 1 y 99',
+};
+
 export const aportacionErrores = {
   sueldoPositivo: 'El sueldo debe ser mayor que 0',
   porcentajePositivo: 'El porcentaje debe ser mayor que 0',
