@@ -3,6 +3,7 @@ export { MesDrizzleRepository } from './MesRepository';
 export { GastoDrizzleRepository } from './GastoRepository';
 export { HistoricoDrizzleRepository } from './HistoricoRepository';
 export { UsuarioDrizzleRepository } from './UsuarioRepository';
+export { ProvisionDrizzleRepository } from './ProvisionRepository';
 
 // Puertos (interfaces) declarados en la capa de dominio (DIP): la
 // infraestructura implementa estos contratos, no los define.
@@ -16,6 +17,8 @@ export type {
   ResultadoFindOrCreate,
   UsuarioConCredenciales,
   UsuarioRepository,
+  CrearProvisionInput,
+  ProvisionRepository,
 } from '@/domain/ports/repositories';
 
 // Entidades canónicas del dominio: re-exportadas aquí para que los
@@ -26,5 +29,6 @@ export type {
   Mes,
   MovimientoAuditoria,
   Usuario,
+  Provision,
   Accion,
 } from '@/domain/entities';

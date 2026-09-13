@@ -6,4 +6,5 @@ export {
   gastoRepository,
   historicoRepository,
   usuarioRepository,
+  provisionRepository,
 } from '@/infrastructure/repositories/instances';

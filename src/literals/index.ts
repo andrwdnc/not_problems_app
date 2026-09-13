@@ -113,6 +113,37 @@ export const gastosErrores = {
   gastoNoEliminable: 'Este gasto ya no se puede eliminar.',
 };
 
+export const provisionValidaciones = {
+  detalleObligatorio: 'El detalle es obligatorio',
+  importePositivo: 'El importe debe ser mayor que 0',
+  mesPagoInvalido: 'El mes de pago debe estar entre 1 y 12',
+};
+
+export const provisionErrores = {
+  provisionNoEncontrada: 'Provisión no encontrada.',
+  provisionYaPagada: 'Esta provisión ya está pagada para el ciclo actual.',
+  devengoPrevio: 'No se puede editar/eliminar: esta provisión ya tiene meses devengados en el ciclo actual.',
+};
+
+export const provision = {
+  titulo: 'Provisiones anuales',
+  nuevo: 'Nueva provisión',
+  detalle: 'Detalle',
+  placeholderDetalle: 'ej. Seguro hogar',
+  importeTotal: 'Importe total anual',
+  mesPago: 'Mes de pago',
+  guardar: 'Guardar provisión',
+  editar: 'Editar',
+  eliminar: 'Eliminar',
+  pagar: 'Marcar como pagada',
+  pagada: 'Pagada',
+  sinProvisiones: 'Aún no hay provisiones registradas.',
+  nota: 'Las provisiones se devengan mes a mes. Al llegar el mes de pago, se marcan como pagadas y empieza un nuevo ciclo.',
+  badge: (cuota: number) => `Anual · cuota ${cuota}/12`,
+  progreso: (provisionado: string, total: string) => `Provisionado ${provisionado}/${total}`,
+  pagado: 'Pagado',
+};
+
 export const aportar = {
   titulo: 'Aportes y presupuesto',
   sueldoIntegro: 'Sueldo íntegro',

@@ -4,6 +4,7 @@ import type {
   Gasto,
   Mes,
   MovimientoAuditoria,
+  Provision,
   Usuario,
 } from '../entities';
 
@@ -86,6 +87,32 @@ export interface GastoRepository {
 
 export interface HistoricoRepository {
   registrar(data: Omit<MovimientoAuditoria, 'id' | 'fecha'>): Promise<MovimientoAuditoria>;
+}
+
+export interface CrearProvisionInput {
+  /** Importe total en céntimos enteros. */
+  importeTotal: number;
+  /** Mes de pago (1-12). */
+  mesPago: number;
+  /** Año del ciclo. */
+  anioCiclo: number;
+  /** Detalle/descripción de la provisión. */
+  detalle: string;
+  /** Usuario que crea la provisión. */
+  creadoPor: string;
+}
+
+export interface ProvisionRepository {
+  findById(id: string): Promise<Provision | null>;
+  findAll(): Promise<Provision[]>;
+  findByCiclo(anioCiclo: number): Promise<Provision[]>;
+  create(data: CrearProvisionInput): Promise<Provision>;
+  update(id: string, data: Partial<Provision>): Promise<Provision>;
+  delete(id: string): Promise<void>;
+  /**
+   * Actualiza la fecha del último pago de la provisión.
+   */
+  actualizarFechaUltimoPago(id: string, fecha: Date): Promise<Provision | null>;
 }
 
 /** Credenciales internas de autenticación; nunca deben salir del servidor. */

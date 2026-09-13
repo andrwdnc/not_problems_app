@@ -1,7 +1,8 @@
 import { obtenerMesActual, calcularResumen } from '@/server-actions/queries';
+import { calcularProvisionadoMes, calcularDevengoPrevio } from '@/domain/rules/CalculadoraProvision';
 
 export const dynamic = 'force-dynamic';
-import { aportacionRepository, gastoRepository, usuarioRepository } from '@/server-actions/repositories';
+import { aportacionRepository, gastoRepository, usuarioRepository, provisionRepository } from '@/server-actions/repositories';
 import { AnilloProgreso } from '@/components/features/AnilloProgreso';
 import { TarjetaEstado } from '@/components/features/TarjetaEstado';
 import { Card } from '@/components/ui/Card';
@@ -17,16 +18,35 @@ export default async function InicioPage() {
     usuarioRepository.findAll(),
   ]);
 
-  // 2º pasada en paralelo: aportaciones + gastos del mes. Los gastos se
-  // reutilizan para el resumen y para los "últimos gastos" (una sola query).
-  const [aportaciones, gastos] = mes
+  // 2º pasada en paralelo: aportaciones + gastos + provisiones del mes.
+  const [aportaciones, gastos, provisiones] = mes
     ? await Promise.all([
         aportacionRepository.findByMes(mes.id),
         gastoRepository.findByMes(mes.id),
+        provisionRepository.findAll(),
       ])
-    : [[], []];
+    : [[], [], []];
 
-  const resumen = mes ? calcularResumen(aportaciones, gastos, mes.presupuesto) : null;
+  // Calcular provisionado del mes actual
+  const hoy = new Date();
+  const anioActual = hoy.getFullYear();
+  const mesActual = hoy.getMonth() + 1;
+  let provisionadoMes = 0;
+  if (mes) {
+    for (const prov of provisiones) {
+      // Solo considerar provisiones cuyo ciclo incluye este mes
+      if (mes.anio === prov.anioCiclo) {
+        const mesCiclo = mes.mes; // 1-indexed
+        provisionadoMes += calcularProvisionadoMes(
+          prov.importeTotal,
+          12,
+          mesCiclo,
+        );
+      }
+    }
+  }
+
+  const resumen = mes ? calcularResumen(aportaciones, gastos, mes.presupuesto, provisionadoMes) : null;
   const ultimosGastos = gastos.slice(0, 3);
   const usuarioPorId = new Map(usuarios.map((u) => [u.id, u.username]));
 

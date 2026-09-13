@@ -1,9 +1,10 @@
 import Link from 'next/link';
-import { ChevronLeft, RotateCcw } from 'lucide-react';
+import { ChevronLeft, RotateCcw, CreditCard } from 'lucide-react';
 import {
   gastoRepository,
   aportacionRepository,
   mesRepository,
+  provisionRepository,
 } from '@/server-actions/repositories';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
@@ -12,8 +13,9 @@ import { formatShortDate, nombreMes } from '@/lib/formatters/date';
 import { notFound } from 'next/navigation';
 import { ventanaDeMes } from '@/domain/rules/VentanaEdicionGastos';
 import { calcularAhorro, calcularTotalesMes } from '@/domain/rules/CalculadoraAportacion';
+import { calcularProvisionadoMes } from '@/domain/rules/CalculadoraProvision';
 import { GastoMesAcciones } from '@/components/features/GastoMesAcciones';
-import { historicoDetalle, resumen, gastos as gastosLiterales, formatos } from '@/literals';
+import { historicoDetalle, resumen, gastos as gastosLiterales, formatos, provision as provisionLiterales } from '@/literals';
 
 export const dynamic = 'force-dynamic';
 
@@ -25,9 +27,10 @@ export default async function HistoricoDetallePage({
   const mes = await mesRepository.findById(params.id);
   if (!mes) notFound();
 
-  const [gastos, aportaciones] = await Promise.all([
+  const [gastos, aportaciones, provisiones] = await Promise.all([
     gastoRepository.findByMes(mes.id),
     aportacionRepository.findByMes(mes.id),
+    provisionRepository.findAll(),
   ]);
 
   const permisos = ventanaDeMes(new Date(), mes.anio, mes.mes);
@@ -35,6 +38,20 @@ export default async function HistoricoDetallePage({
   const { aportado, gastado } = calcularTotalesMes(aportaciones, gastos);
   const ahorro = calcularAhorro(aportado, mes.presupuesto, gastado);
   const conDeficit = ahorro < 0;
+
+  // Calcular provisionado para este mes
+  let provisionadoMes = 0;
+  for (const prov of provisiones) {
+    if (mes.anio === prov.anioCiclo) {
+      const mesCiclo = mes.mes;
+      provisionadoMes += calcularProvisionadoMes(
+        prov.importeTotal,
+        12,
+        mesCiclo,
+      );
+    }
+  }
+  const hayProvisionado = provisionadoMes > 0;
 
   return (
     <div className="space-y-4">
@@ -80,6 +97,14 @@ export default async function HistoricoDetallePage({
             {formatCurrency(Math.abs(ahorro))}
           </p>
         </Card>
+        {hayProvisionado && (
+          <Card className="flex-1">
+            <p className="text-xs text-brand-muted">{provisionLiterales.titulo}</p>
+            <p className="font-mono text-lg font-bold text-brand-primary">
+              {formatCurrency(provisionadoMes)}
+            </p>
+          </Card>
+        )}
       </div>
 
       {gastos.length === 0 ? (

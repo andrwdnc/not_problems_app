@@ -49,12 +49,28 @@ export interface Gasto {
   fechaCreacion: Date;
 }
 
+export interface Provision {
+  id: string;
+  /** Importe total de la provisión en céntimos enteros. */
+  importeTotal: number;
+  /** Mes de pago de la cuota (1-12). */
+  mesPago: number;
+  /** Año del ciclo de la provisión. */
+  anioCiclo: number;
+  /** Detalle/descripción de la provisión. */
+  detalle: string;
+  /** Fecha del último pago realizado; null si aún no se ha pagado ninguna cuota. */
+  fechaUltimoPago: Date | null;
+  creadoPor: string;
+  fechaCreacion: Date;
+}
+
 export type Accion = 'crear' | 'editar' | 'eliminar';
 
 export interface MovimientoAuditoria {
   id: string;
   usuarioId: string;
-  entidad: 'meses' | 'aportaciones' | 'gastos';
+  entidad: 'meses' | 'aportaciones' | 'gastos' | 'provisiones';
   entidadId: string;
   accion: Accion;
   valorAnterior: unknown | null;

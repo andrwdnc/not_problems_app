@@ -9,6 +9,7 @@ import {
   calcularRestantePresupuesto,
   calcularPorcentajePresupuestoConsumido,
   calcularTotalesMes,
+  calcularGastadoComprometido,
 } from '@/domain/rules/CalculadoraAportacion';
 import { getCurrentUserId } from '@/server/auth';
 import { auditarMovimiento } from '@/infrastructure/audit/auditarMovimiento';
@@ -18,6 +19,10 @@ import type { Mes, Aportacion, Gasto } from '@/domain/entities';
 export interface ResumenMes {
   aportado: number;
   gastado: number;
+  /** Importe provisionado devengado este mes (solo para UI del ring/restante). */
+  provisionado: number;
+  /** Gasto comprometido = gastado + provisionado (alimenta ring, %, restante). */
+  gastadoComprometido: number;
   disponible: number;
   numeroGastos: number;
   porcentajeGastado: number;
@@ -35,23 +40,36 @@ export interface ResumenMes {
  * Cálculo puro del resumen de un mes. Recibe los arrays ya consultados para
  * permitir a las páginas reutilizar los mismos datos (p. ej. la lista de gastos
  * sin lanzar dos veces la misma query).
+ *
+ * El 4º parámetro `provisionadoCentimos` es el importe provisionado devengado
+ * este mes. Se usa SOLO para:
+ * - `gastadoComprometido` (gastado + provisionado)
+ * - `porcentajeGastado` (sobre aportado)
+ * - `disponible` (aportado - gastadoComprometido)
+ *
+ * NO afecta a: `gastado` (tarjeta), `calcularTotalesMes`, `ahorro`,
+ * `restantePresupuesto`, `porcentajePresupuesto` (todos usan solo `gastado`).
  */
 export function calcularResumen(
   aportaciones: Aportacion[],
   gastos: Gasto[],
   presupuesto: number | null,
+  provisionadoCentimos: number = 0,
 ): ResumenMes {
   const { aportado, gastado, numeroGastos } = calcularTotalesMes(
     aportaciones,
     gastos,
   );
 
-  const disponible = aportado - gastado;
-  const porcentajeGastado = aportado > 0 ? (gastado / aportado) * 100 : 0;
+  const gastadoComprometido = calcularGastadoComprometido(gastado, provisionadoCentimos);
+  const disponible = aportado - gastadoComprometido;
+  const porcentajeGastado = aportado > 0 ? (gastadoComprometido / aportado) * 100 : 0;
 
   return {
     aportado,
     gastado,
+    provisionado: provisionadoCentimos,
+    gastadoComprometido,
     disponible,
     numeroGastos,
     porcentajeGastado,

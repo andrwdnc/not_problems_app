@@ -29,6 +29,8 @@ describe('calcularResumen', () => {
     expect(calcularResumen([], [], null)).toEqual({
       aportado: 0,
       gastado: 0,
+      provisionado: 0,
+      gastadoComprometido: 0,
       disponible: 0,
       numeroGastos: 0,
       porcentajeGastado: 0,
@@ -55,17 +57,17 @@ describe('calcularResumen', () => {
     expect(resultado.numeroGastos).toBe(2);
   });
 
-  it('calcula el disponible como aportado - gastado', () => {
+  it('calcula el disponible como aportado - gastado (sin provisiones)', () => {
     const resultado = calcularResumen([aportacion(1000)], [gasto(300), gasto(50)], null);
     expect(resultado.disponible).toBe(650);
   });
 
-  it('devuelve disponible negativo cuando hay déficit', () => {
+  it('devuelve disponible negativo cuando hay déficit (sin provisiones)', () => {
     const resultado = calcularResumen([aportacion(500)], [gasto(700)], null);
     expect(resultado.disponible).toBe(-200);
   });
 
-  it('calcula el porcentaje gastado sobre lo aportado', () => {
+  it('calcula el porcentaje gastado sobre lo aportado (sin provisiones)', () => {
     const resultado = calcularResumen([aportacion(1000)], [gasto(250)], null);
     expect(resultado.porcentajeGastado).toBeCloseTo(25);
   });
@@ -106,5 +108,99 @@ describe('calcularResumen', () => {
     expect(resultado.porcentajePresupuesto).toBeCloseTo(125);
     // El ahorro comprometido queda intacto frente al gasto.
     expect(resultado.ahorro).toBe(280000);
+  });
+
+  // --- Tests para provisionado (4º parámetro) ---
+
+  it('con provisionado > 0: provisionado se refleja en el resumen', () => {
+    const resultado = calcularResumen(
+      [aportacion(10000)],
+      [gasto(2000)],
+      null,
+      3000, // provisionado
+    );
+    expect(resultado.provisionado).toBe(3000);
+    expect(resultado.gastado).toBe(2000); // gasto real sin cambios
+    expect(resultado.gastadoComprometido).toBe(5000); // 2000 + 3000
+  });
+
+  it('con provisionado: disponible usa gastadoComprometido (aportado - gastado - provisionado)', () => {
+    const resultado = calcularResumen(
+      [aportacion(10000)],
+      [gasto(2000)],
+      null,
+      3000,
+    );
+    expect(resultado.disponible).toBe(5000); // 10000 - 2000 - 3000
+  });
+
+  it('con provisionado: porcentajeGastado usa gastadoComprometido', () => {
+    const resultado = calcularResumen(
+      [aportacion(10000)],
+      [gasto(2000)],
+      null,
+      3000,
+    );
+    expect(resultado.porcentajeGastado).toBeCloseTo(50); // 5000 / 10000 * 100
+  });
+
+  it('provisionado no afecta a la tarjeta "gastado" (solo gasto real)', () => {
+    const resultado = calcularResumen(
+      [aportacion(10000)],
+      [gasto(2000)],
+      null,
+      3000,
+    );
+    expect(resultado.gastado).toBe(2000); // solo gasto real
+  });
+
+  it('provisionado no afecta a calcularTotalesMes (ahorro, restantePresupuesto, porcentajePresupuesto usan solo gastado)', () => {
+    const resultado = calcularResumen(
+      [aportacion(300000)],
+      [gasto(25000)],
+      20000,
+      30000, // provisionado grande
+    );
+    // ahorro = aportado - presupuesto (usa gastado real, no comprometido)
+    expect(resultado.ahorro).toBe(280000); // 300000 - 20000
+    // restantePresupuesto = presupuesto - gastado real
+    expect(resultado.restantePresupuesto).toBe(-5000); // 20000 - 25000
+    // porcentajePresupuesto = gastado real / presupuesto
+    expect(resultado.porcentajePresupuesto).toBeCloseTo(125); // 25000 / 20000 * 100
+  });
+
+  it('caso espec: presupuesto 100000, gastado 80000, provisionado 30000', () => {
+    const resultado = calcularResumen(
+      [aportacion(100000)],
+      [gasto(80000)],
+      100000, // presupuesto
+      30000,  // provisionado
+    );
+    // gastadoComprometido = 80000 + 30000 = 110000
+    expect(resultado.gastadoComprometido).toBe(110000);
+    // porcentajeGastado = 110000 / 100000 * 100 = 110%
+    expect(resultado.porcentajeGastado).toBeCloseTo(110);
+    // disponible = 100000 - 110000 = -10000
+    expect(resultado.disponible).toBe(-10000);
+    // tarjeta "gastado" sigue mostrando 80000
+    expect(resultado.gastado).toBe(80000);
+    // ahorro, restantePresupuesto, porcentajePresupuesto usan solo gastado real
+    expect(resultado.ahorro).toBe(0); // 100000 - 100000
+    expect(resultado.restantePresupuesto).toBe(20000); // 100000 - 80000
+    expect(resultado.porcentajePresupuesto).toBeCloseTo(80); // 80000 / 100000 * 100
+  });
+
+  it('provisionado con arrays vacíos', () => {
+    const resultado = calcularResumen([], [], null, 5000);
+    expect(resultado.provisionado).toBe(5000);
+    expect(resultado.gastadoComprometido).toBe(5000);
+    expect(resultado.disponible).toBe(-5000);
+    expect(resultado.porcentajeGastado).toBe(0); // sin aportado
+  });
+
+  it('provisionado 0 es equivalente a no pasarlo (compatibilidad hacia atrás)', () => {
+    const sinProvision = calcularResumen([aportacion(1000)], [gasto(300)], null);
+    const conCero = calcularResumen([aportacion(1000)], [gasto(300)], null, 0);
+    expect(conCero).toEqual(sinProvision);
   });
 });

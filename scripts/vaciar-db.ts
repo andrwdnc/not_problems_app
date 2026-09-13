@@ -1,8 +1,8 @@
 import { db, closeDb } from '../src/infrastructure/db';
-import { gastos, aportaciones, historicoMovimientos, meses, usuarios } from '../src/infrastructure/db/schema';
+import { provisiones, gastos, aportaciones, historicoMovimientos, meses, usuarios } from '../src/infrastructure/db/schema';
 
 async function main() {
-  const orden = [gastos, aportaciones, historicoMovimientos, meses, usuarios];
+  const orden = [provisiones, gastos, aportaciones, historicoMovimientos, meses, usuarios];
 
   for (const tabla of orden) {
     const eliminados = await db.delete(tabla);

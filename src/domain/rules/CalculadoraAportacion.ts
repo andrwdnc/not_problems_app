@@ -55,6 +55,23 @@ export function sumarAportado(
 }
 
 /**
+ * Regla pura: gasto comprometido = gasto real + provisión devengada.
+ *
+ * Este valor alimenta ÚNICAMENTE el anillo de progreso, el porcentaje gastado
+ * y el "restante" del resumen mensual. NO afecta a `calcularTotalesMes`,
+ * `calcularAhorro`, ni a la tarjeta de "Gastado" (que sigue mostrando solo
+ * el gasto real).
+ *
+ * Cifras en céntimos enteros.
+ */
+export function calcularGastadoComprometido(
+  gastadoCentimos: number,
+  provisionadoCentimos: number,
+): number {
+  return gastadoCentimos + provisionadoCentimos;
+}
+
+/**
  * Suma los importes de un conjunto de gastos (en céntimos).
  */
 export function sumarGastado(gastos: Array<{ importe: number }>): number {
