@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import { notFound, redirect } from 'next/navigation';
 import Link from 'next/link';
 import { ChevronLeft, RotateCcw } from 'lucide-react';
@@ -14,6 +15,7 @@ import { Badge } from '@/components/ui/Badge';
 import { formatCurrency } from '@/lib/formatters/currency';
 import { formatShortDate, nombreMes } from '@/lib/formatters/date';
 import { GastoIndividualMesAcciones } from '@/components/features/GastoIndividualMesAcciones';
+import { IndividualHistoricoDetalleSkeleton } from '@/components/features/skeletons';
 import { historicoDetalle, individual, resumen, gastos as gastosLiterales, formatos } from '@/literals';
 
 export const dynamic = 'force-dynamic';
@@ -23,15 +25,28 @@ export const dynamic = 'force-dynamic';
  * sobre datos del usuario, D8) más la lista de sus gastos con las acciones
  * permitidas por la ventana de edición.
  */
-export default async function HistoricoIndividualDetallePage({
+export default function HistoricoIndividualDetallePage({
   params,
 }: {
   params: { id: string };
 }) {
+  // El título (mes/año) depende del mes consultado: la cabecera y el contenido
+  // se rellenan por streaming bajo un único Suspense (mismo criterio que el
+  // inicio individual, cuyo título también depende de datos).
+  return (
+    <div className="space-y-4">
+      <Suspense fallback={<IndividualHistoricoDetalleSkeleton />}>
+        <HistoricoIndividualDetalleSection id={params.id} />
+      </Suspense>
+    </div>
+  );
+}
+
+async function HistoricoIndividualDetalleSection({ id }: { id: string }) {
   const user = await getCurrentUser();
   if (!user) redirect('/login');
 
-  const mes = await mesRepository.findById(params.id);
+  const mes = await mesRepository.findById(id);
   if (!mes) notFound();
 
   const [aportacion, gastos] = await Promise.all([
@@ -44,7 +59,7 @@ export default async function HistoricoIndividualDetallePage({
   const conDeficit = resumenMes.disponible != null && resumenMes.disponible < 0;
 
   return (
-    <div className="space-y-4">
+    <>
       <div className="flex items-center gap-2">
         <Link href="/individual/historico" className="text-brand-muted">
           <ChevronLeft />
@@ -132,6 +147,6 @@ export default async function HistoricoIndividualDetallePage({
           ))}
         </div>
       )}
-    </div>
+    </>
   );
 }

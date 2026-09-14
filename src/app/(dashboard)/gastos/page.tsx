@@ -1,8 +1,9 @@
 import { Suspense } from 'react';
 import { obtenerMesActual } from '@/server-actions/queries';
 import {
-  esCicloFuturo,
-  calcularCuotaMes,
+  calcularVentanaApartado,
+  calcularApartadoMes,
+  calcularApartadoDevengado,
   calcularDevengoPrevio,
 } from '@/domain/rules/CalculadoraGastoAnual';
 
@@ -35,39 +36,33 @@ async function GastosSection() {
   const gastos = mes ? await gastoRepository.findByMes(mes.id) : [];
   const usuarioPorId = new Map(usuarios.map((u) => [u.id, u.username]));
 
-  // Preparar gastos anuales para la vista: ciclos del año en curso y futuros.
-  // Un ciclo futuro (anioCiclo > año del mes abierto) aún no aporta (cuota 0),
-  // pero debe ser visible para que el usuario vea el gasto que acaba de registrar.
+  // Preparar gastos anuales para la vista usando la ventana [inicio → mesPago] INCLUSIVE.
   const hoy = new Date();
   const anioActual = hoy.getFullYear();
   const mesActual = hoy.getMonth() + 1;
   const anioMes = mes?.anio ?? anioActual;
+  const mesMes = mes?.mes ?? mesActual;
 
   const gastosAnualesVista: GastoAnualVista[] = gastosAnuales
     .filter((p) => !mes || p.anioCiclo >= mes.anio)
     .map((p) => {
-      if (esCicloFuturo(anioMes, p.anioCiclo)) {
-        return {
-          id: p.id,
-          detalle: p.detalle,
-          importeTotal: p.importeTotal,
-          cuotaMes: 0,
-          totalDevengado: 0,
-          mesesDevengados: 0,
-          puedeEditar: true,
-          puedeEliminar: true,
-          mesPago: p.mesPago,
-          anioCiclo: p.anioCiclo,
-          fechaUltimoPago: p.fechaUltimoPago,
-          estaPagadaEsteCiclo: false,
-          esCicloFuturo: true,
-        };
-      }
-
-      const mesCiclo = mes?.mes ?? 1;
-      const cuotaMes = calcularCuotaMes(p.importeTotal, 12, mesCiclo);
-      const totalDevengado = calcularCuotaMes(p.importeTotal, 12, mesCiclo) * mesCiclo;
-      const mesesDevengados = mesCiclo - 1;
+      const ventana = calcularVentanaApartado(
+        p.fechaCreacion,
+        p.fechaUltimoPago,
+        p.anioCiclo,
+        p.mesPago,
+      );
+      const apartado = calcularApartadoMes(
+        p.importeTotal,
+        ventana,
+        anioMes,
+        mesMes,
+      );
+      const totalDevengado = calcularApartadoDevengado(
+        p.importeTotal,
+        apartado.numMeses,
+        apartado.posicion,
+      );
       const devengoPrevio = calcularDevengoPrevio(
         anioActual,
         mesActual,
@@ -81,16 +76,16 @@ async function GastosSection() {
         id: p.id,
         detalle: p.detalle,
         importeTotal: p.importeTotal,
-        cuotaMes,
+        cuotaMes: apartado.cuota,
         totalDevengado,
-        mesesDevengados,
+        posicion: apartado.posicion,
+        numMeses: apartado.numMeses,
         puedeEditar: !devengoPrevio,
         puedeEliminar: !devengoPrevio,
         mesPago: p.mesPago,
         anioCiclo: p.anioCiclo,
         fechaUltimoPago: p.fechaUltimoPago,
         estaPagadaEsteCiclo,
-        esCicloFuturo: false,
       };
     });
 

@@ -1,7 +1,10 @@
 import { redirect } from 'next/navigation';
+import Link from 'next/link';
+import { Repeat } from 'lucide-react';
 import { BottomNav } from '@/components/layout/BottomNav';
 import { LogoutButton } from '@/components/layout/LogoutButton';
 import { getCurrentUser } from '@/server/auth';
+import { chooser } from '@/literals';
 
 export default async function DashboardLayout({
   children,
@@ -20,7 +23,16 @@ export default async function DashboardLayout({
         <span className="min-w-0 truncate text-sm font-semibold text-brand-navy">
           {user.username}
         </span>
-        <LogoutButton />
+        <div className="flex shrink-0 items-center gap-3">
+          <Link
+            href="/"
+            className="flex items-center gap-1 text-sm font-medium text-brand-primary"
+          >
+            <Repeat size={14} />
+            {chooser.volver}
+          </Link>
+          <LogoutButton />
+        </div>
       </header>
       <main className="min-w-0 flex-1 px-4 pb-28 pt-4">{children}</main>
       <BottomNav />

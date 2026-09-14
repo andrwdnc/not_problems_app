@@ -2,7 +2,10 @@ import { mesRepository, aportacionRepository, gastoRepository, gastoAnualReposit
 import { ventanaDeMes } from '@/domain/rules/VentanaEdicionGastos';
 import type { PermisosEdicion } from '@/domain/rules/VentanaEdicionGastos';
 import { calcularAhorro, sumarAportado, sumarGastado } from '@/domain/rules/CalculadoraAportacion';
-import { calcularCuotaMes, calcularDevengoPrevio } from '@/domain/rules/CalculadoraGastoAnual';
+import {
+  calcularVentanaApartado,
+  calcularApartadoMes,
+} from '@/domain/rules/CalculadoraGastoAnual';
 
 export interface MesHistorico {
   mes: {
@@ -23,8 +26,6 @@ export interface MesHistorico {
 
 export async function obtenerHistorico(): Promise<MesHistorico[]> {
   const hoy = new Date();
-  const anioActual = hoy.getFullYear();
-  const mesActual = hoy.getMonth() + 1;
   const meses = await mesRepository.getMesesAnteriores(24);
 
   if (meses.length === 0) return [];
@@ -55,24 +56,23 @@ export async function obtenerHistorico(): Promise<MesHistorico[]> {
     );
   }
 
-  // Calcular apartado para cada mes
+  // Calcular apartado para cada mes usando la ventana [inicio → mesPago] INCLUSIVE.
   const apartadoPorMes = new Map<string, number>();
   for (const mes of meses) {
     let apartadoMes = 0;
-    // Para cada gasto anual, calcular cuánto devenga en este mes
     for (const gastoAnual of gastosAnuales) {
-      // Solo considerar gastos anuales cuyo ciclo incluye este mes
-      // El ciclo va desde enero del anioCiclo hasta diciembre del anioCiclo
-      if (mes.anio === gastoAnual.anioCiclo) {
-        // mesCiclo es 1-indexed: enero = 1, diciembre = 12
-        const mesCiclo = mes.mes;
-        // Usar la regla pura para calcular el apartado de este mes
-        apartadoMes += calcularCuotaMes(
-          gastoAnual.importeTotal,
-          12, // siempre 12 meses por ciclo anual
-          mesCiclo,
-        );
-      }
+      const ventana = calcularVentanaApartado(
+        gastoAnual.fechaCreacion,
+        gastoAnual.fechaUltimoPago,
+        gastoAnual.anioCiclo,
+        gastoAnual.mesPago,
+      );
+      apartadoMes += calcularApartadoMes(
+        gastoAnual.importeTotal,
+        ventana,
+        mes.anio,
+        mes.mes,
+      ).cuota;
     }
     apartadoPorMes.set(mes.id, apartadoMes);
   }

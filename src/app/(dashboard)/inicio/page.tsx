@@ -1,6 +1,9 @@
 import { Suspense } from 'react';
 import { obtenerMesActual, calcularResumen } from '@/server-actions/queries';
-import { calcularCuotaMes, calcularDevengoPrevio } from '@/domain/rules/CalculadoraGastoAnual';
+import {
+  calcularVentanaApartado,
+  calcularApartadoMes,
+} from '@/domain/rules/CalculadoraGastoAnual';
 
 export const dynamic = 'force-dynamic';
 import { aportacionRepository, gastoRepository, usuarioRepository, gastoAnualRepository } from '@/server-actions/repositories';
@@ -45,22 +48,24 @@ async function ResumenInicioSection() {
       ])
     : [[], [], []];
 
-  // Calcular apartado del mes actual (solo ciclos activos: un ciclo futuro no aporta).
-  const hoy = new Date();
-  const anioActual = hoy.getFullYear();
-  const mesActual = hoy.getMonth() + 1;
+  // Calcular apartado del mes actual con la ventana [inicio → mesPago] INCLUSIVE:
+  // cada gasto anual aparta desde su mes de creación (o mes tras el último pago)
+  // hasta el mes de pago del ciclo actual, contando los dos extremos.
   let apartadoMes = 0;
   if (mes) {
     for (const gastoAnual of gastosAnuales) {
-      // Solo considerar gastos anuales cuyo ciclo incluye este mes
-      if (mes.anio === gastoAnual.anioCiclo) {
-        const mesCiclo = mes.mes; // 1-indexed
-        apartadoMes += calcularCuotaMes(
-          gastoAnual.importeTotal,
-          12,
-          mesCiclo,
-        );
-      }
+      const ventana = calcularVentanaApartado(
+        gastoAnual.fechaCreacion,
+        gastoAnual.fechaUltimoPago,
+        gastoAnual.anioCiclo,
+        gastoAnual.mesPago,
+      );
+      apartadoMes += calcularApartadoMes(
+        gastoAnual.importeTotal,
+        ventana,
+        mes.anio,
+        mes.mes,
+      ).cuota;
     }
   }
 

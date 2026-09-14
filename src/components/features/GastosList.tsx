@@ -15,14 +15,13 @@ import {
   HeartPulse,
   Package,
   CreditCard,
-  CheckCircle,
   type LucideIcon,
 } from 'lucide-react';
 import { Chip } from '@/components/ui/Chip';
 import { Badge } from '@/components/ui/Badge';
 import { Card } from '@/components/ui/Card';
 import { formatCurrency } from '@/lib/formatters/currency';
-import { formatShortDate } from '@/lib/formatters/date';
+import { formatShortDate, nombreMes } from '@/lib/formatters/date';
 import { CATEGORIAS, type Categoria } from '@/domain/value-objects/Categoria';
 import type { Gasto } from '@/domain/entities';
 import { eliminarGasto } from '@/server-actions/gastos-actions';
@@ -32,17 +31,20 @@ interface GastoAnualVista {
   id: string;
   detalle: string;
   importeTotal: number;
+  /** Cuota apartada este mes dentro de la ventana (0 si fuera de la ventana). */
   cuotaMes: number;
+  /** Suma de cuotas desde el inicio de la ventana hasta el mes actual (cent-exacto). */
   totalDevengado: number;
-  mesesDevengados: number;
+  /** Posición 1-indexada del mes dentro de la ventana; 0 si fuera. */
+  posicion: number;
+  /** Número de meses de la ventana inclusiva actual. */
+  numMeses: number;
   puedeEditar: boolean;
   puedeEliminar: boolean;
   mesPago: number;
   anioCiclo: number;
   fechaUltimoPago: Date | null;
   estaPagadaEsteCiclo: boolean;
-  /** true si el ciclo del gasto anual es de un año futuro: aún no aporta. */
-  esCicloFuturo: boolean;
 }
 
 interface GastosListProps {
@@ -72,6 +74,11 @@ export function GastosList({ gastos, usuarios, gastosAnuales = [] }: GastosListP
     if (filtro === null) return gastos;
     return gastos.filter((g) => g.categoria === filtro);
   }, [gastos, filtro]);
+
+  const apartadosActivos = useMemo(
+    () => gastosAnuales.filter((p) => p.cuotaMes > 0),
+    [gastosAnuales],
+  );
 
   async function eliminarGastoHandler(id: string) {
     const resultado = await eliminarGasto({ id });
@@ -113,6 +120,33 @@ export function GastosList({ gastos, usuarios, gastosAnuales = [] }: GastosListP
           </Chip>
         ))}
       </div>
+
+      {/* Apartado este mes: línea no editable por cada gasto anual con cuota > 0 */}
+      {apartadosActivos.length > 0 && (
+        <section className="space-y-2">
+          <p className="text-xs font-medium text-brand-muted uppercase tracking-wide">
+            {gastosAnualesLiterales.apartadoSeccion}
+          </p>
+          {apartadosActivos.map((p) => (
+            <Card key={`apartado-${p.id}`} className="flex items-center gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-pale text-brand-primary">
+                <CreditCard size={20} />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium text-brand-ink">
+                  {gastosAnualesLiterales.apartadoLinea(p.detalle)}
+                </p>
+                <p className="text-xs text-brand-muted">
+                  {gastosAnualesLiterales.ventana(p.posicion, p.numMeses)}
+                </p>
+              </div>
+              <span className="font-mono text-sm font-semibold text-brand-primary">
+                {formatCurrency(p.cuotaMes)}
+              </span>
+            </Card>
+          ))}
+        </section>
+      )}
 
       {filtrados.length === 0 ? (
         <Card>
@@ -194,8 +228,11 @@ export function GastosList({ gastos, usuarios, gastosAnuales = [] }: GastosListP
           </Card>
         ) : (
           gastosAnuales.map((p) => {
-            const porcentaje = p.importeTotal > 0 ? Math.round((p.totalDevengado / p.importeTotal) * 100) : 0;
-            const mesPagoNombre = Array.from({ length: 12 }, (_, i) => i + 1)[p.mesPago - 1];
+            const porcentaje =
+              p.importeTotal > 0
+                ? Math.round((p.totalDevengado / p.importeTotal) * 100)
+                : 0;
+            const dentroVentana = p.posicion > 0 && p.posicion <= p.numMeses;
             return (
               <Card key={p.id} className="space-y-3">
                 <div className="flex items-start justify-between gap-3">
@@ -206,16 +243,17 @@ export function GastosList({ gastos, usuarios, gastosAnuales = [] }: GastosListP
                     <p className="truncate text-sm font-medium text-brand-ink">
                       {p.detalle}
                     </p>
-                    {p.esCicloFuturo ? (
-                      <Badge tone="muted" className="mt-1">
-                        {gastosAnualesLiterales.cicloFuturo(p.anioCiclo)}
+                    <div className="mt-1 flex flex-wrap gap-1">
+                      <Badge tone="muted">
+                        {gastosAnualesLiterales.ciclo(p.anioCiclo)}
                       </Badge>
-                    ) : (
-                      <p className="text-xs text-brand-muted">
-                        {gastosAnualesLiterales.badge(p.mesesDevengados + 1)}
-                      </p>
-                    )}
-                    {!p.esCicloFuturo && p.estaPagadaEsteCiclo && (
+                      {dentroVentana && (
+                        <Badge tone="primary">
+                          {gastosAnualesLiterales.ventana(p.posicion, p.numMeses)}
+                        </Badge>
+                      )}
+                    </div>
+                    {p.estaPagadaEsteCiclo && (
                       <Badge tone="positive" className="mt-1">
                         {gastosAnualesLiterales.pagado}
                       </Badge>
@@ -244,7 +282,7 @@ export function GastosList({ gastos, usuarios, gastosAnuales = [] }: GastosListP
                           <Trash2 size={16} />
                         </button>
                       )}
-                      {p.puedeEditar && !p.estaPagadaEsteCiclo && !p.esCicloFuturo && (
+                      {p.puedeEditar && !p.estaPagadaEsteCiclo && (
                         <button
                           onClick={() => marcarPagadoGastoAnual(p.id)}
                           className="text-brand-primary hover:text-brand-navy font-medium text-sm"
@@ -276,10 +314,10 @@ export function GastosList({ gastos, usuarios, gastosAnuales = [] }: GastosListP
                     />
                   </div>
                   <p className="text-xs text-brand-muted">
-                    {gastosAnualesLiterales.mesPago}: {mesPagoNombre} ·{' '}
-                    {p.esCicloFuturo
-                      ? gastosAnualesLiterales.cicloFuturoNota(p.anioCiclo)
-                      : `${gastosAnualesLiterales.pagado} ${p.mesesDevengados}/12`}
+                    {gastosAnualesLiterales.para(
+                      nombreMes(p.mesPago),
+                      p.anioCiclo,
+                    )}
                   </p>
                 </div>
               </Card>

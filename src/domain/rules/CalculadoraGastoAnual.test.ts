@@ -4,8 +4,15 @@ import {
   calcularCuotaBase,
   calcularCuotaMes,
   calcularDevengoPrevio,
-  esCicloFuturo,
+  calcularInicioApartado,
+  calcularVentanaApartado,
+  calcularApartadoMes,
+  calcularApartadoDevengado,
 } from './CalculadoraGastoAnual';
+
+// Caso real del usuario: creado en septiembre 2026, mesPago = 7 (julio),
+// anioCiclo = 2027 (regla: mesActual >= mesPago -> año siguiente).
+const CREACION = new Date(2026, 8, 15); // septiembre 2026
 
 describe('CalculadoraGastoAnual', () => {
   describe('calcularAnioCicloInicial', () => {
@@ -128,18 +135,184 @@ describe('CalculadoraGastoAnual', () => {
     });
   });
 
-  describe('esCicloFuturo', () => {
-    it('retorna true si el anioCiclo es posterior al año de referencia', () => {
-      // Hoy: 2026, gasto anual creado con ciclo 2027 (mesPago ya pasó este año)
-      expect(esCicloFuturo(2026, 2027)).toBe(true);
+  describe('calcularInicioApartado', () => {
+    it('nunca pagado -> el mes de creación es el inicio', () => {
+      expect(calcularInicioApartado(CREACION, null)).toEqual({
+        anio: 2026,
+        mes: 9,
+      });
     });
 
-    it('retorna false si el anioCiclo es el año de referencia (ciclo en curso)', () => {
-      expect(esCicloFuturo(2026, 2026)).toBe(false);
+    it('pagado a mitad de año -> el mes siguiente al último pago', () => {
+      // Último pago: julio 2027 -> empieza en agosto 2027
+      const ultimoPago = new Date(2027, 6, 20);
+      expect(calcularInicioApartado(CREACION, ultimoPago)).toEqual({
+        anio: 2027,
+        mes: 8,
+      });
     });
 
-    it('retorna false si el anioCiclo es anterior al año de referencia', () => {
-      expect(esCicloFuturo(2026, 2025)).toBe(false);
+    it('pagado en diciembre -> el inicio salta al enero del año siguiente', () => {
+      const ultimoPago = new Date(2026, 11, 10);
+      expect(calcularInicioApartado(CREACION, ultimoPago)).toEqual({
+        anio: 2027,
+        mes: 1,
+      });
+    });
+  });
+
+  describe('calcularVentanaApartado', () => {
+    it('primer ciclo: ventana del mes de creación al mesPago del ciclo, inclusiva', () => {
+      // Creado septiembre 2026, mesPago julio, anioCiclo 2027
+      // -> septiembre 2026 → julio 2027 INCLUSIVE = 11 meses
+      const ventana = calcularVentanaApartado(CREACION, null, 2027, 7);
+      expect(ventana).toEqual({
+        anioInicio: 2026,
+        mesInicio: 9,
+        anioFin: 2027,
+        mesFin: 7,
+        numMeses: 11,
+      });
+    });
+
+    it('ciclo posterior: ventana del mes tras el último pago al mesPago del nuevo ciclo', () => {
+      // Pagado julio 2027 (fechaUltimoPago), nuevo anioCiclo 2028
+      // -> agosto 2027 → julio 2028 INCLUSIVE = 12 meses
+      const ultimoPago = new Date(2027, 6, 20);
+      const ventana = calcularVentanaApartado(CREACION, ultimoPago, 2028, 7);
+      expect(ventana).toEqual({
+        anioInicio: 2027,
+        mesInicio: 8,
+        anioFin: 2028,
+        mesFin: 7,
+        numMeses: 12,
+      });
+    });
+
+    it('caso extremo: creación y mesPago en el mismo mes -> ventana de 1 mes', () => {
+      // Creado marzo 2027, mesPago marzo, anioCiclo 2027
+      // -> marzo 2027 → marzo 2027 = 1 mes
+      const ventana = calcularVentanaApartado(
+        new Date(2027, 2, 5),
+        null,
+        2027,
+        3,
+      );
+      expect(ventana.numMeses).toBe(1);
+      expect(ventana.anioInicio).toBe(2027);
+      expect(ventana.mesInicio).toBe(3);
+      expect(ventana.anioFin).toBe(2027);
+      expect(ventana.mesFin).toBe(3);
+    });
+  });
+
+  describe('calcularApartadoMes', () => {
+    // Importe 1200,00 € (120000 céntimos) sobre 11 meses:
+    // cuotaBase = 10909, residuo = 1 -> mes 1 = 10910, meses 2-11 = 10909.
+    const ventana11 = { anioInicio: 2026, mesInicio: 9, anioFin: 2027, mesFin: 7, numMeses: 11 };
+
+    it('primer mes de la ventana: posición 1 y cuota con +1 de residuo', () => {
+      const apartado = calcularApartadoMes(120000, ventana11, 2026, 9);
+      expect(apartado.posicion).toBe(1);
+      expect(apartado.numMeses).toBe(11);
+      expect(apartado.cuota).toBe(10910);
+    });
+
+    it('mes intermedio: posición 2 y cuota base sin residuo', () => {
+      const apartado = calcularApartadoMes(120000, ventana11, 2026, 10);
+      expect(apartado.posicion).toBe(2);
+      expect(apartado.cuota).toBe(10909);
+    });
+
+    it('mes de pago (fin de ventana): INCLUIDO (contando los dos extremos)', () => {
+      const apartado = calcularApartadoMes(120000, ventana11, 2027, 7);
+      expect(apartado.posicion).toBe(11);
+      expect(apartado.cuota).toBe(10909);
+    });
+
+    it('mes anterior al inicio de la ventana -> cuota 0', () => {
+      const apartado = calcularApartadoMes(120000, ventana11, 2026, 8);
+      expect(apartado.posicion).toBe(0);
+      expect(apartado.cuota).toBe(0);
+    });
+
+    it('mes posterior al fin de la ventana -> cuota 0', () => {
+      const apartado = calcularApartadoMes(120000, ventana11, 2027, 8);
+      expect(apartado.posicion).toBe(0);
+      expect(apartado.cuota).toBe(0);
+    });
+
+    it('la suma de las 11 cuotas de la ventana es exactamente importeTotal', () => {
+      let suma = 0;
+      for (let posicion = 1; posicion <= 11; posicion++) {
+        const { anio, mes } = mesDesdePosicion(2026, 9, posicion);
+        suma += calcularApartadoMes(120000, ventana11, anio, mes).cuota;
+      }
+      expect(suma).toBe(120000);
+    });
+
+    it('ciclo posterior: agosto 2027 es la posición 1 tras pagar en julio 2027', () => {
+      const ventana = { anioInicio: 2027, mesInicio: 8, anioFin: 2028, mesFin: 7, numMeses: 12 };
+      const apartado = calcularApartadoMes(120000, ventana, 2027, 8);
+      expect(apartado.posicion).toBe(1);
+      expect(apartado.cuota).toBe(10000); // 120000 / 12 sin residuo
+    });
+
+    it('ciclo posterior: el mes de pago del ciclo anterior (julio 2027) queda fuera', () => {
+      const ventana = { anioInicio: 2027, mesInicio: 8, anioFin: 2028, mesFin: 7, numMeses: 12 };
+      const apartado = calcularApartadoMes(120000, ventana, 2027, 7);
+      expect(apartado.posicion).toBe(0);
+      expect(apartado.cuota).toBe(0);
+    });
+
+    it('ciclo posterior: julio 2028 es la posición 12 (fin de ventana, incluido)', () => {
+      const ventana = { anioInicio: 2027, mesInicio: 8, anioFin: 2028, mesFin: 7, numMeses: 12 };
+      const apartado = calcularApartadoMes(120000, ventana, 2028, 7);
+      expect(apartado.posicion).toBe(12);
+      expect(apartado.cuota).toBe(10000);
+    });
+
+    it('ventana de 1 mes: la única cuota es importeTotal', () => {
+      const ventana1 = { anioInicio: 2027, mesInicio: 3, anioFin: 2027, mesFin: 3, numMeses: 1 };
+      const apartado = calcularApartadoMes(50000, ventana1, 2027, 3);
+      expect(apartado.posicion).toBe(1);
+      expect(apartado.numMeses).toBe(1);
+      expect(apartado.cuota).toBe(50000);
+    });
+  });
+
+  describe('calcularApartadoDevengado', () => {
+    const ventana11 = { anioInicio: 2026, mesInicio: 9, anioFin: 2027, mesFin: 7, numMeses: 11 };
+
+    it('posición 0 (fuera de ventana) -> 0', () => {
+      expect(calcularApartadoDevengado(120000, 11, 0)).toBe(0);
+    });
+
+    it('posición 1 -> la cuota del primer mes', () => {
+      expect(calcularApartadoDevengado(120000, 11, 1)).toBe(10910);
+    });
+
+    it('posición 5 -> suma exacta de las 5 primeras cuotas', () => {
+      // 10910 + 10909*4 = 54546
+      expect(calcularApartadoDevengado(120000, 11, 5)).toBe(54546);
+    });
+
+    it('posición final -> importeTotal exacto', () => {
+      expect(calcularApartadoDevengado(120000, 11, 11)).toBe(120000);
+    });
+
+    it('posición mayor que numMeses -> importeTotal exacto (ventana completa)', () => {
+      expect(calcularApartadoDevengado(120000, 11, 20)).toBe(120000);
     });
   });
 });
+
+/** Convierte una posición 1-indexada de la ventana a (año, mes) reales. */
+function mesDesdePosicion(
+  anioInicio: number,
+  mesInicio: number,
+  posicion: number,
+): { anio: number; mes: number } {
+  const indice = anioInicio * 12 + (mesInicio - 1) + (posicion - 1);
+  return { anio: Math.floor(indice / 12), mes: (indice % 12) + 1 };
+}

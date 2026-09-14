@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import { redirect } from 'next/navigation';
 import { getCurrentUser } from '@/server/auth';
 import { obtenerResumenIndividual } from '@/server-actions/individual-queries';
@@ -7,6 +8,7 @@ import { Card } from '@/components/ui/Card';
 import { nombreMes } from '@/lib/formatters/date';
 import { formatCurrency } from '@/lib/formatters/currency';
 import { individual, resumen as literalesResumen, formatos } from '@/literals';
+import { IndividualInicioSectionSkeleton } from '@/components/features/skeletons';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,7 +17,19 @@ export const dynamic = 'force-dynamic';
  * Disponible. Cada número se muestra UNA sola vez (sin doble inversión):
  * aquí X = 100 - joint, leído desde el porcentaje conjunto persistido (MP-1).
  */
-export default async function InicioIndividualPage() {
+export default function InicioIndividualPage() {
+  // El título (mes) depende del resumen: toda la sección se rellena por
+  // streaming bajo un único Suspense, como el resumen conjunto.
+  return (
+    <div className="space-y-5">
+      <Suspense fallback={<IndividualInicioSectionSkeleton />}>
+        <ResumenInicioSection />
+      </Suspense>
+    </div>
+  );
+}
+
+async function ResumenInicioSection() {
   const user = await getCurrentUser();
   if (!user) redirect('/login');
 
@@ -29,7 +43,7 @@ export default async function InicioIndividualPage() {
   const sobreCuota = resumen.disponible != null && resumen.disponible < 0;
 
   return (
-    <div className="space-y-5">
+    <>
       <header className="flex items-center justify-between">
         <h1 className="text-xl font-bold text-brand-navy">
           {hayMes
@@ -89,6 +103,6 @@ export default async function InicioIndividualPage() {
           <p className="text-sm text-brand-muted">{individual.sinMesAbierto}</p>
         </Card>
       )}
-    </div>
+    </>
   );
 }

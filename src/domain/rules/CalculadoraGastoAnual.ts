@@ -100,15 +100,132 @@ export function calcularDevengoPrevio(
 }
 
 /**
- * Determina si el ciclo de un gasto anual pertenece a un año futuro respecto
- * al año de referencia (normalmente el año del mes abierto en la UI).
+ * Calcula el mes (año, mes) en el que un gasto anual empieza a apartar.
  *
- * Un ciclo futuro aún no devenga aportaciones (su cuota mensual es 0), pero
- * el gasto debe seguir siendo visible y editable en la lista de gastos.
+ * - Primer ciclo (nunca pagado): el mes de creación (`fechaCreacion`).
+ * - Ciclos posteriores (con `fechaUltimoPago`): el mes siguiente al último pago.
  *
- * - anioCiclo > anioActual -> true (el ciclo aún no ha comenzado: no aporta)
- * - anioCiclo <= anioActual -> false (ciclo en curso o ya pasado)
+ * El apartado se extiende desde este mes hasta el mes de pago del ciclo actual,
+ * contando ambos extremos (ver `calcularVentanaApartado`).
  */
-export function esCicloFuturo(anioActual: number, anioCiclo: number): boolean {
-  return anioCiclo > anioActual;
+export function calcularInicioApartado(
+  fechaCreacion: Date,
+  fechaUltimoPago: Date | null,
+): { anio: number; mes: number } {
+  if (fechaUltimoPago === null) {
+    return {
+      anio: fechaCreacion.getFullYear(),
+      mes: fechaCreacion.getMonth() + 1,
+    };
+  }
+
+  const anioUltimoPago = fechaUltimoPago.getFullYear();
+  const mesUltimoPago = fechaUltimoPago.getMonth() + 1;
+
+  if (mesUltimoPago === 12) {
+    return { anio: anioUltimoPago + 1, mes: 1 };
+  }
+  return { anio: anioUltimoPago, mes: mesUltimoPago + 1 };
+}
+
+export interface VentanaApartado {
+  anioInicio: number;
+  mesInicio: number;
+  anioFin: number;
+  mesFin: number;
+  /** Número de meses de la ventana [inicio → mesPago], INCLUSIVA (ambos extremos). */
+  numMeses: number;
+}
+
+/**
+ * Calcula la ventana de apartado de un gasto anual para su ciclo actual.
+ *
+ * La ventana va desde el mes de inicio (ver `calcularInicioApartado`) hasta el
+ * mes de pago del ciclo actual (`anioCiclo`, `mesPago`), **contando los dos
+ * extremos**.
+ *
+ * Ejemplo: creado en septiembre 2026, ciclos anuales con mesPago = 7 (julio),
+ * nunca pagado -> ventana septiembre 2026 → julio 2027 (11 meses).
+ */
+export function calcularVentanaApartado(
+  fechaCreacion: Date,
+  fechaUltimoPago: Date | null,
+  anioCiclo: number,
+  mesPago: number,
+): VentanaApartado {
+  const inicio = calcularInicioApartado(fechaCreacion, fechaUltimoPago);
+  const numMeses =
+    (anioCiclo - inicio.anio) * 12 + (mesPago - inicio.mes) + 1;
+
+  return {
+    anioInicio: inicio.anio,
+    mesInicio: inicio.mes,
+    anioFin: anioCiclo,
+    mesFin: mesPago,
+    numMeses,
+  };
+}
+
+export interface ApartadoMes {
+  /**
+   * Posición 1-indexada del mes dentro de la ventana; 0 si el mes queda
+   * fuera de la ventana (antes del inicio o después del mes de pago).
+   */
+  posicion: number;
+  /** Número de meses de la ventana actual (inclusiva). */
+  numMeses: number;
+  /**
+   * Cuota apartada este mes en céntimos enteros. 0 si el mes está fuera de la
+   * ventana. Reusa `calcularCuotaMes` para el reparto exacto del residuo.
+   */
+  cuota: number;
+}
+
+/**
+ * Calcula el apartado de un gasto anual para un mes de referencia concreto.
+ *
+ * - Mes dentro de la ventana [inicio → mesPago]: `posicion` en 1..numMeses
+ *   y `cuota` según `calcularCuotaMes` (reparto exacto del residuo).
+ * - Mes anterior al inicio o posterior al mes de pago: `posicion = 0` y `cuota = 0`.
+ */
+export function calcularApartadoMes(
+  importeTotal: number,
+  ventana: VentanaApartado,
+  anioMes: number,
+  mesMes: number,
+): ApartadoMes {
+  const posicionCalculada =
+    (anioMes - ventana.anioInicio) * 12 + (mesMes - ventana.mesInicio) + 1;
+
+  if (posicionCalculada < 1 || posicionCalculada > ventana.numMeses) {
+    return { posicion: 0, numMeses: ventana.numMeses, cuota: 0 };
+  }
+
+  return {
+    posicion: posicionCalculada,
+    numMeses: ventana.numMeses,
+    cuota: calcularCuotaMes(importeTotal, ventana.numMeses, posicionCalculada),
+  };
+}
+
+/**
+ * Suma exacta de las cuotas apartadas desde la posición 1 hasta `posicion`
+ * dentro de la ventana, reusando `calcularCuotaMes` (nunca reimplementa el
+ * reparto del residuo).
+ *
+ * - `posicion <= 0`: 0 (ningún mes dentro de la ventana).
+ * - `posicion >= numMeses`: `importeTotal` (la ventana completa suma exacto).
+ */
+export function calcularApartadoDevengado(
+  importeTotal: number,
+  numMeses: number,
+  posicion: number,
+): number {
+  if (posicion <= 0) return 0;
+
+  let total = 0;
+  for (let i = 1; i <= posicion && i <= numMeses; i++) {
+    total += calcularCuotaMes(importeTotal, numMeses, i);
+  }
+  return total;
 }

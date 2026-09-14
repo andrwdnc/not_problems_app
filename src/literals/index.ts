@@ -138,13 +138,18 @@ export const gastosAnuales = {
   pagar: 'Marcar como pagado',
   sinGastosAnuales: 'Aún no hay gastos anuales registrados.',
   nota: 'Los gastos anuales se cubren mes a mes. Al llegar el mes de pago, se marcan como pagados y empieza un nuevo ciclo.',
-  badge: (cuota: number) => `Anual · cuota ${cuota}/12`,
+  /** Progreso dentro de la ventana de apartado: "1/11" (ambos extremos incluidos). */
+  ventana: (posicion: number, numMeses: number) => `${posicion}/${numMeses}`,
+  /** Etiqueta del ciclo objetivo: "Ciclo 2027". */
+  ciclo: (anio: number) => `Ciclo ${anio}`,
+  /** Etiqueta del destino de pago: "Para julio 2027". */
+  para: (mes: string, anio: number) => `Para ${mes} ${anio}`,
   progreso: (apartado: string, total: string) => `Apartado ${apartado}/${total}`,
   pagado: 'Pagado',
-  /** Badge de un gasto anual cuyo ciclo aún no ha comenzado (p. ej. "Ciclo 2027"). */
-  cicloFuturo: (anio: number) => `Ciclo ${anio}`,
-  /** Subtexto del ciclo futuro: indica cuándo empieza la aportación. */
-  cicloFuturoNota: (anio: number) => `Empieza en ${anio}`,
+  /** Línea "apartado" dentro del listado de gastos del mes. */
+  apartadoLinea: (detalle: string) => `Apartado ${detalle}`,
+  /** Título de la sección de apartados en el listado de gastos del mes. */
+  apartadoSeccion: 'Apartado este mes',
 };
 
 export const aportar = {

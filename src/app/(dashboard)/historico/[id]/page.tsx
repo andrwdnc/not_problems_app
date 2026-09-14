@@ -13,7 +13,10 @@ import { formatShortDate, nombreMes } from '@/lib/formatters/date';
 import { notFound } from 'next/navigation';
 import { ventanaDeMes } from '@/domain/rules/VentanaEdicionGastos';
 import { calcularAhorro, calcularTotalesMes } from '@/domain/rules/CalculadoraAportacion';
-import { calcularCuotaMes } from '@/domain/rules/CalculadoraGastoAnual';
+import {
+  calcularVentanaApartado,
+  calcularApartadoMes,
+} from '@/domain/rules/CalculadoraGastoAnual';
 import { GastoMesAcciones } from '@/components/features/GastoMesAcciones';
 import { historicoDetalle, resumen, gastos as gastosLiterales, formatos, gastosAnuales as gastosAnualesLiterales } from '@/literals';
 
@@ -39,17 +42,21 @@ export default async function HistoricoDetallePage({
   const ahorro = calcularAhorro(aportado, mes.presupuesto, gastado);
   const conDeficit = ahorro < 0;
 
-  // Calcular apartado para este mes
+  // Calcular apartado para este mes con la ventana [inicio → mesPago] INCLUSIVE
   let apartadoMes = 0;
   for (const gastoAnual of gastosAnuales) {
-    if (mes.anio === gastoAnual.anioCiclo) {
-      const mesCiclo = mes.mes;
-      apartadoMes += calcularCuotaMes(
-        gastoAnual.importeTotal,
-        12,
-        mesCiclo,
-      );
-    }
+    const ventana = calcularVentanaApartado(
+      gastoAnual.fechaCreacion,
+      gastoAnual.fechaUltimoPago,
+      gastoAnual.anioCiclo,
+      gastoAnual.mesPago,
+    );
+    apartadoMes += calcularApartadoMes(
+      gastoAnual.importeTotal,
+      ventana,
+      mes.anio,
+      mes.mes,
+    ).cuota;
   }
   const hayApartado = apartadoMes > 0;
 
