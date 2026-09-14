@@ -51,7 +51,7 @@ describe('camposGastoConMes (T24, IA-1)', () => {
   const base: CamposGastoBase = {
     categoria: 'Vivienda',
     detalle: 'Alquiler',
-    importe: 45000,
+    importe: '450,00',
     fechaGasto: '2026-09-01',
     esRecurrente: true,
   };

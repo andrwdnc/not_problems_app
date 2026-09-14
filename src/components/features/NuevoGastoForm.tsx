@@ -8,13 +8,21 @@ import { Input } from '@/components/ui/Input';
 import { Card } from '@/components/ui/Card';
 import { CATEGORIAS, type Categoria } from '@/domain/value-objects/Categoria';
 import { crearGasto } from '@/server-actions/gastos-actions';
+import { crearGastoIndividual } from '@/server-actions/individual-actions';
 import { gastoForm, formatos } from '@/literals';
+import {
+  camposGastoConMes,
+  rutaGastos,
+  type VarianteCuenta,
+} from '@/lib/cuenta';
 
 interface GastoFormProps {
   mesId: string;
+  /** Variante de cuenta: conjunta (por defecto) o individual (IA-1). */
+  variante?: VarianteCuenta;
 }
 
-export function NuevoGastoForm({ mesId }: GastoFormProps) {
+export function NuevoGastoForm({ mesId, variante = 'conjunta' }: GastoFormProps) {
   const router = useRouter();
   const [importe, setImporte] = useState('');
   const [categoria, setCategoria] = useState<Categoria>('Vivienda');
@@ -29,21 +37,24 @@ export function NuevoGastoForm({ mesId }: GastoFormProps) {
   async function guardar(formData: FormData) {
     setEnviando(true);
     setError(null);
-    const resultado = await crearGasto({
-      mesId,
+    const campos = {
       categoria,
       detalle,
       importe: formData.get('importe') as string,
       fechaGasto: fecha,
       esRecurrente: recurrente,
-    });
+    };
+    // En variante individual el payload NO lleva mesId (el esquema .strict()
+    // lo rechazaría y el mes se deriva de fechaGasto); en conjunta se conserva.
+    const accion = variante === 'individual' ? crearGastoIndividual : crearGasto;
+    const resultado = await accion(camposGastoConMes(variante, campos, mesId));
     setEnviando(false);
 
     if (!resultado.ok) {
       setError(resultado.error);
       return;
     }
-    router.push('/gastos');
+    router.push(rutaGastos(variante));
     router.refresh();
   }
 

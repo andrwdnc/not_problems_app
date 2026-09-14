@@ -45,7 +45,8 @@ export function rutaGastosNuevo(variante: VarianteCuenta): string {
 export interface CamposGastoBase {
   categoria: Categoria;
   detalle: string;
-  importe: number;
+  /** Importe tal y como lo escribe el usuario (euros); el esquema lo convierte. */
+  importe: string;
   fechaGasto: string;
   esRecurrente: boolean;
 }
