@@ -31,7 +31,7 @@ export function LoginForm() {
     }
 
     router.refresh();
-    router.push('/inicio');
+    router.push('/');
   }
 
   return (

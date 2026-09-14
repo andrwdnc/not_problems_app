@@ -31,7 +31,7 @@ export function SignupForm() {
     }
 
     router.refresh();
-    router.push('/inicio');
+    router.push('/');
   }
 
   return (
