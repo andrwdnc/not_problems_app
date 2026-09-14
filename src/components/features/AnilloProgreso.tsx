@@ -4,9 +4,15 @@ import { resumen } from '@/literals';
 interface AnilloProgresoProps {
   porcentaje: number;
   etiqueta: string;
+  /** Texto alternativo cuando se supera el 100 % (p. ej. "cuota superada"). */
+  etiquetaSuperada?: string;
 }
 
-export function AnilloProgreso({ porcentaje, etiqueta }: AnilloProgresoProps) {
+export function AnilloProgreso({
+  porcentaje,
+  etiqueta,
+  etiquetaSuperada = resumen.superado,
+}: AnilloProgresoProps) {
   const radio = 84;
   const circunferencia = 2 * Math.PI * radio;
   const recortado = Math.min(Math.max(porcentaje, 0), 100);
@@ -19,7 +25,7 @@ export function AnilloProgreso({ porcentaje, etiqueta }: AnilloProgresoProps) {
         viewBox="0 0 200 200"
         className="h-full w-full -rotate-90"
         role="img"
-        aria-label={`${Math.round(porcentaje)}% ${superada ? resumen.superado : etiqueta}`}
+        aria-label={`${Math.round(porcentaje)}% ${superada ? etiquetaSuperada : etiqueta}`}
       >
         <circle
           cx="100"
@@ -57,7 +63,7 @@ export function AnilloProgreso({ porcentaje, etiqueta }: AnilloProgresoProps) {
             superada ? 'text-financial-negative' : 'text-brand-muted',
           )}
         >
-          {superada ? resumen.superado : etiqueta}
+          {superada ? etiquetaSuperada : etiqueta}
         </span>
       </div>
     </div>
