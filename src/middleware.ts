@@ -9,7 +9,9 @@ export async function middleware(request: NextRequest) {
     request.nextUrl.pathname.startsWith('/inicio') ||
     request.nextUrl.pathname.startsWith('/gastos') ||
     request.nextUrl.pathname.startsWith('/aportar') ||
-    request.nextUrl.pathname.startsWith('/historico');
+    request.nextUrl.pathname.startsWith('/historico') ||
+    // Área individual (NAV-1): misma protección que la conjunta.
+    request.nextUrl.pathname.startsWith('/individual');
 
   // Rutas protegidas: redirigir a login si no hay sesión.
   if (isDashboard && !user) {
@@ -19,10 +21,10 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // Si hay sesión y va a login/signup, ir a inicio.
+  // Si hay sesión y va a login/signup, ir al selector de cuenta ("/").
   if (user && (request.nextUrl.pathname === '/login' || request.nextUrl.pathname === '/signup')) {
     const url = request.nextUrl.clone();
-    url.pathname = '/inicio';
+    url.pathname = '/';
     url.search = '';
     return NextResponse.redirect(url);
   }
@@ -36,6 +38,7 @@ export const config = {
     '/gastos/:path*',
     '/aportar/:path*',
     '/historico/:path*',
+    '/individual/:path*',
     '/login',
     '/signup',
   ],
