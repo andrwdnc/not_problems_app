@@ -4,6 +4,7 @@ import {
   calcularCuotaBase,
   calcularCuotaMes,
   calcularDevengoPrevio,
+  esCicloFuturo,
 } from './CalculadoraGastoAnual';
 
 describe('CalculadoraGastoAnual', () => {
@@ -124,6 +125,21 @@ describe('CalculadoraGastoAnual', () => {
       // Estamos en noviembre 2025, mesPago = 12, anioCiclo = 2025
       // Diciembre 2025 aún no llegó
       expect(calcularDevengoPrevio(2025, 11, 2025, 12)).toBe(false);
+    });
+  });
+
+  describe('esCicloFuturo', () => {
+    it('retorna true si el anioCiclo es posterior al año de referencia', () => {
+      // Hoy: 2026, gasto anual creado con ciclo 2027 (mesPago ya pasó este año)
+      expect(esCicloFuturo(2026, 2027)).toBe(true);
+    });
+
+    it('retorna false si el anioCiclo es el año de referencia (ciclo en curso)', () => {
+      expect(esCicloFuturo(2026, 2026)).toBe(false);
+    });
+
+    it('retorna false si el anioCiclo es anterior al año de referencia', () => {
+      expect(esCicloFuturo(2026, 2025)).toBe(false);
     });
   });
 });

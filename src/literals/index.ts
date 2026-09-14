@@ -141,6 +141,10 @@ export const gastosAnuales = {
   badge: (cuota: number) => `Anual · cuota ${cuota}/12`,
   progreso: (apartado: string, total: string) => `Apartado ${apartado}/${total}`,
   pagado: 'Pagado',
+  /** Badge de un gasto anual cuyo ciclo aún no ha comenzado (p. ej. "Ciclo 2027"). */
+  cicloFuturo: (anio: number) => `Ciclo ${anio}`,
+  /** Subtexto del ciclo futuro: indica cuándo empieza la aportación. */
+  cicloFuturoNota: (anio: number) => `Empieza en ${anio}`,
 };
 
 export const aportar = {

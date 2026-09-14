@@ -41,6 +41,8 @@ interface GastoAnualVista {
   anioCiclo: number;
   fechaUltimoPago: Date | null;
   estaPagadaEsteCiclo: boolean;
+  /** true si el ciclo del gasto anual es de un año futuro: aún no aporta. */
+  esCicloFuturo: boolean;
 }
 
 interface GastosListProps {
@@ -204,10 +206,16 @@ export function GastosList({ gastos, usuarios, gastosAnuales = [] }: GastosListP
                     <p className="truncate text-sm font-medium text-brand-ink">
                       {p.detalle}
                     </p>
-                    <p className="text-xs text-brand-muted">
-                      {gastosAnualesLiterales.badge(p.mesesDevengados + 1)}
-                    </p>
-                    {p.estaPagadaEsteCiclo && (
+                    {p.esCicloFuturo ? (
+                      <Badge tone="muted" className="mt-1">
+                        {gastosAnualesLiterales.cicloFuturo(p.anioCiclo)}
+                      </Badge>
+                    ) : (
+                      <p className="text-xs text-brand-muted">
+                        {gastosAnualesLiterales.badge(p.mesesDevengados + 1)}
+                      </p>
+                    )}
+                    {!p.esCicloFuturo && p.estaPagadaEsteCiclo && (
                       <Badge tone="positive" className="mt-1">
                         {gastosAnualesLiterales.pagado}
                       </Badge>
@@ -236,7 +244,7 @@ export function GastosList({ gastos, usuarios, gastosAnuales = [] }: GastosListP
                           <Trash2 size={16} />
                         </button>
                       )}
-                      {p.puedeEditar && !p.estaPagadaEsteCiclo && (
+                      {p.puedeEditar && !p.estaPagadaEsteCiclo && !p.esCicloFuturo && (
                         <button
                           onClick={() => marcarPagadoGastoAnual(p.id)}
                           className="text-brand-primary hover:text-brand-navy font-medium text-sm"
@@ -268,7 +276,10 @@ export function GastosList({ gastos, usuarios, gastosAnuales = [] }: GastosListP
                     />
                   </div>
                   <p className="text-xs text-brand-muted">
-                    {gastosAnualesLiterales.mesPago}: {mesPagoNombre} · {gastosAnualesLiterales.pagado} {p.mesesDevengados}/12
+                    {gastosAnualesLiterales.mesPago}: {mesPagoNombre} ·{' '}
+                    {p.esCicloFuturo
+                      ? gastosAnualesLiterales.cicloFuturoNota(p.anioCiclo)
+                      : `${gastosAnualesLiterales.pagado} ${p.mesesDevengados}/12`}
                   </p>
                 </div>
               </Card>

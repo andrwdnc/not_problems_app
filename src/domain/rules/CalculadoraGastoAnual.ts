@@ -98,3 +98,17 @@ export function calcularDevengoPrevio(
   // mesActual <= mesPago: mes actual es anterior o igual a mesPago
   return false;
 }
+
+/**
+ * Determina si el ciclo de un gasto anual pertenece a un año futuro respecto
+ * al año de referencia (normalmente el año del mes abierto en la UI).
+ *
+ * Un ciclo futuro aún no devenga aportaciones (su cuota mensual es 0), pero
+ * el gasto debe seguir siendo visible y editable en la lista de gastos.
+ *
+ * - anioCiclo > anioActual -> true (el ciclo aún no ha comenzado: no aporta)
+ * - anioCiclo <= anioActual -> false (ciclo en curso o ya pasado)
+ */
+export function esCicloFuturo(anioActual: number, anioCiclo: number): boolean {
+  return anioCiclo > anioActual;
+}
