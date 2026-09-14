@@ -178,6 +178,48 @@ export const individualErrores = {
   porcentajeRango: 'El porcentaje debe estar entre 1 y 99',
 };
 
+/**
+ * Pantalla de elección de cuenta "/" (NAV-1 Chooser). Lenguaje neutro: la UI
+ * no se ancla al concepto de "pareja" (la app evolucionará hacia el control de
+ * gastos individuales).
+ */
+export const chooser = {
+  titulo: '¿Qué cuenta quieres ver?',
+  subtitulo: 'Elige un área para empezar.',
+  individual: 'Cuenta individual',
+  individualDescripcion: 'Tus gastos, tu sueldo y tu porcentaje propios',
+  conjunta: 'Cuenta conjunta',
+  conjuntaDescripcion: 'Gastos, aportaciones y presupuesto compartidos',
+  volver: 'Cambiar de cuenta',
+};
+
+/**
+ * Textos del área individual. Cada pantalla muestra SOLO su propio número: la
+ * individual muestra X (mi porcentaje), la conjunta lee el complementario
+ * almacenado sin invertir de nuevo (MP-1, sin doble inversión).
+ */
+export const individual = {
+  titulo: 'Mi espacio',
+  miSueldo: 'Mi sueldo',
+  miPorcentaje: 'Mi porcentaje',
+  porcentajeUnico: 'Porcentaje individual del mes',
+  fijarPorcentaje: 'Fijar mi porcentaje',
+  guardarSueldo: 'Guardar mi sueldo',
+  miCuota: 'Mi cuota',
+  miAportacionMensual: 'Tu aportación mensual',
+  deTuCuota: 'de tu cuota',
+  cuotaSuperada: 'cuota superada',
+  notaPorcentaje:
+    'Al fijar tu porcentaje individual, la cuenta conjunta usa el porcentaje complementario.',
+  notaInamovible:
+    'El sueldo y el porcentaje individuales son inamovibles una vez guardados.',
+  sinMesAbierto: 'No hay un mes abierto todavía.',
+  sinDatos:
+    'Todavía no hay datos para este mes. Registra tu sueldo o un gasto individual para empezar.',
+  sinGastosMes: 'Aún no hay gastos individuales este mes.',
+  teHasPasado: (monto: string) => `Has gastado ${monto} más de tu cuota.`,
+};
+
 export const aportacionErrores = {
   sueldoPositivo: 'El sueldo debe ser mayor que 0',
   porcentajePositivo: 'El porcentaje debe ser mayor que 0',
