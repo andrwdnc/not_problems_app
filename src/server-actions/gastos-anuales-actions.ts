@@ -150,7 +150,6 @@ export async function editarGastoAnual(
     return { ok: false, error: gastosAnualesErrores.gastoAnualNoEncontrada };
   }
 
-  // Calcular devengo previo antes de editar (para auditoría/historial)
   const hoy = new Date();
   const anioActual = hoy.getFullYear();
   const mesActual = hoy.getMonth() + 1;
@@ -160,6 +159,14 @@ export async function editarGastoAnual(
     existente.anioCiclo,
     existente.mesPago,
   );
+
+  // Bloquear SOLO en la UI (botón deshabilitado) es evadible: la Server Action
+  // es un endpoint público. Aquí se revalida la MISMA regla que aplican /gastos y
+  // /gastos/anuales/[id], igual que gastos-actions.ts e individual-actions.ts
+  // revalidan la ventana de edición antes de mutar.
+  if (devengoPrevio) {
+    return { ok: false, error: gastosAnualesErrores.devengoPrevio };
+  }
 
   const actualizada = await gastoAnualRepository.update(id, datos);
 
@@ -198,7 +205,6 @@ export async function eliminarGastoAnual(
     return { ok: false, error: gastosAnualesErrores.gastoAnualNoEncontrada };
   }
 
-  // Calcular devengo previo antes de eliminar
   const hoy = new Date();
   const anioActual = hoy.getFullYear();
   const mesActual = hoy.getMonth() + 1;
@@ -208,6 +214,12 @@ export async function eliminarGastoAnual(
     existente.anioCiclo,
     existente.mesPago,
   );
+
+  // Mismo guard server-side que en editarGastoAnual: la UI deshabilita el botón,
+  // pero eso no protege la acción. Un gasto ya devengado es inmutable.
+  if (devengoPrevio) {
+    return { ok: false, error: gastosAnualesErrores.devengoPrevio };
+  }
 
   await gastoAnualRepository.delete(id);
 
