@@ -71,20 +71,20 @@ export default async function HistoricoDetallePage({
         </h1>
       </div>
 
-      <div className="flex gap-3">
-        <Card className="flex-1">
+      <div className="-mx-4 flex gap-3 overflow-x-auto px-4 pb-1">
+        <Card className="w-40 shrink-0">
           <p className="text-xs text-brand-muted">{resumen.aportado}</p>
           <p className="font-mono text-lg font-bold text-brand-primary">
             {formatCurrency(aportado)}
           </p>
         </Card>
-        <Card className="flex-1">
+        <Card className="w-40 shrink-0">
           <p className="text-xs text-brand-muted">{resumen.gastado}</p>
           <p className="font-mono text-lg font-bold text-financial-negative">
             {formatCurrency(gastado)}
           </p>
         </Card>
-        <Card className="flex-1">
+        <Card className="w-40 shrink-0">
           <p className="text-xs text-brand-muted">{resumen.presupuesto}</p>
           {mes.presupuesto != null ? (
             <p className="font-mono text-lg font-bold text-brand-navy">
@@ -94,7 +94,7 @@ export default async function HistoricoDetallePage({
             <p className="font-mono text-lg font-bold text-brand-muted">{formatos.vacio}</p>
           )}
         </Card>
-        <Card className="flex-1">
+        <Card className="w-40 shrink-0">
           <p className="text-xs text-brand-muted">
             {conDeficit ? resumen.deficit : resumen.ahorro}
           </p>
@@ -105,7 +105,7 @@ export default async function HistoricoDetallePage({
           </p>
         </Card>
         {hayApartado && (
-          <Card className="flex-1">
+          <Card className="w-40 shrink-0">
             <p className="text-xs text-brand-muted">{gastosAnualesLiterales.titulo}</p>
             <p className="font-mono text-lg font-bold text-brand-primary">
               {formatCurrency(apartadoMes)}

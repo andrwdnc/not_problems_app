@@ -69,8 +69,8 @@ async function HistoricoIndividualDetalleSection({ id }: { id: string }) {
         </h1>
       </div>
 
-      <div className="flex gap-3">
-        <Card className="flex-1">
+      <div className="-mx-4 flex gap-3 overflow-x-auto px-4 pb-1">
+        <Card className="w-40 shrink-0">
           <p className="text-xs text-brand-muted">{individual.miSueldo}</p>
           {resumenMes.sueldo != null ? (
             <p className="font-mono text-lg font-bold text-brand-primary">
@@ -80,13 +80,13 @@ async function HistoricoIndividualDetalleSection({ id }: { id: string }) {
             <p className="font-mono text-lg font-bold text-brand-muted">{formatos.vacio}</p>
           )}
         </Card>
-        <Card className="flex-1">
+        <Card className="w-40 shrink-0">
           <p className="text-xs text-brand-muted">{resumen.gastado}</p>
           <p className="font-mono text-lg font-bold text-financial-negative">
             {formatCurrency(resumenMes.gastado)}
           </p>
         </Card>
-        <Card className="flex-1">
+        <Card className="w-40 shrink-0">
           <p className="text-xs text-brand-muted">{individual.miCuota}</p>
           {resumenMes.cuota != null ? (
             <p className="font-mono text-lg font-bold text-brand-navy">
@@ -96,7 +96,7 @@ async function HistoricoIndividualDetalleSection({ id }: { id: string }) {
             <p className="font-mono text-lg font-bold text-brand-muted">{formatos.vacio}</p>
           )}
         </Card>
-        <Card className="flex-1">
+        <Card className="w-40 shrink-0">
           <p className="text-xs text-brand-muted">{resumen.disponible}</p>
           {resumenMes.disponible != null ? (
             <p
