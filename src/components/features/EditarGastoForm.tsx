@@ -48,6 +48,7 @@ export function EditarGastoForm({ gasto, variante = 'conjunta' }: EditarGastoFor
   const [recurrente, setRecurrente] = useState(gasto.esRecurrente);
   const [error, setError] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
+  const [eliminando, setEliminando] = useState(false);
 
   async function guardar(formData: FormData) {
     setEnviando(true);
@@ -79,13 +80,18 @@ export function EditarGastoForm({ gasto, variante = 'conjunta' }: EditarGastoFor
     if (!confirm(gastoForm.confirmarEliminar)) return;
     const accion =
       variante === 'individual' ? eliminarGastoIndividual : eliminarGasto;
-    const resultado = await accion({ id: gasto.id });
-    if (!resultado.ok) {
-      setError(resultado.error);
-      return;
+    setEliminando(true);
+    try {
+      const resultado = await accion({ id: gasto.id });
+      if (!resultado.ok) {
+        setError(resultado.error);
+        return;
+      }
+      router.push(rutaGastos(variante));
+      router.refresh();
+    } finally {
+      setEliminando(false);
     }
-    router.push(rutaGastos(variante));
-    router.refresh();
   }
 
   return (
@@ -159,7 +165,14 @@ export function EditarGastoForm({ gasto, variante = 'conjunta' }: EditarGastoFor
       <Button type="submit" fullWidth disabled={enviando}>
         {enviando ? gastoForm.guardando : gastoForm.guardarCambios}
       </Button>
-      <Button type="button" variant="danger" fullWidth onClick={eliminar}>
+      <Button
+        type="button"
+        variant="danger"
+        fullWidth
+        onClick={eliminar}
+        loading={eliminando}
+        disabled={enviando || eliminando}
+      >
         {gastoForm.eliminar}
       </Button>
     </form>

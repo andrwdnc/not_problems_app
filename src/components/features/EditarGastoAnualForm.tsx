@@ -162,10 +162,24 @@ export function EditarGastoAnualForm({ gastoAnual, devengoPrevio }: EditarGastoA
         </p>
       )}
 
-      <Button type="submit" fullWidth disabled={enviando || devengoPrevio}>
-        {enviando ? gastosAnualesLiterales.guardar : gastosAnualesLiterales.guardar}
+      <Button
+        type="submit"
+        fullWidth
+        loading={enviando}
+        disabled={enviando || devengoPrevio}
+      >
+        {enviando
+          ? gastosAnualesLiterales.guardando
+          : gastosAnualesLiterales.guardar}
       </Button>
-      <Button type="button" variant="danger" fullWidth onClick={eliminar} disabled={enviando || devengoPrevio}>
+      <Button
+        type="button"
+        variant="danger"
+        fullWidth
+        loading={enviando}
+        onClick={eliminar}
+        disabled={enviando || devengoPrevio}
+      >
         {gastosAnualesLiterales.eliminar}
       </Button>
     </form>

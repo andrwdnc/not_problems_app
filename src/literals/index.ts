@@ -101,6 +101,7 @@ export const gastos = {
   recurrente: 'Recurrente',
   editar: 'Editar',
   eliminar: 'Eliminar',
+  eliminando: 'Eliminando…',
   nuevoGasto: 'Nuevo gasto',
   verDetalle: 'Ver detalle',
 };
@@ -133,6 +134,7 @@ export const gastosAnuales = {
   importeTotal: 'Importe total anual',
   mesPago: 'Mes de pago',
   guardar: 'Guardar gasto anual',
+  guardando: 'Guardando…',
   editar: 'Editar',
   eliminar: 'Eliminar',
   pagar: 'Marcar como pagado',

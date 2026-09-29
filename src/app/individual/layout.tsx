@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { Repeat } from 'lucide-react';
 import { BottomNav } from '@/components/layout/BottomNav';
+import { NavigationShell } from '@/components/layout/NavigationShell';
 import { LogoutButton } from '@/components/layout/LogoutButton';
 import { getCurrentUser } from '@/server/auth';
 import { chooser } from '@/literals';
@@ -39,7 +40,9 @@ export default async function IndividualLayout({
           <LogoutButton />
         </div>
       </header>
-      <main className="min-w-0 flex-1 px-4 pb-28 pt-4">{children}</main>
+      <main className="min-w-0 flex-1 px-4 pb-28 pt-4">
+        <NavigationShell>{children}</NavigationShell>
+      </main>
       <BottomNav prefijo="/individual" />
     </div>
   );

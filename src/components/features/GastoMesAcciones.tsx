@@ -2,8 +2,10 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useState } from 'react';
 import { Pencil, Trash2 } from 'lucide-react';
 import { eliminarGasto } from '@/server-actions/gastos-actions';
+import { Spinner } from '@/components/ui/Spinner';
 import { gastos } from '@/literals';
 
 interface GastoMesAccionesProps {
@@ -18,18 +20,24 @@ export function GastoMesAcciones({
   puedeEliminar,
 }: GastoMesAccionesProps) {
   const router = useRouter();
+  const [eliminando, setEliminando] = useState(false);
 
   if (!puedeEditar && !puedeEliminar) {
     return null;
   }
 
   async function eliminar() {
-    const resultado = await eliminarGasto({ id: gastoId });
-    if (!resultado.ok) {
-      alert(resultado.error);
-      return;
+    setEliminando(true);
+    try {
+      const resultado = await eliminarGasto({ id: gastoId });
+      if (!resultado.ok) {
+        alert(resultado.error);
+        return;
+      }
+      router.refresh();
+    } finally {
+      setEliminando(false);
     }
-    router.refresh();
   }
 
   return (
@@ -46,10 +54,16 @@ export function GastoMesAcciones({
       {puedeEliminar && (
         <button
           onClick={eliminar}
-          className="text-brand-muted hover:text-financial-negative"
+          disabled={eliminando}
+          className="text-brand-muted hover:text-financial-negative disabled:cursor-not-allowed disabled:opacity-50"
           aria-label={gastos.eliminar}
+          aria-busy={eliminando || undefined}
         >
-          <Trash2 size={16} />
+          {eliminando ? (
+            <Spinner size="sm" label={gastos.eliminando} />
+          ) : (
+            <Trash2 size={16} />
+          )}
         </button>
       )}
     </div>

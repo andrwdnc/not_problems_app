@@ -93,8 +93,8 @@ export function NuevoGastoAnualForm() {
         </p>
       )}
 
-      <Button type="submit" fullWidth disabled={enviando}>
-        {enviando ? gastosAnuales.guardar : gastosAnuales.guardar}
+      <Button type="submit" fullWidth loading={enviando} disabled={enviando}>
+        {enviando ? gastosAnuales.guardando : gastosAnuales.guardar}
       </Button>
     </form>
   );

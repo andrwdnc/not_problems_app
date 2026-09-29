@@ -33,6 +33,9 @@ export function AportarIndividualForm({
   const [sueldoValor, setSueldoValor] = useState('');
   const [porcentajeValor, setPorcentajeValor] = useState('');
   const [resumen, setResumen] = useState(resumenInicial);
+  // Igual que en la cuenta conjunta: clave del formulario en vuelo, para
+  // atenuar solo el que se está guardando y dejar el otro utilizable.
+  const [enviando, setEnviando] = useState<string | null>(null);
 
   useEffect(() => {
     setResumen(resumenInicial);
@@ -41,6 +44,7 @@ export function AportarIndividualForm({
   async function guardarSueldo(formData: FormData) {
     const sueldo = formData.get('sueldo') as string;
     setMensaje(null);
+    setEnviando('sueldo');
     try {
       const resultado = await fijarSueldoIndividual({
         mesId: resumen.mesId,
@@ -54,12 +58,15 @@ export function AportarIndividualForm({
       router.refresh();
     } catch {
       setMensaje(aportar.errorGuardarSueldo);
+    } finally {
+      setEnviando(null);
     }
   }
 
   async function guardarPorcentaje(formData: FormData) {
     const porcentaje = formData.get('porcentaje') as string;
     setMensaje(null);
+    setEnviando('porcentaje');
     try {
       const resultado = await fijarPorcentajeIndividual({
         mesId: resumen.mesId,
@@ -73,6 +80,8 @@ export function AportarIndividualForm({
       router.refresh();
     } catch {
       setMensaje(aportar.errorFijarPorcentaje);
+    } finally {
+      setEnviando(null);
     }
   }
 
@@ -130,7 +139,12 @@ export function AportarIndividualForm({
               placeholder={formatos.importeEjemplo}
               required
             />
-            <Button type="submit" fullWidth className="mt-3">
+            <Button
+              type="submit"
+              fullWidth
+              className="mt-3"
+              loading={enviando === 'sueldo'}
+            >
               {individual.guardarSueldo}
             </Button>
           </form>
@@ -168,7 +182,12 @@ export function AportarIndividualForm({
               placeholder="50"
               required
             />
-            <Button type="submit" fullWidth className="mt-3">
+            <Button
+              type="submit"
+              fullWidth
+              className="mt-3"
+              loading={enviando === 'porcentaje'}
+            >
               {individual.fijarPorcentaje}
             </Button>
             <p className="mt-3 text-xs text-brand-muted">{individual.notaPorcentaje}</p>

@@ -132,7 +132,7 @@ export function NuevoGastoForm({ mesId, variante = 'conjunta' }: GastoFormProps)
         </p>
       )}
 
-      <Button type="submit" fullWidth disabled={enviando}>
+      <Button type="submit" fullWidth loading={enviando} disabled={enviando}>
         {enviando ? gastoForm.guardando : gastoForm.guardar}
       </Button>
     </form>
