@@ -96,11 +96,25 @@ export function AportarIndividualForm({
         </div>
 
         {sueldoFijado ? (
-          <div>
-            <p className="text-xs text-brand-muted">{aportar.sueldoIntegro}</p>
-            <p className="font-mono text-lg font-semibold text-brand-ink">
-              {formatCurrency(resumen.sueldo as number)}
-            </p>
+          <div className="space-y-2">
+            <div>
+              <p className="text-xs text-brand-muted">{aportar.sueldoIntegro}</p>
+              <p className="font-mono text-lg font-semibold text-brand-ink">
+                {formatCurrency(resumen.sueldo as number)}
+              </p>
+            </div>
+            {/* Paridad con la cuenta conjunta (aportar.importeAportado): el
+                sueldo y el porcentaje por sí solos no dicen cuánto queda. */}
+            <div>
+              <p className="text-xs text-brand-muted">
+                {individual.miAportacionMensual}
+              </p>
+              <p className="font-mono text-lg font-semibold text-brand-primary">
+                {resumen.cuota != null
+                  ? formatCurrency(resumen.cuota)
+                  : aportar.pendientePorcentaje}
+              </p>
+            </div>
           </div>
         ) : (
           <form action={guardarSueldo}>
