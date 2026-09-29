@@ -11,13 +11,43 @@ export const metadata: Metadata = {
     capable: true,
     statusBarStyle: 'default',
     title: app.nombre,
+    // Cada splash se declara con la media query del dispositivo al que
+    // corresponde. iOS solo muestra el splash si encuentra una imagen cuyo
+    // media encaje EXACTAMENTE con el del terminal; sin coincidencia, en su
+    // lugar se ve negro mientras carga el arranque en modo standalone.
+    // Las dimensiones son las lógicas (px de imagen / densidad), porque
+    // `device-width` y `device-height` se miden en puntos CSS, no en píxeles.
     startupImage: [
-      '/splash-828_1792.png',
-      '/splash-1125_2436.png',
-      '/splash-1170_2532.png',
-      '/splash-1242_2688.png',
-      '/splash-1284_2778.png',
-      '/splash-1290_2796.png',
+      {
+        url: '/splash-828_1792.png',
+        media:
+          '(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)',
+      },
+      {
+        url: '/splash-1125_2436.png',
+        media:
+          '(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)',
+      },
+      {
+        url: '/splash-1170_2532.png',
+        media:
+          '(device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)',
+      },
+      {
+        url: '/splash-1242_2688.png',
+        media:
+          '(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)',
+      },
+      {
+        url: '/splash-1284_2778.png',
+        media:
+          '(device-width: 428px) and (device-height: 926px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)',
+      },
+      {
+        url: '/splash-1290_2796.png',
+        media:
+          '(device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)',
+      },
     ],
   },
   formatDetection: {
@@ -31,6 +61,10 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: '#0B3D66',
+  // Permite que el layout se extienda bajo el notch y la barra de gestos:
+  // sin esto `env(safe-area-inset-*)` resuelve a 0 y el padding inferior de
+  // la barra de navegación no reserva el espacio de la home indicator.
+  viewportFit: 'cover',
 };
 
 export default function RootLayout({
