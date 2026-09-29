@@ -25,9 +25,10 @@ interface NavigationShellProps {
  * ocurre absolutamente nada visible hasta que llega el RSC, y en una conexión
  * lenta parece que el botón está roto.
  *
- * Reproduce la sensación de cambio de pestaña con dos señales superpuestas: una
- * barra de progreso indeterminado en el borde superior (como la de las pestañas
- * de un navegador) y un atenuado del contenido mientras se resuelve.
+ * Reproduce la sensación de cambio de pestaña con una barra de progreso
+ * indeterminado en el borde superior, como la de las pestañas de un navegador.
+ * No atenúa el contenido: el esqueleto que ya existe en cada pantalla se
+ * solaparía con el oscurecido y ambos quedarían ilegibles.
  *
  * La detección es un único listener en fase de captura sobre `document`, en
  * lugar de parchear los ~29 `<Link>` de la app: es el único punto donde
@@ -114,14 +115,10 @@ export function NavigationShell({ children }: NavigationShellProps) {
             : 'pointer-events-none opacity-0',
         )}
       />
-      <div
-        className={cn(
-          'flex min-h-0 flex-1 flex-col transition-opacity duration-150 motion-reduce:transition-none',
-          pendiente && 'opacity-40 motion-reduce:opacity-100',
-        )}
-      >
-        {children}
-      </div>
+      {/* Este div ya no atenúa el contenido: se queda solo como hijo flex que
+          sostiene la cadena de maquetación entre <main> y la barra. No puede
+          borrarse sin romper el layout. */}
+      <div className="flex min-h-0 flex-1 flex-col">{children}</div>
     </div>
   );
 }
