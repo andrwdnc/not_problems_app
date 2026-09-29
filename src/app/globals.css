@@ -33,6 +33,24 @@
   @apply border-brand-border;
 }
 
+/* Oculta las barras de scroll sin desactivar el desplazamiento: el contenido
+   sigue moviéndose con el dedo, la rueda y el teclado, simplemente no se pinta
+   la barra. Es lo que corresponde a una app móvil: en un PWA con scroll táctil
+   las barras son superpuestas y solo aparecen mientras arrastras, así que en el
+   móvil esta regla no cambia nada visible; lo que evita es que aparezcan en el
+   navegador de escritorio, donde sí se ven de forma permanente.
+
+   Se aplica al elemento que hace scroll, no al body, para no interferir con
+   contenedores nativos que la app no controla. */
+* {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+*::-webkit-scrollbar {
+  display: none;
+}
+
 body {
   @apply bg-brand-bg text-brand-ink font-sans;
   /* Recorta el desbordamiento horizontal sin activar scroll ni crear un
