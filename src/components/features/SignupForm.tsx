@@ -31,7 +31,7 @@ export function SignupForm() {
     }
 
     router.refresh();
-    router.push('/inicio');
+    router.push('/');
   }
 
   return (
@@ -60,7 +60,7 @@ export function SignupForm() {
             {mensaje}
           </p>
         )}
-        <Button type="submit" fullWidth disabled={cargando}>
+        <Button type="submit" fullWidth loading={cargando} disabled={cargando}>
           {cargando ? auth.creando : auth.crearCuenta}
         </Button>
       </form>

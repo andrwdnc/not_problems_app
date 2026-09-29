@@ -101,6 +101,7 @@ export const gastos = {
   recurrente: 'Recurrente',
   editar: 'Editar',
   eliminar: 'Eliminar',
+  eliminando: 'Eliminando…',
   nuevoGasto: 'Nuevo gasto',
   verDetalle: 'Ver detalle',
 };
@@ -111,6 +112,46 @@ export const gastosErrores = {
   gastoNoEncontrado: 'Gasto no encontrado.',
   gastoNoEditable: 'Este gasto ya no es editable.',
   gastoNoEliminable: 'Este gasto ya no se puede eliminar.',
+};
+
+export const gastosAnualesValidaciones = {
+  detalleObligatorio: 'El detalle es obligatorio',
+  importePositivo: 'El importe debe ser mayor que 0',
+  mesPagoInvalido: 'El mes de pago debe estar entre 1 y 12',
+};
+
+export const gastosAnualesErrores = {
+  gastoAnualNoEncontrada: 'Gasto anual no encontrado.',
+  gastoAnualYaPagado: 'Este gasto anual ya está pagado para el ciclo actual.',
+  devengoPrevio: 'No se puede editar/eliminar: este gasto anual ya tiene meses devengados en el ciclo actual.',
+};
+
+export const gastosAnuales = {
+  titulo: 'Gastos anuales',
+  nuevo: 'Nuevo gasto anual',
+  detalle: 'Detalle',
+  placeholderDetalle: 'ej. Seguro hogar',
+  importeTotal: 'Importe total anual',
+  mesPago: 'Mes de pago',
+  guardar: 'Guardar gasto anual',
+  guardando: 'Guardando…',
+  editar: 'Editar',
+  eliminar: 'Eliminar',
+  pagar: 'Marcar como pagado',
+  sinGastosAnuales: 'Aún no hay gastos anuales registrados.',
+  nota: 'Los gastos anuales se cubren mes a mes. Al llegar el mes de pago, se marcan como pagados y empieza un nuevo ciclo.',
+  /** Progreso dentro de la ventana de apartado: "1/11" (ambos extremos incluidos). */
+  ventana: (posicion: number, numMeses: number) => `${posicion}/${numMeses}`,
+  /** Etiqueta del ciclo objetivo: "Ciclo 2027". */
+  ciclo: (anio: number) => `Ciclo ${anio}`,
+  /** Etiqueta del destino de pago: "Para julio 2027". */
+  para: (mes: string, anio: number) => `Para ${mes} ${anio}`,
+  progreso: (apartado: string, total: string) => `Apartado ${apartado}/${total}`,
+  pagado: 'Pagado',
+  /** Línea "apartado" dentro del listado de gastos del mes. */
+  apartadoLinea: (detalle: string) => `Apartado ${detalle}`,
+  /** Título de la sección de apartados en el listado de gastos del mes. */
+  apartadoSeccion: 'Apartado este mes',
 };
 
 export const aportar = {
@@ -136,6 +177,58 @@ export const aportar = {
   notaInamovible:
     'El sueldo, el porcentaje y el presupuesto de gastos son inamovibles una vez guardados.',
   sinMesAbierto: 'No hay un mes abierto todavía.',
+};
+
+/**
+ * Errores de validación de los formularios de la cuenta individual. Los
+ * esquemas de servidor (T14) rechazan cualquier campo foráneo (usuarioId,
+ * mesId) y acotan el porcentaje individual al rango 1-99 (MP-2).
+ */
+export const individualErrores = {
+  campoNoPermitido: 'Campos no permitidos en esta operación',
+  porcentajeRango: 'El porcentaje debe estar entre 1 y 99',
+};
+
+/**
+ * Pantalla de elección de cuenta "/" (NAV-1 Chooser). Lenguaje neutro: la UI
+ * no se ancla al concepto de "pareja" (la app evolucionará hacia el control de
+ * gastos individuales).
+ */
+export const chooser = {
+  titulo: '¿Qué cuenta quieres ver?',
+  subtitulo: 'Elige un área para empezar.',
+  individual: 'Cuenta individual',
+  individualDescripcion: 'Tus gastos, tu sueldo y tu porcentaje propios',
+  conjunta: 'Cuenta conjunta',
+  conjuntaDescripcion: 'Gastos, aportaciones y presupuesto compartidos',
+  volver: 'Cambiar de cuenta',
+};
+
+/**
+ * Textos del área individual. Cada pantalla muestra SOLO su propio número: la
+ * individual muestra X (mi porcentaje), la conjunta lee el complementario
+ * almacenado sin invertir de nuevo (MP-1, sin doble inversión).
+ */
+export const individual = {
+  titulo: 'Mi espacio',
+  miSueldo: 'Mi sueldo',
+  miPorcentaje: 'Mi porcentaje',
+  porcentajeUnico: 'Porcentaje individual del mes',
+  fijarPorcentaje: 'Fijar mi porcentaje',
+  guardarSueldo: 'Guardar mi sueldo',
+  miCuota: 'Mi cuota',
+  miAportacionMensual: 'Tu aportación mensual',
+  deTuCuota: 'de tu cuota',
+  cuotaSuperada: 'cuota superada',
+  notaPorcentaje:
+    'Al fijar tu porcentaje individual, la cuenta conjunta usa el porcentaje complementario.',
+  notaInamovible:
+    'El sueldo y el porcentaje individuales son inamovibles una vez guardados.',
+  sinMesAbierto: 'No hay un mes abierto todavía.',
+  sinDatos:
+    'Todavía no hay datos para este mes. Registra tu sueldo o un gasto individual para empezar.',
+  sinGastosMes: 'Aún no hay gastos individuales este mes.',
+  teHasPasado: (monto: string) => `Has gastado ${monto} más de tu cuota.`,
 };
 
 export const aportacionErrores = {

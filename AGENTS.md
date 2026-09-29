@@ -304,7 +304,8 @@ export const historicoMovimientos = pgTable('historico_movimientos', {
 - Commits pequeños y atómicos: una responsabilidad por commit, modo imperativo ("add", no "added").
 - Nunca commitear: `.env*`, claves, tokens ni `node_modules`.
 - **Flujo de ramas / despliegue:** el desarrollo se hace sobre `develop`; `master` es la rama de producción con despliegue automático a Vercel. Los commits de trabajos intermedios y de documentación quedan en `develop`. Promociona a `master` (con su commit en Conventional Commits) cuando el trabajo esté listo y verificado para producción.
-  - **Estado operativo (a confirmar con el proyecto Vercel):** en la última revisión no había deployment de producción activo (el alias respondía `DEPLOYMENT_NOT_FOUND`). Antes de dar por válido un despliegue a `master`, verificar que el proyecto Vercel está conectado y que la rama `master` produce un deployment de producción real.
+  - **Entornos de Vercel:** `Preview` (limitada a la rama `develop`) y `Production` tienen **variables de entorno independientes**. Reparar `.env.local` no repara Vercel: una credencial válida en local puede seguir rota en el despliegue, y el síntoma es idéntico (`authErrores.errorConexion`). Tras cambiar una variable hay que relanzar el deployment (`npx vercel redeploy <url>`).
+  - **Producción:** `https://notproblems.vercel.app` (proyecto `andrew-67d3/not_problems_app`). Los previews están protegidos por SSO: un `curl` normal recibe un `302` a `vercel.com/sso-api` y no llega a la app; hay que usar `npx vercel curl /ruta --deployment <url>`.
 - Antes de confirmar un trabajo: `npm run typecheck && npm run lint && npm run test` (y `npm run build` si es un cambio relevante).
 
 ---
@@ -325,6 +326,48 @@ Reglas:
 - **PROHIBIDO** commitear cualquier archivo con secretos reales. Los valores de ejemplo van en `.env.example` (sin valores reales).
 - Ninguna variable sin prefijo `NEXT_PUBLIC_` puede llegar al bundle del cliente.
 - No loguear secretos ni valores completos de tokens en consola.
+
+### 11.1 Diagnóstico: la app dice "No se pudo conectar con la base de datos"
+
+Si **todas** las pantallas salvo `/login` y `/signup` fallan o redirigen a `/login`, el
+error casi nunca es la red: es la **`DATABASE_URL`**. La app no distingue entre los
+distintos fallos de conexión y los colapsa todos en el literal
+`authErrores.errorConexion`. Antes de tocar código, verifica la credencial con un
+`SELECT` aislado y compara el resultado con esta tabla:
+
+| Host / puerto | Error | Lectura |
+|---|---|---|
+| `aws-0-<region>` | `tenant/user ... not found` | Prefijo DNS equivocado (o proyecto inexistente) |
+| `aws-1-<region>:5432` | `password authentication failed` | Host correcto, **puerto equivocado** |
+| `aws-1-<region>:6543` | `password authentication failed` | Todo correcto salvo la contraseña |
+| `aws-1-<region>:6543` | (conecta) | Configuración válida |
+
+Tres trampas concretas, en orden de probabilidad:
+
+1. **El prefijo `aws-N` es parte del hostname DNS.** `aws-0` y `aws-1` resuelven por
+   DNS y ambos existen, pero con el prefijo que no corresponde a la región el
+   Supavisor responde `tenant not found` aunque el proyecto esté vivo. Descubrir
+   esto probando un solo prefijo lleva a concluir —erróneamente— que la región o el
+   proyecto están mal.
+2. **El puerto.** `6543` (transaction mode) es el que autentica; `5432` (session
+   mode) puede rechazar la contraseña correcta.
+3. **Caracteres especiales en la contraseña.** Van percent-encoded (`$` → `%24`).
+   Cuidado con el doble encoding: aplicar `encodeURIComponent` a una contraseña ya
+   codificada rompe la credencial.
+
+Además, la contraseña **caduca**: si el panel muestra `postgresql://postgres:[YOUR-PASSWORD]@...`,
+esa cadena no es una credencial. Si la conexión falla con `password authentication failed`
+sobre un host que se sabe correcto, la contraseña se reseteó en el panel y hay que
+usar la nueva.
+
+> `db.<ref>.supabase.co` (conexión directa) es **IPv6-only**. En máquinas sin IPv6
+> global es inalcanzable (`ENETUNREACH`) y `DIRECT_URL` debe apuntar a la **misma**
+> URL que `DATABASE_URL`.
+
+Para confirmar que el proyecto sigue vivo sin tocar la base de datos:
+`curl -s -o /dev/null -w '%{http_code}' https://<ref>.supabase.co/rest/v1/` → un
+`401` con `sb-project-ref` confirma que el proyecto existe (un proyecto pausado o
+inexistente responde distinto).
 
 ---
 

@@ -4,6 +4,8 @@ export {
   mesRepository,
   aportacionRepository,
   gastoRepository,
+  gastoIndividualRepository,
   historicoRepository,
   usuarioRepository,
+  gastoAnualRepository,
 } from '@/infrastructure/repositories/instances';

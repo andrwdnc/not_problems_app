@@ -5,16 +5,29 @@ import { usePathname } from 'next/navigation';
 import { Home, Receipt, HandCoins, History } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { nav } from '@/literals';
+import { rutasConPrefijo, type PrefijoRuta } from '@/lib/cuenta';
 
-const items = [
-  { href: '/inicio', label: nav.inicio, icon: Home },
-  { href: '/gastos', label: nav.gastos, icon: Receipt },
-  { href: '/aportar', label: nav.aportar, icon: HandCoins },
-  { href: '/historico', label: nav.historico, icon: History },
+// Orden canónico de labels/iconos; las HREFS vienen de rutasConPrefijo con el
+// MISMO orden (contrato pinado en src/lib/cuenta.test.ts). Los labels son
+// idénticos en ambas áreas (NAV-1 Joint untouched).
+const itemsBase = [
+  { label: nav.inicio, icon: Home },
+  { label: nav.gastos, icon: Receipt },
+  { label: nav.aportar, icon: HandCoins },
+  { label: nav.historico, icon: History },
 ];
 
-export function BottomNav() {
+interface BottomNavProps {
+  /** Prefijo de ruta: '' (conjunta, por defecto) o '/individual'. */
+  prefijo?: PrefijoRuta;
+}
+
+export function BottomNav({ prefijo = '' }: BottomNavProps) {
   const pathname = usePathname();
+  const items = rutasConPrefijo(prefijo).map((href, i) => ({
+    href,
+    ...itemsBase[i]!,
+  }));
 
   return (
     <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-brand-border bg-brand-surface pb-[env(safe-area-inset-bottom)]">

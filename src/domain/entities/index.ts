@@ -49,12 +49,46 @@ export interface Gasto {
   fechaCreacion: Date;
 }
 
+export interface GastoAnual {
+  id: string;
+  /** Importe total del gasto anual en céntimos enteros. */
+  importeTotal: number;
+  /** Mes de pago de la cuota (1-12). */
+  mesPago: number;
+  /** Año del ciclo del gasto anual. */
+  anioCiclo: number;
+  /** Detalle/descripción del gasto anual. */
+  detalle: string;
+  /** Fecha del último pago realizado; null si aún no se ha pagado ninguna cuota. */
+  fechaUltimoPago: Date | null;
+  creadoPor: string;
+  fechaCreacion: Date;
+}
+
+/** Gasto individual: propiedad privada de un único usuario (IA-1). */
+export interface GastoIndividual {
+  id: string;
+  mesId: string;
+  /** Dueño del gasto: frontera de privacidad, siempre derivado de la sesión. */
+  usuarioId: string;
+  categoria: Categoria;
+  detalle: string;
+  /** Importe en céntimos enteros (12,50 € = 1250). */
+  importe: number;
+  fechaGasto: string;
+  esRecurrente: boolean;
+  gastoRecurrenteOrigenId: string | null;
+  /** Actor que registró el gasto (=== usuarioId en v1). */
+  creadoPor: string;
+  fechaCreacion: Date;
+}
+
 export type Accion = 'crear' | 'editar' | 'eliminar';
 
 export interface MovimientoAuditoria {
   id: string;
   usuarioId: string;
-  entidad: 'meses' | 'aportaciones' | 'gastos';
+  entidad: 'meses' | 'aportaciones' | 'gastos' | 'gastos_anuales' | 'gastos_individuales';
   entidadId: string;
   accion: Accion;
   valorAnterior: unknown | null;

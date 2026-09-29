@@ -35,6 +35,17 @@ export class AportacionDrizzleRepository implements AportacionRepository {
     return result as Aportacion[];
   }
 
+  async findByMesIdsYUsuario(mesIds: string[], usuarioId: string): Promise<Aportacion[]> {
+    if (mesIds.length === 0) return [];
+    const result = await db.query.aportaciones.findMany({
+      where: and(
+        inArray(aportaciones.mesId, mesIds),
+        eq(aportaciones.usuarioId, usuarioId),
+      ),
+    });
+    return result as Aportacion[];
+  }
+
   async create(data: Omit<Aportacion, 'id' | 'fechaRegistro'>): Promise<Aportacion> {
     const [result] = await db.insert(aportaciones).values(data).returning();
     return result as Aportacion;

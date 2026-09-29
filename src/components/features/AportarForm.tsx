@@ -33,6 +33,12 @@ export function AportarForm({
   const [porcentajeValor, setPorcentajeValor] = useState('');
   const [presupuestoValor, setPresupuestoValor] = useState('');
 
+  // Clave del formulario en vuelo (`sueldo:<id>` | `porcentaje` | `presupuesto`).
+  // Se guarda la clave y no un booleano porque son tres formularios
+  // independientes: así solo se atenúa el que se está guardando y los otros
+  // siguen utilizables.
+  const [enviando, setEnviando] = useState<string | null>(null);
+
   // Estado local síncrono con el servidor: tras una mutación confirmada se
   // refleja al instante en la UI, sin depender del refresco del router.
   const [mes, setMes] = useState(mesInicial);
@@ -55,6 +61,7 @@ export function AportarForm({
   async function guardarSueldo(usuarioId: string, formData: FormData) {
     const sueldo = formData.get('sueldo') as string;
     setMensaje(null);
+    setEnviando(`sueldo:${usuarioId}`);
     try {
       const resultado = await fijarSueldo({
         mesId: mes.id,
@@ -74,12 +81,15 @@ export function AportarForm({
       router.refresh();
     } catch {
       setMensaje(aportar.errorGuardarSueldo);
+    } finally {
+      setEnviando(null);
     }
   }
 
   async function guardarPorcentaje(formData: FormData) {
     const porcentaje = formData.get('porcentaje') as string;
     setMensaje(null);
+    setEnviando('porcentaje');
     try {
       const resultado = await fijarPorcentaje({ mesId: mes.id, porcentaje });
       if (!resultado.ok) {
@@ -103,12 +113,15 @@ export function AportarForm({
       router.refresh();
     } catch {
       setMensaje(aportar.errorFijarPorcentaje);
+    } finally {
+      setEnviando(null);
     }
   }
 
   async function guardarPresupuesto(formData: FormData) {
     const presupuesto = formData.get('presupuesto') as string;
     setMensaje(null);
+    setEnviando('presupuesto');
     try {
       const resultado = await fijarPresupuesto({ mesId: mes.id, presupuesto });
       if (!resultado.ok) {
@@ -120,6 +133,8 @@ export function AportarForm({
       router.refresh();
     } catch {
       setMensaje(aportar.errorFijarPresupuesto);
+    } finally {
+      setEnviando(null);
     }
   }
 
@@ -175,7 +190,12 @@ export function AportarForm({
                   placeholder={formatos.importeEjemplo}
                   required
                 />
-                <Button type="submit" fullWidth className="mt-3">
+                <Button
+                  type="submit"
+                  fullWidth
+                  className="mt-3"
+                  loading={enviando === `sueldo:${usuario.id}`}
+                >
                   {aportar.guardarSueldo}
                 </Button>
               </form>
@@ -207,7 +227,12 @@ export function AportarForm({
               placeholder="50"
               required
             />
-            <Button type="submit" fullWidth className="mt-3">
+            <Button
+              type="submit"
+              fullWidth
+              className="mt-3"
+              loading={enviando === 'porcentaje'}
+            >
               {aportar.fijarPorcentaje}
             </Button>
           </form>
@@ -253,7 +278,12 @@ export function AportarForm({
               placeholder={formatos.importeEjemplo}
               required
             />
-            <Button type="submit" fullWidth className="mt-3">
+            <Button
+              type="submit"
+              fullWidth
+              className="mt-3"
+              loading={enviando === 'presupuesto'}
+            >
               {aportar.fijarPresupuesto}
             </Button>
           </form>

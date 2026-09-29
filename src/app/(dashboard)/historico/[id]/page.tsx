@@ -1,9 +1,10 @@
 import Link from 'next/link';
-import { ChevronLeft, RotateCcw } from 'lucide-react';
+import { ChevronLeft, RotateCcw, CreditCard } from 'lucide-react';
 import {
   gastoRepository,
   aportacionRepository,
   mesRepository,
+  gastoAnualRepository,
 } from '@/server-actions/repositories';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
@@ -12,8 +13,12 @@ import { formatShortDate, nombreMes } from '@/lib/formatters/date';
 import { notFound } from 'next/navigation';
 import { ventanaDeMes } from '@/domain/rules/VentanaEdicionGastos';
 import { calcularAhorro, calcularTotalesMes } from '@/domain/rules/CalculadoraAportacion';
+import {
+  calcularVentanaApartado,
+  calcularApartadoMes,
+} from '@/domain/rules/CalculadoraGastoAnual';
 import { GastoMesAcciones } from '@/components/features/GastoMesAcciones';
-import { historicoDetalle, resumen, gastos as gastosLiterales, formatos } from '@/literals';
+import { historicoDetalle, resumen, gastos as gastosLiterales, formatos, gastosAnuales as gastosAnualesLiterales } from '@/literals';
 
 export const dynamic = 'force-dynamic';
 
@@ -25,9 +30,10 @@ export default async function HistoricoDetallePage({
   const mes = await mesRepository.findById(params.id);
   if (!mes) notFound();
 
-  const [gastos, aportaciones] = await Promise.all([
+  const [gastos, aportaciones, gastosAnuales] = await Promise.all([
     gastoRepository.findByMes(mes.id),
     aportacionRepository.findByMes(mes.id),
+    gastoAnualRepository.findAll(),
   ]);
 
   const permisos = ventanaDeMes(new Date(), mes.anio, mes.mes);
@@ -35,6 +41,24 @@ export default async function HistoricoDetallePage({
   const { aportado, gastado } = calcularTotalesMes(aportaciones, gastos);
   const ahorro = calcularAhorro(aportado, mes.presupuesto, gastado);
   const conDeficit = ahorro < 0;
+
+  // Calcular apartado para este mes con la ventana [inicio → mesPago] INCLUSIVE
+  let apartadoMes = 0;
+  for (const gastoAnual of gastosAnuales) {
+    const ventana = calcularVentanaApartado(
+      gastoAnual.fechaCreacion,
+      gastoAnual.fechaUltimoPago,
+      gastoAnual.anioCiclo,
+      gastoAnual.mesPago,
+    );
+    apartadoMes += calcularApartadoMes(
+      gastoAnual.importeTotal,
+      ventana,
+      mes.anio,
+      mes.mes,
+    ).cuota;
+  }
+  const hayApartado = apartadoMes > 0;
 
   return (
     <div className="space-y-4">
@@ -47,20 +71,20 @@ export default async function HistoricoDetallePage({
         </h1>
       </div>
 
-      <div className="flex gap-3">
-        <Card className="flex-1">
+      <div className="-mx-4 flex gap-3 overflow-x-auto px-4 pb-1">
+        <Card className="w-40 shrink-0">
           <p className="text-xs text-brand-muted">{resumen.aportado}</p>
           <p className="font-mono text-lg font-bold text-brand-primary">
             {formatCurrency(aportado)}
           </p>
         </Card>
-        <Card className="flex-1">
+        <Card className="w-40 shrink-0">
           <p className="text-xs text-brand-muted">{resumen.gastado}</p>
           <p className="font-mono text-lg font-bold text-financial-negative">
             {formatCurrency(gastado)}
           </p>
         </Card>
-        <Card className="flex-1">
+        <Card className="w-40 shrink-0">
           <p className="text-xs text-brand-muted">{resumen.presupuesto}</p>
           {mes.presupuesto != null ? (
             <p className="font-mono text-lg font-bold text-brand-navy">
@@ -70,7 +94,7 @@ export default async function HistoricoDetallePage({
             <p className="font-mono text-lg font-bold text-brand-muted">{formatos.vacio}</p>
           )}
         </Card>
-        <Card className="flex-1">
+        <Card className="w-40 shrink-0">
           <p className="text-xs text-brand-muted">
             {conDeficit ? resumen.deficit : resumen.ahorro}
           </p>
@@ -80,6 +104,14 @@ export default async function HistoricoDetallePage({
             {formatCurrency(Math.abs(ahorro))}
           </p>
         </Card>
+        {hayApartado && (
+          <Card className="w-40 shrink-0">
+            <p className="text-xs text-brand-muted">{gastosAnualesLiterales.titulo}</p>
+            <p className="font-mono text-lg font-bold text-brand-primary">
+              {formatCurrency(apartadoMes)}
+            </p>
+          </Card>
+        )}
       </div>
 
       {gastos.length === 0 ? (

@@ -1,10 +1,20 @@
 import { cn } from '@/lib/utils';
+import { Spinner } from './Spinner';
 
 type Variant = 'primary' | 'ghost' | 'danger';
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: Variant;
   fullWidth?: boolean;
+  /**
+   * Estado de espera. Añade el spinner, bloquea el botón y marca `aria-busy`,
+   * de modo que el usuario ve una señal inmediata tras pulsar.
+   *
+   * El spinner hereda `currentColor`, así que se adapta solo a cada variante sin
+   * que haya que pasarle el color. El botón queda deshabilitado automáticamente:
+   * no hace falta combinarlo con `disabled`, aunque seguir pasándolo es inofensivo.
+   */
+  loading?: boolean;
 }
 
 const styles: Record<Variant, string> = {
@@ -16,8 +26,10 @@ const styles: Record<Variant, string> = {
 export function Button({
   variant = 'primary',
   fullWidth,
+  loading = false,
   className,
   children,
+  disabled,
   ...props
 }: ButtonProps) {
   return (
@@ -28,8 +40,11 @@ export function Button({
         fullWidth && 'w-full',
         className,
       )}
+      disabled={disabled || loading}
+      aria-busy={loading || undefined}
       {...props}
     >
+      {loading && <Spinner />}
       {children}
     </button>
   );

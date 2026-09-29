@@ -77,10 +77,14 @@ npm run dev            # http://localhost:3000
 - **Producción**: solo desde `master` (rama de producción). Despliegue automático por push.
 - **Preview**: otras ramas (p. ej. `develop`) generan despliegues de vista previa.
 - Las variables de entorno se configuran como **Secrets** en Vercel (nunca en el repo).
-- URL de producción: `https://notproblemsapp.vercel.app`
+- URL de producción: `https://notproblems.vercel.app` (proyecto `andrew-67d3/not_problems_app`)
 - **Base de datos compartida:** mientras la app está en pruebas, `DATABASE_URL`/`DIRECT_URL` apuntan a la **misma** Supabase en todos los entornos de Vercel (sin separación dev/prod). `db:push`, `db:migrate` y `db:vaciar` afectan por igual a preview y producción.
 
-> **Estado actual (pendiente de confirmar con Vercel):** en la última revisión no había deployment de producción activo — el alias respondía `DEPLOYMENT_NOT_FOUND`. Antes de dar la URL por válida, verificar que el proyecto Vercel está conectado y que `master` produce un deployment real (p. ej. `npx vercel ls` / panel Vercel).
+> **Entornos de Vercel y variables:** las variables se configuran **por separado** para `Preview` (limitada a la rama `develop`) y `Production`. Arreglar `.env.local` **no** arregla Vercel: son configuraciones independientes, y una credencial válida en local puede seguir rota en el despliegue. Tras cambiar una variable hay que **relanzar el deployment** (`npx vercel redeploy <url>`), porque Vercel no las re-aplica a un despliegue ya construido.
+
+> **Previews protegidos por SSO:** los previews de este proyecto responden `302` a `vercel.com/sso-api`. Para probarlos desde la terminal hay que saltarse la protección con `npx vercel curl /ruta --deployment <url>`, que genera un bypass automático. Un `curl` normal contra un preview solo ve el SSO, no la app.
+
+> **Verificar un despliegue sin credenciales:** una Server Action se puede invocar directamente con la cabecera `Next-Action: <id>`, donde el id está en el chunk de la ruta (`/_next/static/chunks/app/.../page-*.js`). Es la única forma de comprobar desde fuera si la BD responde en un entorno protegido.
 
 ## Convenciones de Git
 

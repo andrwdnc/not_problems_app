@@ -1,8 +1,10 @@
 import {
   AportacionDrizzleRepository,
   GastoDrizzleRepository,
+  GastoIndividualDrizzleRepository,
   HistoricoDrizzleRepository,
   MesDrizzleRepository,
+  GastoAnualDrizzleRepository,
   UsuarioDrizzleRepository,
 } from '.';
 
@@ -15,5 +17,7 @@ import {
 export const mesRepository = new MesDrizzleRepository();
 export const aportacionRepository = new AportacionDrizzleRepository();
 export const gastoRepository = new GastoDrizzleRepository();
+export const gastoIndividualRepository = new GastoIndividualDrizzleRepository();
 export const historicoRepository = new HistoricoDrizzleRepository();
 export const usuarioRepository = new UsuarioDrizzleRepository();
+export const gastoAnualRepository = new GastoAnualDrizzleRepository();
