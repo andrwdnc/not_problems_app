@@ -304,7 +304,8 @@ export const historicoMovimientos = pgTable('historico_movimientos', {
 - Commits pequeños y atómicos: una responsabilidad por commit, modo imperativo ("add", no "added").
 - Nunca commitear: `.env*`, claves, tokens ni `node_modules`.
 - **Flujo de ramas / despliegue:** el desarrollo se hace sobre `develop`; `master` es la rama de producción con despliegue automático a Vercel. Los commits de trabajos intermedios y de documentación quedan en `develop`. Promociona a `master` (con su commit en Conventional Commits) cuando el trabajo esté listo y verificado para producción.
-  - **Estado operativo (a confirmar con el proyecto Vercel):** en la última revisión no había deployment de producción activo (el alias respondía `DEPLOYMENT_NOT_FOUND`). Antes de dar por válido un despliegue a `master`, verificar que el proyecto Vercel está conectado y que la rama `master` produce un deployment de producción real.
+  - **Entornos de Vercel:** `Preview` (limitada a la rama `develop`) y `Production` tienen **variables de entorno independientes**. Reparar `.env.local` no repara Vercel: una credencial válida en local puede seguir rota en el despliegue, y el síntoma es idéntico (`authErrores.errorConexion`). Tras cambiar una variable hay que relanzar el deployment (`npx vercel redeploy <url>`).
+  - **Producción:** `https://notproblems.vercel.app` (proyecto `andrew-67d3/not_problems_app`). Los previews están protegidos por SSO: un `curl` normal recibe un `302` a `vercel.com/sso-api` y no llega a la app; hay que usar `npx vercel curl /ruta --deployment <url>`.
 - Antes de confirmar un trabajo: `npm run typecheck && npm run lint && npm run test` (y `npm run build` si es un cambio relevante).
 
 ---
