@@ -1,6 +1,6 @@
 # Seguridad y dependencias pendientes
 
-Estado revisado con `npm audit` (Next.js 14.2.35, Node 20.x). Se documentan los
+Estado revisado con `npm audit` (Next.js 14.2.35, Node 24.x). Se documentan los
 advisories que quedan **intencionadamente** sin resolver y la decisión tomada,
 para no re-plantearlo en cada revisión.
 
@@ -39,3 +39,11 @@ para no re-plantearlo en cada revisión.
 - Antes de un despliegue de producción serio: planificar Next 15/16.
 - En cada revisión de dependencias (dependabot/`npm audit`), confirmar que
   aparecen parches de minor dentro de 14.x.
+- **Vercel puede retirar una versión de runtime sin aviso previo** y romper el
+  build sin tocar el código. Ocurrió con Node 20: los despliegues fallaron en
+  2s con `Node.js Version "20.x" is discontinued and must be upgraded`, sin
+  relación con ningún cambio del repositorio. Si el build falla de golpe y sin
+  cambios en el código, mirar primero `vercel inspect <url> --logs` y la
+  versión de `engines.node`. Fijar la versión de forma **exacta** (`"24.x"`, no
+  `">=20"`), porque un rango abierto deja que Vercel resuelva a un runtime no
+  soportado.

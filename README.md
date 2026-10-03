@@ -15,7 +15,7 @@ Al entrar, `/` ofrece un **selector de cuenta** para elegir en cuál trabajar. L
 |---|---|
 | Framework | Next.js 14.2.35 (App Router) — React Server Components + Server Actions |
 | Lenguaje | TypeScript 5.4 (modo estricto) |
-| Runtime | Node.js `^20` |
+| Runtime | Node.js `24.x` |
 | Base de datos | Supabase (Postgres) |
 | ORM | Drizzle ORM 0.45 |
 | Autenticación | **Propia** — username + bcrypt + cookie HTTP-only firmada (HMAC-SHA256) |
