@@ -1,9 +1,15 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { formatCurrency } from '@/lib/formatters/currency';
+import { formatShortDate } from '@/lib/formatters/date';
 import { aportar as aportarLiterales } from '@/literals';
 import { textoExacto } from '@/test/texto';
-import type { Aportacion, Mes, Usuario } from '@/domain/entities';
+import type {
+  Aportacion,
+  Mes,
+  PresupuestoIndividual,
+  Usuario,
+} from '@/domain/entities';
 
 // Las Server Actions se mockean para poder comprobar que el componente
 // compartido NO las invoca por su cuenta y para que ningún test toque la BD.
@@ -20,6 +26,7 @@ vi.mock('@/server-actions/aportaciones-actions', () => ({
 vi.mock('@/server-actions/individual-actions', () => ({
   fijarSueldoIndividual: vi.fn(),
   fijarPorcentajeIndividual: vi.fn(),
+  fijarPresupuestoIndividual: vi.fn(),
 }));
 
 import { AportarForm } from '@/components/features/AportarForm';
@@ -55,6 +62,20 @@ const APORTACION = (
   sueldo,
   importeAportado,
   fechaRegistro: new Date(),
+});
+
+/** Fecha fija para las aserciones de trazabilidad del presupuesto. */
+const FECHA = new Date('2026-09-01T10:00:00.000Z');
+
+const PRESUPUESTO_INDIVIDUAL = (
+  presupuesto: number,
+): PresupuestoIndividual => ({
+  id: 'p1',
+  mesId: 'm1',
+  usuarioId: 'u1',
+  presupuesto,
+  fijadoPor: 'u1',
+  fechaRegistro: FECHA,
 });
 
 /**
@@ -126,7 +147,7 @@ describe('AportarForm', () => {
       ).toHaveLength(1);
     });
 
-    it('incluye la tarjeta de presupuesto (concepto de la conjunta)', () => {
+    it('incluye la tarjeta de presupuesto', () => {
       render(
         <AportarForm mes={MES(30, 400000)} usuarios={USUARIOS} aportaciones={[]} />,
       );
@@ -137,6 +158,18 @@ describe('AportarForm', () => {
       expect(
         screen.getByText(textoExacto(formatCurrency(400000))),
       ).toBeInTheDocument();
+    });
+
+    it('no muestra el campo de presupuesto cuando el mes ya lo tiene', () => {
+      render(
+        <AportarForm mes={MES(30, 400000)} usuarios={USUARIOS} aportaciones={[]} />,
+      );
+
+      // Inmutabilidad: con cifra fija, el formulario desaparece y solo queda el
+      // importe (el comportamiento se comprueba en detalle en el bloque de paridad).
+      expect(
+        screen.queryByLabelText(aportarLiterales.presupuestoUnicoMes),
+      ).not.toBeInTheDocument();
     });
 
     it('muestra el total de la cuenta conjunta sumando las aportaciones', () => {
@@ -198,7 +231,61 @@ describe('AportarForm', () => {
       ).not.toBeNull();
     });
 
-    it('omite la tarjeta de presupuesto', () => {
+    it('incluye la tarjeta de presupuesto (paridad: también en el área individual)', () => {
+      // El presupuesto es la misma funcionalidad en las dos áreas. Lo único que
+      // cambia es de dónde se lee: en la conjunta viene dentro de `mes`, en la
+      // individual llega como `presupuestoIndividual` porque es un tope POR
+      // persona y no cabe en `Mes`.
+      render(
+        <AportarForm
+          mes={MES(30)}
+          usuarios={[USUARIOS[0]]}
+          aportaciones={[]}
+          variante="individual"
+        />,
+      );
+
+      // Sin presupuesto fijado, la tarjeta aparece con su formulario: la
+      // funcionalidad existe y se puede fijar.
+      expect(
+        screen.getByText(aportarLiterales.presupuestoGastos),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByLabelText(aportarLiterales.presupuestoUnicoMes),
+      ).toBeInTheDocument();
+    });
+
+    it('pinta el importe del presupuesto individual y lo hace inmutable', () => {
+      render(
+        <AportarForm
+          mes={MES(30)}
+          usuarios={[USUARIOS[0]]}
+          aportaciones={[]}
+          variante="individual"
+          presupuestoIndividual={PRESUPUESTO_INDIVIDUAL(250000)}
+        />,
+      );
+
+      expect(
+        screen.getByText(textoExacto(formatCurrency(250000))),
+      ).toBeInTheDocument();
+      // Inmutabilidad idéntica a la conjunta (§5.2): fijado = sin formulario.
+      expect(
+        screen.queryByLabelText(aportarLiterales.presupuestoUnicoMes),
+      ).not.toBeInTheDocument();
+      // Trazabilidad: "Fijado por ana el ...". El `usuarios` del área individual
+      // contiene al propio usuario, así que el mismo bloque de la tarjeta sirve.
+      expect(
+        screen.getByText(
+          aportarLiterales.fijadoPor('ana', formatShortDate(FECHA)),
+        ),
+      ).toBeInTheDocument();
+    });
+
+    it('ignora el presupuesto del mes cuando el área es la individual', () => {
+      // `mes.presupuesto` es el tope ÚNICO de la cuenta conjunta. Si el área
+      // individual lo pintara, mostraría un presupuesto que no es suyo: una fila
+      // de otra área filtrándose en esta pantalla.
       render(
         <AportarForm
           mes={MES(30, 400000)}
@@ -209,8 +296,11 @@ describe('AportarForm', () => {
       );
 
       expect(
-        screen.queryByText(aportarLiterales.presupuestoGastos),
+        screen.queryByText(textoExacto(formatCurrency(400000))),
       ).not.toBeInTheDocument();
+      expect(
+        screen.getByLabelText(aportarLiterales.presupuestoUnicoMes),
+      ).toBeInTheDocument();
     });
 
     it('muestra el mismo rótulo de porcentaje que la conjunta', () => {

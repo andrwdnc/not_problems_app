@@ -9,4 +9,5 @@ export {
   usuarioRepository,
   gastoAnualRepository,
   gastoAnualIndividualRepository,
+  presupuestoIndividualRepository,
 } from '@/infrastructure/repositories/instances';

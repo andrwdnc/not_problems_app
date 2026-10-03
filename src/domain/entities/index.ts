@@ -71,6 +71,25 @@ export interface GastoAnual {
 }
 
 /**
+ * Presupuesto de gastos del ÁREA INDIVIDUAL: un tope POR PERSONA para un mes.
+ *
+ * No se reutiliza `Mes.presupuesto` porque allí el tope es único y compartido
+ * para las dos cuentas. Aquí cada usuario fija el suyo, y esa es exactamente la
+ * diferencia que hace necesaria la tabla aparte.
+ */
+export interface PresupuestoIndividual {
+  id: string;
+  mesId: string;
+  /** Dueño del presupuesto: frontera de privacidad, siempre derivado de la sesión. */
+  usuarioId: string;
+  /** Importe del tope en céntimos enteros. */
+  presupuesto: number;
+  /** Quién lo fijó; junto con `fechaRegistro` lo sella como inmutable. */
+  fijadoPor: string;
+  fechaRegistro: Date;
+}
+
+/**
  * Gasto anual del ÁREA INDIVIDUAL: idéntico al compartido pero con dueño.
  *
  * `GastoAnual` no lleva `usuarioId` porque en la cuenta conjunta los gastos

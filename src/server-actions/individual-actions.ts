@@ -9,16 +9,26 @@ import {
 import {
   sueldoIndividualSchema,
   porcentajeIndividualSchema,
+  presupuestoIndividualSchema,
 } from './schemas/aportacion-individual';
 import { fijarSueldoCore, fijarPorcentajeCore } from './aportaciones-core';
-import { gastoIndividualRepository, mesRepository } from './repositories';
+import {
+  gastoIndividualRepository,
+  mesRepository,
+  presupuestoIndividualRepository,
+} from './repositories';
 import { auditarMovimiento } from '@/infrastructure/audit/auditarMovimiento';
 import { ventanaEdicionGastos } from '@/domain/rules/VentanaEdicionGastos';
 import { getCurrentUserId } from '@/server/auth';
-import type { Aportacion, GastoIndividual, Mes } from '@/domain/entities';
+import type {
+  Aportacion,
+  GastoIndividual,
+  Mes,
+  PresupuestoIndividual,
+} from '@/domain/entities';
 import type { ActionResult } from './action-result';
 import { handleError } from './action-result';
-import { authErrores, gastosErrores } from '@/literals';
+import { aportacionErrores, authErrores, gastosErrores } from '@/literals';
 
 /**
  * Área individual (IA-1): el dueño de TODOS los datos individuales se deriva
@@ -50,6 +60,75 @@ function revalidarIndividual(): void {
 function mesDeFecha(fecha: string): { anio: number; mes: number } {
   const [anio, mes] = fecha.split('-').map(Number);
   return { anio, mes };
+}
+
+/**
+ * Fija el presupuesto de gastos individual del mes.
+ *
+ * Paridad con `fijarPresupuesto` de la cuenta conjunta: mismo nombre de acción,
+ * mismo esquema, misma inmutabilidad, misma auditoría. Lo que cambia es que el
+ * tope es POR PERSONA, así que se escribe en `presupuestos_individuales` con el
+ * dueño tomado de la sesión.
+ *
+ * Inmutabilidad por construcción: `fijarSiNoExiste` resuelve el conflicto contra
+ * el índice único (mes_id, usuario_id). Si ya había presupuesto devuelve `null`,
+ * y eso se traduce a `presupuestoYaFijado`. No hay lectura previa ni carrera
+ * posible: dos pestañas simultáneas no pueden dejar dos presupuestos.
+ */
+export async function fijarPresupuestoIndividual(
+  input: unknown,
+): Promise<ActionResult<PresupuestoIndividual>> {
+  const usuarioId = await getCurrentUserId();
+  if (!usuarioId) {
+    return { ok: false, error: authErrores.noAutenticado };
+  }
+
+  const parsed = presupuestoIndividualSchema.safeParse(input);
+  if (!parsed.success) {
+    return handleError(parsed.error);
+  }
+
+  const { mesId, presupuesto } = parsed.data;
+
+  const mes = await mesRepository.findById(mesId);
+  if (!mes) {
+    return { ok: false, error: aportacionErrores.mesNoEncontrado };
+  }
+
+  const existente = await presupuestoIndividualRepository.findByMes(
+    usuarioId,
+    mesId,
+  );
+  if (existente) {
+    return { ok: false, error: aportacionErrores.presupuestoYaFijado };
+  }
+
+  // El dueño sale de la sesión y se aplica en la escritura owner-first: aunque
+  // `mesId` fosse el de otro mes o el payload trajera un `usuarioId` (el esquema
+  // lo rechaza), el registro creado es siempre del actor.
+  const creado = await presupuestoIndividualRepository.fijarSiNoExiste(
+    usuarioId,
+    mesId,
+    presupuesto,
+  );
+
+  if (!creado) {
+    // Perdió la carrera contra otra escritura simultánea: el presupuesto ya
+    // quedó fijado, así que el resultado correcto es el mismo error.
+    return { ok: false, error: aportacionErrores.presupuestoYaFijado };
+  }
+
+  await auditarMovimiento({
+    usuarioId,
+    entidad: 'presupuestos_individuales',
+    entidadId: creado.id,
+    accion: 'crear',
+    valorNuevo: creado,
+  });
+
+  revalidarIndividual();
+
+  return { ok: true, data: creado };
 }
 
 export async function crearGastoIndividual(

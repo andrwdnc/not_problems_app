@@ -14,6 +14,16 @@ const aportacion = (sueldo: number | null) =>
 const gasto = (importe: number) =>
   ({ id: 'g1', mesId: 'mes-2026-9', importe }) as any as import('@/domain/entities').GastoIndividual;
 
+const presupuesto = (id: string, mesId: string, importe: number) =>
+  ({
+    id,
+    mesId,
+    usuarioId: 'u1',
+    presupuesto: importe,
+    fijadoPor: 'u1',
+    fechaRegistro: new Date('2026-09-01T10:00:00.000Z'),
+  }) as import('@/domain/entities').PresupuestoIndividual;
+
 describe('derivarResumenIndividual (IA-2)', () => {
   it('calcula cuota, gastado y disponible: sueldo 2000€, 30%, gastos 150€', () => {
     const resumen = derivarResumenIndividual(
@@ -85,6 +95,72 @@ describe('derivarResumenIndividual (IA-2)', () => {
     expect(resumen.sueldo).toBeNull();
     expect(resumen.disponible).toBeNull();
   });
+
+  // El presupuesto individual es la PARIDAD con `meses.presupuesto` de la cuenta
+  // conjunta: mismo concepto, mismas reglas de cálculo. Las aserciones de abajo
+  // son las MISMAS cifras que verifica el resumen conjunto, porque la función
+  // pura que las produce es la misma (`calcularRestantePresupuesto` y
+  // `calcularPorcentajePresupuestoConsumido`). Si un día divergieran, el fallo
+  // estaría aquí y no en la pantalla.
+  describe('presupuesto individual (paridad con el de la cuenta conjunta)', () => {
+    it('sin presupuesto no hay restante ni porcentaje consumido', () => {
+      const resumen = derivarResumenIndividual(
+        mes(2026, 9, 30),
+        aportacion(200000),
+        [gasto(15000)],
+      );
+
+      expect(resumen.presupuesto).toBeNull();
+      expect(resumen.restantePresupuesto).toBeNull();
+      expect(resumen.porcentajePresupuesto).toBeNull();
+      // El resto del resumen NO se ve afectado por la ausencia de tope.
+      expect(resumen.cuota).toBe(60000);
+      expect(resumen.disponible).toBe(45000);
+    });
+
+    it('calcula restante y % consumido: 400€ de tope con 150€ gastados', () => {
+      const resumen = derivarResumenIndividual(
+        mes(2026, 9, 30),
+        aportacion(200000),
+        [gasto(15000)],
+        40000,
+      );
+
+      expect(resumen.presupuesto).toBe(40000);
+      expect(resumen.restantePresupuesto).toBe(25000);
+      expect(resumen.porcentajePresupuesto).toBe(37.5);
+    });
+
+    it('el restante puede ser negativo si se pasa del tope', () => {
+      const resumen = derivarResumenIndividual(
+        mes(2026, 9, 30),
+        aportacion(200000),
+        [gasto(70000)],
+        50000,
+      );
+
+      expect(resumen.restantePresupuesto).toBe(-20000);
+      // Puede superar el 100 %: el anillo debe poder pintarlo "superado".
+      expect(resumen.porcentajePresupuesto).toBe(140);
+    });
+
+    it('el tope no depende del sueldo: se muestra aunque falte aportación', () => {
+      // El presupuesto es de GASTOS, no de aportación: sin sueldo sigue siendo
+      // información válida y accionable, así que no se esconde.
+      const resumen = derivarResumenIndividual(
+        mes(2026, 9, null),
+        null,
+        [gasto(15000)],
+        40000,
+      );
+
+      expect(resumen.presupuesto).toBe(40000);
+      expect(resumen.restantePresupuesto).toBe(25000);
+      expect(resumen.porcentajePresupuesto).toBe(37.5);
+      expect(resumen.cuota).toBeNull();
+      expect(resumen.disponible).toBeNull();
+    });
+  });
 });
 
 describe('derivarHistoricoIndividual (IA-2)', () => {
@@ -142,5 +218,54 @@ describe('derivarHistoricoIndividual (IA-2)', () => {
     const ago = historico[0];
     expect(ago.resumen.gastado).toBe(3000);
     expect(ago.resumen.sueldo).toBeNull();
+  });
+
+  it('asocia el presupuesto de cada mes a su propio resumen', () => {
+    // El histórico muestra el tope de CADA mes, no el del mes actual: por eso
+    // los presupuestos entran en la derivación y se emparejan por `mesId`.
+    const meses = [mes(2026, 9, 30), mes(2026, 8, 30)];
+    const presupuestos = [
+      presupuesto('p9', 'mes-2026-9', 50000),
+      presupuesto('p8', 'mes-2026-8', 30000),
+    ];
+
+    const historico = derivarHistoricoIndividual(
+      hoy,
+      meses,
+      [
+        { ...aportacion(200000), mesId: 'mes-2026-9' },
+        { ...aportacion(200000), mesId: 'mes-2026-8' },
+      ],
+      [{ ...gasto(15000), mesId: 'mes-2026-9' }],
+      presupuestos,
+    );
+
+    expect(historico[0].resumen.presupuesto).toBe(50000);
+    expect(historico[1].resumen.presupuesto).toBe(30000);
+    // Ago: 30000 de tope y 0 gastados -> queda entero.
+    expect(historico[1].resumen.restantePresupuesto).toBe(30000);
+    expect(historico[1].resumen.porcentajePresupuesto).toBe(0);
+  });
+
+  it('un mes sin presupuesto fijo no hereda el de otro mes', () => {
+    // Si el emparejamiento fuera por posición en vez de por `mesId`, el mes sin
+    // presupuesto adoptaría el del mes siguiente.
+    const meses = [mes(2026, 9, 30), mes(2026, 8, 30)];
+    const presupuestos = [presupuesto('p9', 'mes-2026-9', 50000)];
+
+    const historico = derivarHistoricoIndividual(
+      hoy,
+      meses,
+      [
+        { ...aportacion(200000), mesId: 'mes-2026-9' },
+        { ...aportacion(200000), mesId: 'mes-2026-8' },
+      ],
+      [{ ...gasto(15000), mesId: 'mes-2026-9' }],
+      presupuestos,
+    );
+
+    expect(historico[0].resumen.presupuesto).toBe(50000);
+    expect(historico[1].resumen.presupuesto).toBeNull();
+    expect(historico[1].resumen.restantePresupuesto).toBeNull();
   });
 });

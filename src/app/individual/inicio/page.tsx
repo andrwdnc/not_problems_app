@@ -12,7 +12,7 @@ import {
 } from '@/components/features/skeletons';
 import { nombreMes } from '@/lib/formatters/date';
 import { formatCurrency } from '@/lib/formatters/currency';
-import { individual, resumen as literalesResumen } from '@/literals';
+import { inicio, individual, resumen as literalesResumen } from '@/literals';
 import type { InicioResumenVista } from '@/components/features/vista-inicio';
 
 export const dynamic = 'force-dynamic';
@@ -54,7 +54,19 @@ async function ResumenInicioSection() {
   const resumen = await obtenerResumenIndividual(user.id);
   const hayMes = resumen.mesId !== '';
 
+  // Igual que en la cuenta conjunta, el aviso depende de la referencia que
+  // manda: si hay presupuesto, del tope; si no, de la cuota.
   const sobreCuota = resumen.disponible != null && resumen.disponible < 0;
+  const sobrePresupuesto =
+    resumen.restantePresupuesto != null && resumen.restantePresupuesto < 0;
+  const hayPresupuesto = resumen.presupuesto != null;
+
+  // Cuota = sueldo * porcentaje compartido. `> 0` evita dividir por cero cuando
+  // aún no hay sueldo ni porcentaje fijados.
+  const porcentajeSobreCuota =
+    resumen.cuota != null && resumen.cuota > 0
+      ? Math.round((resumen.gastado / resumen.cuota) * 100)
+      : 0;
 
   const vista: InicioResumenVista = {
     titulo: hayMes
@@ -63,19 +75,24 @@ async function ResumenInicioSection() {
     hayDatos: hayMes,
     mensajeSinDatos: individual.sinMesAbierto,
     anillo: {
-      // Sin presupuesto individual todavía, el anillo mide lo gastado sobre MI
-      // cuota. `cuota > 0` evita dividir por cero cuando aún no hay sueldo ni
-      // porcentaje fijados.
-      porcentaje:
-        resumen.cuota != null && resumen.cuota > 0
-          ? Math.round((resumen.gastado / resumen.cuota) * 100)
-          : 0,
-      etiqueta: individual.deTuCuota,
-      etiquetaSuperada: individual.cuotaSuperada,
+      // Con presupuesto, el anillo mide lo consumido de él; sin presupuesto mide
+      // lo gastado sobre MI cuota. Es la MISMA decisión que toma la cuenta
+      // conjunta en sus dos ramas, calculada con las mismas reglas puras.
+      porcentaje: hayPresupuesto
+        ? (resumen.porcentajePresupuesto ?? 0)
+        : porcentajeSobreCuota,
+      etiqueta: hayPresupuesto
+        ? literalesResumen.presupuestoRing
+        : individual.deTuCuota,
+      etiquetaSuperada: hayPresupuesto
+        ? literalesResumen.superado
+        : individual.cuotaSuperada,
     },
     cifraAnillo: {
-      etiqueta: individual.miCuota,
-      valor: resumen.cuota,
+      etiqueta: hayPresupuesto
+        ? individual.miPresupuesto
+        : individual.miCuota,
+      valor: hayPresupuesto ? resumen.presupuesto : resumen.cuota,
     },
     tarjetas: [
       {
@@ -94,9 +111,13 @@ async function ResumenInicioSection() {
         importe: resumen.disponible,
       },
     ],
-    avisoSuperado: sobreCuota
-      ? individual.teHasPasado(formatCurrency(-(resumen.disponible as number)))
-      : undefined,
+    avisoSuperado: sobrePresupuesto
+      ? inicio.teHasPasadoPresupuesto(
+          formatCurrency(-(resumen.restantePresupuesto as number)),
+        )
+      : sobreCuota
+        ? individual.teHasPasado(formatCurrency(-(resumen.disponible as number)))
+        : undefined,
   };
 
   return <InicioResumen vista={vista} />;

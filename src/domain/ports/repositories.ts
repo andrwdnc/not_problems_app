@@ -7,6 +7,7 @@ import type {
   GastoIndividual,
   Mes,
   MovimientoAuditoria,
+  PresupuestoIndividual,
   Usuario,
 } from '../entities';
 
@@ -154,6 +155,36 @@ export interface GastoAnualRepository {
    * Actualiza la fecha del último pago del gasto anual.
    */
   actualizarFechaUltimoPago(id: string, fecha: Date): Promise<GastoAnual | null>;
+}
+
+/**
+ * Presupuesto de gastos del área individual (owner-scoped).
+ *
+ * Réplica de la parte de presupuesto de `MesRepository`, con la diferencia
+ * esencial: TODOS los métodos reciben `usuarioId` como PRIMER parámetro y lo
+ * aplican al WHERE. No es una convención, es la frontera de privacidad: hace
+ * imposible, desde el contrato, leer o pisar el presupuesto de otra persona.
+ *
+ * `fijarSiNoExiste` es la operación clave de la inmutabilidad (§5.2): el
+ * presupuesto se escribe UNA vez y no se puede cambiar después, así que la
+ * escritura es condicional y devuelve `null` si ya había uno. Quien pierda esa
+ * carrera recibe `null` y la Server Action lo traduce a "ya está fijado".
+ */
+export interface PresupuestoIndividualRepository {
+  findByMes(usuarioId: string, mesId: string): Promise<PresupuestoIndividual | null>;
+  findByMesIds(
+    usuarioId: string,
+    mesIds: string[],
+  ): Promise<PresupuestoIndividual[]>;
+  /**
+   * Fija el presupuesto si el usuario aún no tiene uno para ese mes.
+   * Devuelve el registro creado, o `null` si ya existía.
+   */
+  fijarSiNoExiste(
+    usuarioId: string,
+    mesId: string,
+    presupuesto: number,
+  ): Promise<PresupuestoIndividual | null>;
 }
 
 /** Datos para dar de alta un gasto anual del área individual. */

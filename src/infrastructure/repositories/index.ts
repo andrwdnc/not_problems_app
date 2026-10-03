@@ -6,6 +6,7 @@ export { HistoricoDrizzleRepository } from './HistoricoRepository';
 export { UsuarioDrizzleRepository } from './UsuarioRepository';
 export { GastoAnualDrizzleRepository } from './GastoAnualRepository';
 export { GastoAnualIndividualDrizzleRepository } from './GastoAnualIndividualRepository';
+export { PresupuestoIndividualDrizzleRepository } from './PresupuestoIndividualRepository';
 
 // Puertos (interfaces) declarados en la capa de dominio (DIP): la
 // infraestructura implementa estos contratos, no los define.
@@ -24,6 +25,7 @@ export type {
   GastoAnualRepository,
   CrearGastoAnualIndividualInput,
   GastoAnualIndividualRepository,
+  PresupuestoIndividualRepository,
 } from '@/domain/ports/repositories';
 
 // Entidades canónicas del dominio: re-exportadas aquí para que los
@@ -37,5 +39,6 @@ export type {
   Usuario,
   GastoAnual,
   GastoAnualIndividual,
+  PresupuestoIndividual,
   Accion,
 } from '@/domain/entities';

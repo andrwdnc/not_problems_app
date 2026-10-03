@@ -1,9 +1,13 @@
 import { obtenerMesActual } from './queries';
-import { mesRepository, aportacionRepository, gastoIndividualRepository } from './repositories';
+import { mesRepository, aportacionRepository, gastoIndividualRepository, presupuestoIndividualRepository } from './repositories';
 import { ventanaDeMes } from '@/domain/rules/VentanaEdicionGastos';
 import type { PermisosEdicion } from '@/domain/rules/VentanaEdicionGastos';
 import { calcularDisponibleIndividual } from '@/domain/rules/CalculadoraIndividual';
-import type { Aportacion, GastoIndividual, Mes } from '@/domain/entities';
+import {
+  calcularPorcentajePresupuestoConsumido,
+  calcularRestantePresupuesto,
+} from '@/domain/rules/CalculadoraAportacion';
+import type { Aportacion, GastoIndividual, Mes, PresupuestoIndividual } from '@/domain/entities';
 
 /**
  * Resumen mensual del área individual (IA-2). Todos los importes en céntimos
@@ -27,6 +31,16 @@ export interface ResumenIndividual {
   gastado: number;
   /** cuota - gastado; puede ser negativo (déficit). */
   disponible: number | null;
+  /**
+   * Presupuesto de gastos individual del mes en céntimos; `null` hasta que se
+   * fija. Es un tope POR PERSONA (tabla `presupuestos_individuales`), a diferencia
+   * del `meses.presupuesto` de la cuenta conjunta, que es único para los dos.
+   */
+  presupuesto: number | null;
+  /** presupuesto - gastado; `null` si no hay tope. */
+  restantePresupuesto: number | null;
+  /** % del presupuesto consumido; `null` si no hay tope. Puede superar 100. */
+  porcentajePresupuesto: number | null;
 }
 
 export interface MesHistoricoIndividual {
@@ -45,6 +59,7 @@ export function derivarResumenIndividual(
   mes: Mes | null,
   aportacion: Aportacion | null,
   gastos: GastoIndividual[],
+  presupuesto: number | null = null,
 ): ResumenIndividual {
   if (!mes) {
     return {
@@ -56,6 +71,9 @@ export function derivarResumenIndividual(
       cuota: null,
       gastado: 0,
       disponible: null,
+      presupuesto: null,
+      restantePresupuesto: null,
+      porcentajePresupuesto: null,
     };
   }
 
@@ -72,6 +90,16 @@ export function derivarResumenIndividual(
     }
   }
 
+  // Las dos métricas de presupuesto se delegan en las MISMAS reglas puras que usa
+  // la cuenta conjunta (`CalculadoraAportacion`). Es lo que impide que el "restante"
+  // o el "% consumido" signifiquen una cosa en el Inicio y otra en el histórico:
+  // si mañana cambia la regla, cambia en las dos áreas por la misma función.
+  const restantePresupuesto = calcularRestantePresupuesto(presupuesto, gastado);
+  const porcentajePresupuesto = calcularPorcentajePresupuestoConsumido(
+    gastado,
+    presupuesto,
+  );
+
   return {
     mesId: mes.id,
     anio: mes.anio,
@@ -81,6 +109,9 @@ export function derivarResumenIndividual(
     cuota,
     gastado,
     disponible,
+    presupuesto,
+    restantePresupuesto,
+    porcentajePresupuesto,
   };
 }
 
@@ -95,15 +126,22 @@ export function derivarHistoricoIndividual(
   meses: Mes[],
   aportaciones: Aportacion[],
   gastos: GastoIndividual[],
+  presupuestos: PresupuestoIndividual[] = [],
 ): HistoricoIndividual {
   return meses
     .map((mes) => {
       const aportacion = aportaciones.find((a) => a.mesId === mes.id) ?? null;
       const gastosDelMes = gastos.filter((g) => g.mesId === mes.id);
+      const presupuesto = presupuestos.find((p) => p.mesId === mes.id) ?? null;
 
       return {
         mes,
-        resumen: derivarResumenIndividual(mes, aportacion, gastosDelMes),
+        resumen: derivarResumenIndividual(
+          mes,
+          aportacion,
+          gastosDelMes,
+          presupuesto?.presupuesto ?? null,
+        ),
         permisos: ventanaDeMes(hoy, mes.anio, mes.mes),
       };
     })
@@ -123,12 +161,20 @@ export async function obtenerResumenIndividual(
     return derivarResumenIndividual(null, null, []);
   }
 
-  const [aportacion, gastos] = await Promise.all([
+  // El presupuesto se consulta en la misma pasada: owner-first, así que solo
+  // devuelve el del usuario de la sesión (D8).
+  const [aportacion, gastos, presupuesto] = await Promise.all([
     aportacionRepository.findByMesAndUsuario(mes.id, usuarioId),
     gastoIndividualRepository.findByMes(usuarioId, mes.id),
+    presupuestoIndividualRepository.findByMes(usuarioId, mes.id),
   ]);
 
-  return derivarResumenIndividual(mes, aportacion, gastos);
+  return derivarResumenIndividual(
+    mes,
+    aportacion,
+    gastos,
+    presupuesto?.presupuesto ?? null,
+  );
 }
 
 /**
@@ -145,10 +191,11 @@ export async function obtenerHistoricoIndividual(
 
   const mesIds = meses.map((m) => m.id);
 
-  const [aportaciones, gastos] = await Promise.all([
+  const [aportaciones, gastos, presupuestos] = await Promise.all([
     aportacionRepository.findByMesIdsYUsuario(mesIds, usuarioId),
     gastoIndividualRepository.findByMesIds(usuarioId, mesIds),
+    presupuestoIndividualRepository.findByMesIds(usuarioId, mesIds),
   ]);
 
-  return derivarHistoricoIndividual(hoy, meses, aportaciones, gastos);
+  return derivarHistoricoIndividual(hoy, meses, aportaciones, gastos, presupuestos);
 }

@@ -9,10 +9,13 @@ const {
   sueldoCoreMock,
   porcentajeCoreMock,
   findOrCreateMock,
+  mesFindByIdMock,
   gastoIndividualFindByIdMock,
   gastoIndividualCreateMock,
   gastoIndividualUpdateMock,
   gastoIndividualDeleteMock,
+  presupuestoFindByMesMock,
+  presupuestoFijarSiNoExisteMock,
   auditarMovimientoMock,
   revalidatePathMock,
 } = vi.hoisted(() => ({
@@ -20,10 +23,13 @@ const {
   sueldoCoreMock: vi.fn(),
   porcentajeCoreMock: vi.fn(),
   findOrCreateMock: vi.fn(),
+  mesFindByIdMock: vi.fn(),
   gastoIndividualFindByIdMock: vi.fn(),
   gastoIndividualCreateMock: vi.fn(),
   gastoIndividualUpdateMock: vi.fn(),
   gastoIndividualDeleteMock: vi.fn(),
+  presupuestoFindByMesMock: vi.fn(),
+  presupuestoFijarSiNoExisteMock: vi.fn(),
   auditarMovimientoMock: vi.fn(),
   revalidatePathMock: vi.fn(),
 }));
@@ -38,12 +44,16 @@ vi.mock('./aportaciones-core', () => ({
   fijarPorcentajeCore: porcentajeCoreMock,
 }));
 vi.mock('./repositories', () => ({
-  mesRepository: { findOrCreate: findOrCreateMock },
+  mesRepository: { findOrCreate: findOrCreateMock, findById: mesFindByIdMock },
   gastoIndividualRepository: {
     findById: gastoIndividualFindByIdMock,
     create: gastoIndividualCreateMock,
     update: gastoIndividualUpdateMock,
     delete: gastoIndividualDeleteMock,
+  },
+  presupuestoIndividualRepository: {
+    findByMes: presupuestoFindByMesMock,
+    fijarSiNoExiste: presupuestoFijarSiNoExisteMock,
   },
 }));
 
@@ -52,6 +62,7 @@ import {
   editarGastoIndividual,
   fijarSueldoIndividual,
   fijarPorcentajeIndividual,
+  fijarPresupuestoIndividual,
 } from './individual-actions';
 
 const mesId = '123e4567-e89b-12d3-a456-426614174000';
@@ -220,6 +231,136 @@ describe('editarGastoIndividual (IA-1 privacidad)', () => {
       error: gastosErrores.gastoNoEncontrado,
     });
     expect(gastoIndividualUpdateMock).not.toHaveBeenCalled();
+    expect(auditarMovimientoMock).not.toHaveBeenCalled();
+  });
+});
+/**
+ * Presupuesto individual: la PARIDAD con `fijarPresupuesto` de la cuenta
+ * conjunta (misma acción, mismo esquema, misma inmutabilidad, misma auditoría)
+ * con la diferencia del dueño, que aquí es siempre el de la sesión.
+ *
+ * Lo que estos tests fijan por contrato:
+ * - sin sesión no se escribe nada;
+ * - el presupuesto se fija UNA vez (inmutable, §5.2), también si dos peticiones
+ *   llegan a la vez;
+ * - el `usuarioId` sale SIEMPRE de la sesión, nunca del payload;
+ * - la auditoría escribe siempre la entidad del presupuesto individual.
+ */
+describe('fijarPresupuestoIndividual (IA-4, paridad con la conjunta)', () => {
+  const inputValido = { mesId, presupuesto: '400' };
+
+  const presupuestoCreado = {
+    id: 'p1',
+    mesId,
+    usuarioId: 'u1',
+    presupuesto: 40000,
+    fijadoPor: 'u1',
+    fechaRegistro: new Date('2026-09-01T10:00:00.000Z'),
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    getCurrentUserIdMock.mockResolvedValue('u1');
+    mesFindByIdMock.mockResolvedValue({ id: mesId });
+    presupuestoFindByMesMock.mockResolvedValue(null);
+    presupuestoFijarSiNoExisteMock.mockResolvedValue(presupuestoCreado);
+  });
+
+  it('sin sesión devuelve noAutenticado sin escribir ni auditar', async () => {
+    getCurrentUserIdMock.mockResolvedValue(null);
+
+    const resultado = await fijarPresupuestoIndividual(inputValido);
+
+    expect(resultado).toEqual({ ok: false, error: authErrores.noAutenticado });
+    expect(presupuestoFijarSiNoExisteMock).not.toHaveBeenCalled();
+    expect(auditarMovimientoMock).not.toHaveBeenCalled();
+  });
+
+  it('fija el presupuesto con el dueño de la sesión y audita la escritura', async () => {
+    const resultado = await fijarPresupuestoIndividual(inputValido);
+
+    expect(resultado).toEqual({ ok: true, data: presupuestoCreado });
+    // El importe llega YA en céntimos: la conversión a enteros la hizo el
+    // esquema, no la acción (misma responsabilidad que en la conjunta).
+    expect(presupuestoFijarSiNoExisteMock).toHaveBeenCalledWith(
+      'u1',
+      mesId,
+      40000,
+    );
+    expect(auditarMovimientoMock).toHaveBeenCalledWith({
+      usuarioId: 'u1',
+      entidad: 'presupuestos_individuales',
+      entidadId: 'p1',
+      accion: 'crear',
+      valorNuevo: presupuestoCreado,
+    });
+  });
+
+  it('RECHAZA un usuarioId en el payload (IA-4): el dueño no viene del cliente', async () => {
+    const resultado = await fijarPresupuestoIndividual({
+      ...inputValido,
+      usuarioId: 'usuario-del-cliente',
+    });
+
+    expect(resultado.ok).toBe(false);
+    expect(presupuestoFijarSiNoExisteMock).not.toHaveBeenCalled();
+    expect(auditarMovimientoMock).not.toHaveBeenCalled();
+  });
+
+  it('rechaza un presupuesto no positivo con el literal de la conjunta', async () => {
+    const resultado = await fijarPresupuestoIndividual({
+      ...inputValido,
+      presupuesto: '0',
+    });
+
+    expect(resultado).toEqual({
+      ok: false,
+      error: aportacionErrores.presupuestoPositivo,
+    });
+    expect(presupuestoFijarSiNoExisteMock).not.toHaveBeenCalled();
+  });
+
+  it('devuelve mesNoEncontrado si el mes no existe', async () => {
+    mesFindByIdMock.mockResolvedValue(null);
+
+    const resultado = await fijarPresupuestoIndividual(inputValido);
+
+    expect(resultado).toEqual({
+      ok: false,
+      error: aportacionErrores.mesNoEncontrado,
+    });
+    expect(presupuestoFijarSiNoExisteMock).not.toHaveBeenCalled();
+  });
+
+  it('es INMUTABLE: si ya hay presupuesto, no lo reescribe ni lo reaudita', async () => {
+    presupuestoFindByMesMock.mockResolvedValue(presupuestoCreado);
+
+    const resultado = await fijarPresupuestoIndividual({
+      ...inputValido,
+      presupuesto: '999',
+    });
+
+    expect(resultado).toEqual({
+      ok: false,
+      error: aportacionErrores.presupuestoYaFijado,
+    });
+    expect(presupuestoFijarSiNoExisteMock).not.toHaveBeenCalled();
+    expect(auditarMovimientoMock).not.toHaveBeenCalled();
+  });
+
+  it('si pierde la carrera del índice único, el error es el mismo "ya fijado"', async () => {
+    // Dos peticiones simultáneas pasan a la vez la comprobación previa. La
+    // escritura se resuelve contra el índice único (mes_id, usuario_id) y solo
+    // una gana; la que pierde recibe `null` y NO debe reportarlo como un fallo
+    // distinto, porque para el usuario el resultado es el mismo.
+    presupuestoFijarSiNoExisteMock.mockResolvedValue(null);
+
+    const resultado = await fijarPresupuestoIndividual(inputValido);
+
+    expect(resultado).toEqual({
+      ok: false,
+      error: aportacionErrores.presupuestoYaFijado,
+    });
     expect(auditarMovimientoMock).not.toHaveBeenCalled();
   });
 });

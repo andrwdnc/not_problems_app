@@ -1,41 +1,47 @@
 import { z } from 'zod';
 import {
-  importeDesdeCadena,
-  esImporteValido,
-  numeroDecimalDesdeCadena,
-} from '@/domain/value-objects/ImporteMoneda';
-import { aportacionErrores, individualErrores } from '@/literals';
+  presupuestoSchema,
+  porcentajeSchema,
+  sueldoCampos,
+} from './aportacion';
+import { individualErrores } from '@/literals';
 
-// El usuario escribe su sueldo individual en euros ("2500"); convertimos a
-// céntimos enteros. Sin usuarioId: el dueño es siempre el de la sesión (IA-4).
-const sueldoCentimos = z
-  .string()
-  .transform(importeDesdeCadena)
-  .refine(esImporteValido, aportacionErrores.sueldoPositivo)
-  .refine((v) => v > 0, aportacionErrores.sueldoPositivo);
-
+/**
+ * Esquemas del área individual para sueldo, porcentaje y presupuesto.
+ *
+ * Se reaprovechan los campos del área conjunta al 100 % (mismo sueldo, mismo
+ * porcentaje, mismo presupuesto): la paridad se comprueba con un solo juego de
+ * reglas, no con dos que se degradan por separado. Antes de esta unificación el
+ * archivo reimplementaba las tres a mano, y cualquier cambio de rango en la
+ * cuenta conjunta tenía que replicarse aquí a ciegas.
+ *
+ * La diferencia es solo de payload, y es deliberada:
+ *
+ * - El sueldo se construye sobre `sueldoCampos`, sin `usuarioId`: el dueño sale
+ *   de la sesión (IA-4), así que ni siquiera llega a validarse.
+ * - El porcentaje y el presupuesto son idénticos a los de la conjunta (el
+ *   porcentaje es único y compartido por el mes, §5.1).
+ * - Los tres llevan `.strict()`: si el cliente manda `usuarioId` —o cualquier
+ *   otro campo foráneo— el parseo falla en vez de ignorarlo en silencio.
+ *
+ * Que `.strict()` sea la defensa y no la firma importa: un payload manipulado no
+ * puede escribir en el registro de otra persona porque el servidor jamás lee un
+ * `usuarioId` del cliente en esta área.
+ */
 export const sueldoIndividualSchema = z
-  .object({
-    mesId: z.string().uuid(),
-    sueldo: sueldoCentimos,
-  })
+  .object(sueldoCampos)
   .strict(individualErrores.campoNoPermitido);
 
-// El área individual fija el MISMO porcentaje único y compartido del mes que la
-// cuenta conjunta (`meses.porcentaje`), así que la validación es idéntica a la
-// de `schemas/aportacion.ts`: 0 < porcentaje <= 100. `.strict()` es lo que
-// mantiene la frontera de privacidad: rechaza `usuarioId` aunque el cliente lo
-// envíe, porque el dueño siempre se deriva de la sesión (IA-4).
-const porcentajeDecimal = z.string().transform(numeroDecimalDesdeCadena);
+export const porcentajeIndividualSchema = porcentajeSchema.strict(
+  individualErrores.campoNoPermitido,
+);
 
-export const porcentajeIndividualSchema = z
-  .object({
-    mesId: z.string().uuid(),
-    porcentaje: porcentajeDecimal
-      .refine((v) => v > 0, aportacionErrores.porcentajePositivo)
-      .refine((v) => v <= 100, aportacionErrores.porcentajeMaximo),
-  })
-  .strict(individualErrores.campoNoPermitido);
+export const presupuestoIndividualSchema = presupuestoSchema.strict(
+  individualErrores.campoNoPermitido,
+);
 
 export type SueldoIndividualInput = z.infer<typeof sueldoIndividualSchema>;
 export type PorcentajeIndividualInput = z.infer<typeof porcentajeIndividualSchema>;
+export type PresupuestoIndividualInput = z.infer<
+  typeof presupuestoIndividualSchema
+>;

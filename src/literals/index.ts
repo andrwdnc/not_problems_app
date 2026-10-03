@@ -212,18 +212,10 @@ export const chooser = {
 export const individual = {
   titulo: 'Mi espacio',
   miSueldo: 'Mi sueldo',
-  miPorcentaje: 'Mi porcentaje',
-  porcentajeUnico: 'Porcentaje individual del mes',
-  fijarPorcentaje: 'Fijar mi porcentaje',
-  guardarSueldo: 'Guardar mi sueldo',
   miCuota: 'Mi cuota',
-  miAportacionMensual: 'Tu aportación mensual',
+  miPresupuesto: 'Mi presupuesto',
   deTuCuota: 'de tu cuota',
   cuotaSuperada: 'cuota superada',
-  notaPorcentaje:
-    'Al fijar tu porcentaje individual, la cuenta conjunta usa el porcentaje complementario.',
-  notaInamovible:
-    'El sueldo y el porcentaje individuales son inamovibles una vez guardados.',
   sinMesAbierto: 'No hay un mes abierto todavía.',
   sinDatos:
     'Todavía no hay datos para este mes. Registra tu sueldo o un gasto individual para empezar.',
@@ -275,6 +267,12 @@ export const historico = {
   sinMeses: 'Aún no hay meses cerrados.',
   enCurso: 'En curso',
   editableHastaEl5: 'Editable hasta el 5',
+  /**
+   * Mes anterior a partir del día 6: ya no se edita ni se borra, pero ADMITEN
+   * altas nuevas (olvidos) hasta que termine el mes (§5.4). Antes se rotulaba
+   * "Cerrado", que es justo lo contrario de lo que permite.
+   */
+  soloAltas: 'Solo nuevas altas',
   cerrado: 'Cerrado',
   verDetalle: 'Ver detalle',
 };

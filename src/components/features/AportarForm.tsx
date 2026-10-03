@@ -1,11 +1,12 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { fijarSueldo, fijarPorcentaje, fijarPresupuesto } from '@/server-actions/aportaciones-actions';
 import {
   fijarSueldoIndividual,
   fijarPorcentajeIndividual,
+  fijarPresupuestoIndividual,
 } from '@/server-actions/individual-actions';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -18,9 +19,28 @@ import {
   calcularTotalCuentaConjunta,
   calcularImporteAportado,
 } from '@/domain/rules/CalculadoraAportacion';
-import type { Aportacion, Mes, Usuario } from '@/domain/entities';
+import type { Aportacion, Mes, PresupuestoIndividual, Usuario } from '@/domain/entities';
 import type { VarianteCuenta } from '@/lib/cuenta';
 import { aportar, formatos } from '@/literals';
+
+/**
+ * Presupuesto vigente de un mes, NORMALIZADO a una única forma.
+ *
+ * Existe porque el dato no vive en el mismo sitio en las dos áreas: en la
+ * conjunta es una columna del propio mes (`meses.presupuesto`) y en la individual
+ * es un tope POR PERSONA (`presupuestos_individuales`), que no cabe en `Mes` y
+ * llega como prop. Normalizando aquí, la tarjeta de abajo consume una sola forma
+ * y el markup de la inmutabilidad no se duplica: lo único que cambia entre áreas
+ * es de dónde sale el número, que es justo la diferencia admitida.
+ */
+interface PresupuestoVigente {
+  /** Importe del tope en céntimos enteros. */
+  importe: number;
+  /** Quién lo fijó; `null` en datos históricos sin trazabilidad. */
+  fijadoPor: string | null;
+  /** Cuándo se fijó; `null` si el dato no lo trae. */
+  fechaRegistro: Date | null;
+}
 
 interface AportarFormProps {
   mes: Mes;
@@ -33,17 +53,27 @@ interface AportarFormProps {
    * la conjunta recibe las 2 aportaciones y pinta 2 tarjetas; la individual
    * recibe 1 aportación y pinta 1. Todo lo demás —marcador de pendiente, forma
    * de fijar el sueldo, inmutabilidad, recálculo optimista del importe aportado,
-   * tarjeta de porcentaje y footer— es el MISMO componente.
+   * tarjeta de porcentaje, tarjeta de presupuesto y footer— es el MISMO
+   * componente.
    *
-   * Las dos tarjetas de conceptos conjuntos (presupuesto y total de la cuenta
-   * compartida) se omiten en el área individual: no son "otra área", son datos
-   * que solo existen cuando hay dos aportes.
+   * El presupuesto está disponible en las DOS áreas (paridad). Solo cambia de
+   * tabla: único y compartido en la conjunta, propio de cada persona en la
+   * individual. La tarjeta se pinta siempre; lo que decide la variante es de
+   * dónde se lee el importe (ver `presupuesto` en el cuerpo del componente).
+   *
+   * La suma de la cuenta completa sí es exclusiva de la conjunta: con una sola
+   * aportación repetiría la cuota con otro rótulo.
    *
    * `usuarioId` se deriva de la sesión en el área individual: aquí solo se usa
    * como "a quién pertenece este sueldo" para iterar, nunca se envía desde el
    * cliente (los esquemas lo rechazan con `.strict()`).
    */
   variante?: VarianteCuenta;
+  /**
+   * Presupuesto individual ya fijado, si lo hay. Solo se lee cuando
+   * `variante === 'individual'`; en la conjunta el dato viene dentro de `mes`.
+   */
+  presupuestoIndividual?: PresupuestoIndividual | null;
 }
 
 export function AportarForm({
@@ -51,6 +81,7 @@ export function AportarForm({
   usuarios,
   aportaciones: aportacionesIniciales,
   variante = 'conjunta',
+  presupuestoIndividual = null,
 }: AportarFormProps) {
   const router = useRouter();
   const [mensaje, setMensaje] = useState<string | null>(null);
@@ -77,6 +108,47 @@ export function AportarForm({
   useEffect(() => {
     setAportaciones(aportacionesIniciales);
   }, [aportacionesIniciales]);
+
+  /**
+   * Presupuesto vigente, leído del sitio que corresponda a cada área.
+   *
+   * `useMemo` no escosmético: sin él el objeto sería una identidad nueva en cada
+   * render, el efecto de reconciliación de abajo se dispararía siempre y el
+   * `setPresupuesto` provocaría un render infinito.
+   */
+  const presupuestoServidor = useMemo<PresupuestoVigente | null>(
+    () =>
+      variante === 'individual'
+        ? presupuestoIndividual && {
+            importe: presupuestoIndividual.presupuesto,
+            fijadoPor: presupuestoIndividual.fijadoPor,
+            fechaRegistro: presupuestoIndividual.fechaRegistro,
+          }
+        : mes.presupuesto != null
+          ? {
+              importe: mes.presupuesto,
+              fijadoPor: mes.presupuestoFijadoPor,
+              fechaRegistro: mes.presupuestoFechaRegistro,
+            }
+          : null,
+    [
+      variante,
+      presupuestoIndividual,
+      mes.presupuesto,
+      mes.presupuestoFijadoPor,
+      mes.presupuestoFechaRegistro,
+    ],
+  );
+
+  // Igual que `mes` y `aportaciones`: espejo local para que la cifra aparece al
+  // instante, reconciliado con el servidor cuando este responda.
+  const [presupuesto, setPresupuesto] = useState<PresupuestoVigente | null>(
+    presupuestoServidor,
+  );
+
+  useEffect(() => {
+    setPresupuesto(presupuestoServidor);
+  }, [presupuestoServidor]);
 
   const aportacionPorUsuario = new Map(
     aportaciones.map((a) => [a.usuarioId, a]),
@@ -153,12 +225,41 @@ export function AportarForm({
     setMensaje(null);
     setEnviando('presupuesto');
     try {
-      const resultado = await fijarPresupuesto({ mesId: mes.id, presupuesto });
+      // El presupuesto es la MISMA funcionalidad en las dos áreas (paridad). Lo
+      // que cambia es la tabla donde se escribe: en la conjunta es el tope único
+      // del mes (`meses.presupuesto`) y en la individual un tope por persona
+      // (`presupuestos_individuales`), cuyo dueño deriva de la sesión. El
+      // formulario, el mensaje de error y la inmutabilidad son los mismos.
+      const resultado =
+        variante === 'individual'
+          ? await fijarPresupuestoIndividual({ mesId: mes.id, presupuesto })
+          : await fijarPresupuesto({ mesId: mes.id, presupuesto });
       if (!resultado.ok) {
         setMensaje(resultado.error);
         return;
       }
-      setMes(resultado.data);
+      // Las dos acciones devuelven el importe y su trazabilidad, pero con nombres
+      // distintos (`Mes` frente a `PresupuestoIndividual`). Se normalizan aquí
+      // para que el estado local tenga una sola forma.
+      const { presupuesto: importe } = resultado.data;
+      // `Mes.presupuesto` es nullable porque el mes puede existir sin tope; si
+      // la escritura tuvo éxito y aun así viniera `null`, no se inventa una cifra
+      // y se espera al refresco del servidor.
+      if (importe == null) {
+        router.refresh();
+        return;
+      }
+      setPresupuesto({
+        importe,
+        fijadoPor:
+          'presupuestoFijadoPor' in resultado.data
+            ? resultado.data.presupuestoFijadoPor
+            : resultado.data.fijadoPor,
+        fechaRegistro:
+          'presupuestoFechaRegistro' in resultado.data
+            ? resultado.data.presupuestoFechaRegistro
+            : resultado.data.fechaRegistro,
+      });
       setPresupuestoValor('');
       router.refresh();
     } catch {
@@ -269,61 +370,63 @@ export function AportarForm({
         )}
       </Card>
 
-      {/* El presupuesto es un concepto exclusivo de la cuenta conjunta: en el
-          área individual la tarjeta se omite hasta que exista un presupuesto
-          propio por usuario (tabla `presupuestos_individuales`). */}
-      {variante === 'conjunta' && (
-        <Card className="border-brand-primary/30 bg-brand-pale/40">
-          <h3 className="mb-2 flex items-center gap-2 text-sm font-semibold text-brand-navy">
-            {aportar.presupuestoGastos}
-            {mes.presupuesto != null && <Lock size={14} className="text-brand-muted" />}
-          </h3>
-          {mes.presupuesto != null ? (
-            <>
-              <p className="font-mono text-3xl font-bold text-brand-navy">
-                {formatCurrency(mes.presupuesto)}
-              </p>
-              {(() => {
-                const fijadoPorUsuario = mes.presupuestoFijadoPor
-                  ? usuarios.find((u) => u.id === mes.presupuestoFijadoPor)
-                  : null;
-                if (!fijadoPorUsuario || !mes.presupuestoFechaRegistro) return null;
-                return (
-                  <p className="mt-1 text-xs text-brand-muted">
-                    {aportar.fijadoPor(
-                      fijadoPorUsuario.username,
-                      formatShortDate(mes.presupuestoFechaRegistro),
-                    )}
-                  </p>
-                );
-              })()}
-            </>
-          ) : (
-            <form action={guardarPresupuesto}>
-              <Input
-                label={aportar.presupuestoUnicoMes}
-                name="presupuesto"
-                type="text"
-                inputMode="decimal"
-                autoComplete="off"
-                pattern="[0-9]*[.,]?[0-9]*"
-                value={presupuestoValor}
-                onChange={(e) => setPresupuestoValor(e.target.value)}
-                placeholder={formatos.importeEjemplo}
-                required
-              />
-              <Button
-                type="submit"
-                fullWidth
-                className="mt-3"
-                loading={enviando === 'presupuesto'}
-              >
-                {aportar.fijarPresupuesto}
-              </Button>
-            </form>
+      {/* Presupuesto de gastos: MISMA tarjeta en las dos áreas (paridad). Lo que
+          cambia no es el markup sino de dónde sale el importe —columna del mes en
+          la conjunta, tope por persona en la individual— y eso ya está resuelto
+          arriba, en `presupuesto`. La inmutabilidad se aplica igual: en cuanto hay
+          cifra, el campo desaparece y aparece el candado. */}
+      <Card className="border-brand-primary/30 bg-brand-pale/40">
+        <h3 className="mb-2 flex items-center gap-2 text-sm font-semibold text-brand-navy">
+          {aportar.presupuestoGastos}
+          {presupuesto != null && (
+            <Lock size={14} className="text-brand-muted" />
           )}
-        </Card>
-      )}
+        </h3>
+        {presupuesto != null ? (
+          <>
+            <p className="font-mono text-3xl font-bold text-brand-navy">
+              {formatCurrency(presupuesto.importe)}
+            </p>
+            {(() => {
+              const fijadoPorUsuario = presupuesto.fijadoPor
+                ? usuarios.find((u) => u.id === presupuesto.fijadoPor)
+                : null;
+              if (!fijadoPorUsuario || !presupuesto.fechaRegistro) return null;
+              return (
+                <p className="mt-1 text-xs text-brand-muted">
+                  {aportar.fijadoPor(
+                    fijadoPorUsuario.username,
+                    formatShortDate(presupuesto.fechaRegistro),
+                  )}
+                </p>
+              );
+            })()}
+          </>
+        ) : (
+          <form action={guardarPresupuesto}>
+            <Input
+              label={aportar.presupuestoUnicoMes}
+              name="presupuesto"
+              type="text"
+              inputMode="decimal"
+              autoComplete="off"
+              pattern="[0-9]*[.,]?[0-9]*"
+              value={presupuestoValor}
+              onChange={(e) => setPresupuestoValor(e.target.value)}
+              placeholder={formatos.importeEjemplo}
+              required
+            />
+            <Button
+              type="submit"
+              fullWidth
+              className="mt-3"
+              loading={enviando === 'presupuesto'}
+            >
+              {aportar.fijarPresupuesto}
+            </Button>
+          </form>
+        )}
+      </Card>
 
       {/* El total de la cuenta conjunta solo tiene sentido con dos aportes. En el
           área individual la única aportación ES la cuota, así que la tarjeta
