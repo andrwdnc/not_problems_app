@@ -1,8 +1,8 @@
 import { Suspense } from 'react';
 import { redirect } from 'next/navigation';
 import { getCurrentUser } from '@/server/auth';
-import { obtenerMesActual } from '@/server-actions/queries';
 import { obtenerResumenIndividual } from '@/server-actions/individual-queries';
+import { obtenerMesActual } from '@/server-actions/queries';
 import { gastoIndividualRepository } from '@/server-actions/repositories';
 import { InicioResumen } from '@/components/features/InicioResumen';
 import { UltimosGastos } from '@/components/features/UltimosGastos';
@@ -25,6 +25,9 @@ export const dynamic = 'force-dynamic';
  * construir el modelo de vista con SU vocabulario. Si mañana cambia el orden de
  * las tarjetas o el estilo de un importe, el cambio sale en las dos pantallas.
  *
+ * PARIDAD: la pantalla tiene las mismas dos secciones que la conjunta —resumen y
+ * últimos gastos—, no un subconjunto.
+ *
  * Lo que sí es propio del área: el dueño de los gastos sale de la sesión (D8) y
  * los rótulos nombran las cifras en primera persona ("Mi cuota", "Mi sueldo"),
  * porque aquí el número es de una sola persona.
@@ -37,8 +40,6 @@ export default function InicioIndividualPage() {
       <Suspense fallback={<IndividualInicioSectionSkeleton />}>
         <ResumenInicioSection />
       </Suspense>
-      {/* `UltimosGastosSkeleton` no tiene variante "individual": el esqueleto de
-          esta sección ya era genérico y describe la misma lista en las dos áreas. */}
       <Suspense fallback={<UltimosGastosSkeleton />}>
         <UltimosGastosIndividualSection />
       </Suspense>
@@ -104,10 +105,10 @@ async function ResumenInicioSection() {
 /**
  * Últimos gastos individuales del mes.
  *
- * Cierra una asimetría que existía antes de esta unificación: la cuenta conjunta
- * listaba los 3 últimos gastos en el Inicio y el área individual no listaba
- * ninguno. La sección se apoyaba en un literal (`individual.sinGastosMes`) que
- * estaba escrito y sin usar.
+ * La cuenta conjunta lista los 3 últimos gastos en su Inicio; el área individual
+ * hace lo propio con el MISMO componente. Es paridad de secciones, no una
+ * funcionalidad extra: si se quitara de aquí, el Inicio individual sería un
+ * subconjunto del conjunto y la unificación no habría servido de nada.
  */
 async function UltimosGastosIndividualSection() {
   const user = await getCurrentUser();
@@ -116,7 +117,7 @@ async function UltimosGastosIndividualSection() {
   const mes = await obtenerMesActual();
 
   // Sin mes abierto no hay nada que listar: se mantiene el resumen como única
-  // fuente visible, en vez de añadir un bloque vacío sin explicación.
+  // sección visible, en vez de añadir un bloque vacío sin explicación.
   if (!mes) return null;
 
   // Owner-first: la consulta solo puede devolver gastos de la sesión (D8).
