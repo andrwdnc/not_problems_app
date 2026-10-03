@@ -44,6 +44,7 @@ const COMPONENTES_COMPARTIDOS = [
   'NuevoGastoAnualForm',
   'NuevoGastoForm',
   'skeletons',
+  'TarjetaMesHistorico',
   'UltimosGastos',
 ];
 
