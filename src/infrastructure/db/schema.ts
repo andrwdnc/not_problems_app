@@ -91,9 +91,50 @@ export const gastosAnuales = pgTable('gastos_anuales', {
   uniqueIndex('gastos_anuales_anio_ciclo_mes_pago_unique').on(table.anioCiclo, table.mesPago),
 ]);
 
+/**
+ * Gastos anuales del ÁREA INDIVIDUAL (paridad con `gastos_anuales`).
+ *
+ * Réplica owner-scoped de `gastos_anuales`: el área conjunta comparte un único
+ * juego de gastos anuales entre los dos usuarios, mientras que en el área
+ * individual cada usuario tiene el suyo. Por eso la clave de unicidad incluye
+ * `usuario_id`: dos usuarios pueden tener un gasto anual el mismo mes.
+ *
+ * El `usuario_id` NUNCA viene del cliente: la Server Action lo deriva de la
+ * sesión y el repositorio lo exige en el primer parámetro de cada método
+ * (owner-first), igual que `gastos_individuales`.
+ */
+export const gastosAnualesIndividuales = pgTable(
+  'gastos_anuales_individuales',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    // Dueño del gasto anual: frontera de privacidad (siempre desde sesión).
+    usuarioId: uuid('usuario_id').references(() => usuarios.id).notNull(),
+    importeTotal: bigint('importe_total', { mode: 'number' }).notNull(), // céntimos
+    mesPago: integer('mes_pago').notNull(), // 1-12
+    anioCiclo: integer('anio_ciclo').notNull(),
+    detalle: text('detalle').notNull(),
+    fechaUltimoPago: timestamp('fecha_ultimo_pago', { withTimezone: true }),
+    creadoPor: uuid('creado_por').references(() => usuarios.id).notNull(),
+    fechaCreacion: timestamp('fecha_creacion', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    // Un gasto anual por dueño, ciclo y mes de pago. El dueño forma parte de la
+    // clave: es lo que separa esta tabla de la compartida `gastos_anuales`.
+    uniqueIndex('gastos_anuales_ind_usuario_ciclo_mes_unique').on(
+      table.usuarioId,
+      table.anioCiclo,
+      table.mesPago,
+    ),
+    // Listado del área individual: siempre por dueño, a menudo por ciclo.
+    index('gastos_anuales_ind_usuario_idx').on(table.usuarioId, table.anioCiclo),
+  ],
+);
+
 export const accionEnum = pgEnum('accion_enum', ['crear', 'editar', 'eliminar']);
 
-export const entidadEnum = pgEnum('entidad_enum', ['meses', 'aportaciones', 'gastos', 'gastos_anuales', 'gastos_individuales']);
+export const entidadEnum = pgEnum('entidad_enum', ['meses', 'aportaciones', 'gastos', 'gastos_anuales', 'gastos_individuales', 'gastos_anuales_individuales']);
 
 export const historicoMovimientos = pgTable('historico_movimientos', {
   id: uuid('id').primaryKey().defaultRandom(),

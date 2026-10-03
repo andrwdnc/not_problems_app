@@ -2,7 +2,11 @@ import { Suspense } from 'react';
 import { redirect } from 'next/navigation';
 import { getCurrentUser } from '@/server/auth';
 import { obtenerMesActual } from '@/server-actions/queries';
-import { gastoIndividualRepository } from '@/server-actions/repositories';
+import {
+  gastoIndividualRepository,
+  gastoAnualIndividualRepository,
+} from '@/server-actions/repositories';
+import { mapearGastosAnualesAVista } from '@/server-actions/vista-gastos-anuales';
 import { GastosList } from '@/components/features/GastosList';
 import { IndividualGastosSectionSkeleton } from '@/components/features/skeletons';
 import { nav, individual } from '@/literals';
@@ -31,15 +35,27 @@ async function GastosIndividualesSection() {
   if (!user) redirect('/login');
 
   const mes = await obtenerMesActual();
-  const gastos = mes
-    ? await gastoIndividualRepository.findByMes(user.id, mes.id)
-    : [];
 
-  return mes ? (
-    // Sin `usuarios` (todos los gastos son del usuario de la sesión) y sin
-    // `gastosAnuales`: el área individual aún no expone esa sección.
-    <GastosList gastos={gastos} variante="individual" />
-  ) : (
-    <p className="text-sm text-brand-muted">{individual.sinMesAbierto}</p>
+  // Ambas consultas son owner-first: solo se ven los gastos del usuario de la
+  // sesión (D8). Los anuales van en paralelo porque no dependen del mes (el
+  // cálculo de ventana lo recibe como parámetro).
+  const [gastos, gastosAnuales] = await Promise.all([
+    mes ? gastoIndividualRepository.findByMes(user.id, mes.id) : Promise.resolve([]),
+    gastoAnualIndividualRepository.findAll(user.id),
+  ]);
+
+  if (!mes) {
+    return <p className="text-sm text-brand-muted">{individual.sinMesAbierto}</p>;
+  }
+
+  return (
+    // Sin `usuarios`: todos los gastos son del usuario de la sesión, así que el
+    // pie de fila no necesita nombre de creador. Con `gastosAnuales` presente
+    // (aunque sea `[]`) se pinta la sección, igual que en la cuenta conjunta.
+    <GastosList
+      gastos={gastos}
+      variante="individual"
+      gastosAnuales={mapearGastosAnualesAVista(gastosAnuales, mes)}
+    />
   );
 }

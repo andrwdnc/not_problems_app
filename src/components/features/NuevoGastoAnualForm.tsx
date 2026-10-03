@@ -6,9 +6,22 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Card } from '@/components/ui/Card';
 import { crearGastoAnual } from '@/server-actions/gastos-anuales-actions';
+import { crearGastoAnualIndividual } from '@/server-actions/gastos-anuales-individual-actions';
+import { rutaGastos, type VarianteCuenta } from '@/lib/cuenta';
 import { gastosAnuales, formatos } from '@/literals';
 
-export function NuevoGastoAnualForm() {
+interface NuevoGastoAnualFormProps {
+  /**
+   * Área de cuenta. El formulario es idéntico en las dos: solo cambia la Server
+   * Action (la individual es owner-first y deriva el dueño de la sesión) y la
+   * ruta a la que vuelve al guardar.
+   */
+  variante?: VarianteCuenta;
+}
+
+export function NuevoGastoAnualForm({
+  variante = 'conjunta',
+}: NuevoGastoAnualFormProps) {
   const router = useRouter();
   const [importeTotal, setImporteTotal] = useState('');
   const [detalle, setDetalle] = useState('');
@@ -19,18 +32,22 @@ export function NuevoGastoAnualForm() {
   async function guardar(formData: FormData) {
     setEnviando(true);
     setError(null);
-    const resultado = await crearGastoAnual({
+    const payload = {
       detalle,
       importeTotal: formData.get('importeTotal') as string,
       mesPago: Number(formData.get('mesPago')),
-    });
+    };
+    const resultado =
+      variante === 'individual'
+        ? await crearGastoAnualIndividual(payload)
+        : await crearGastoAnual(payload);
     setEnviando(false);
 
     if (!resultado.ok) {
       setError(resultado.error);
       return;
     }
-    router.push('/gastos');
+    router.push(rutaGastos(variante));
     router.refresh();
   }
 

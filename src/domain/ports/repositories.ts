@@ -3,6 +3,7 @@ import type {
   Aportacion,
   Gasto,
   GastoAnual,
+  GastoAnualIndividual,
   GastoIndividual,
   Mes,
   MovimientoAuditoria,
@@ -153,6 +154,52 @@ export interface GastoAnualRepository {
    * Actualiza la fecha del último pago del gasto anual.
    */
   actualizarFechaUltimoPago(id: string, fecha: Date): Promise<GastoAnual | null>;
+}
+
+/** Datos para dar de alta un gasto anual del área individual. */
+export interface CrearGastoAnualIndividualInput {
+  /**
+   * Dueño. Lo fija la Server Action a partir de la sesión; nunca llega del
+   * cliente (los esquemas lo rechazan con `.strict()`).
+   */
+  usuarioId: string;
+  /** Importe total en céntimos enteros. */
+  importeTotal: number;
+  /** Mes de pago (1-12). */
+  mesPago: number;
+  /** Año del ciclo. */
+  anioCiclo: number;
+  /** Detalle/descripción del gasto anual. */
+  detalle: string;
+}
+
+/**
+ * Gastos anuales del área individual (owner-scoped).
+ *
+ * Réplica de `GastoAnualRepository` con la diferencia esencial: TODOS los
+ * métodos reciben `usuarioId` como PRIMER parámetro y lo aplican al WHERE. No es
+ * una convención, es la frontera de privacidad: hace imposible, desde el
+ * contrato, leer o modificar el gasto anual de otra persona. Es el mismo patrón
+ * que `GastoIndividualRepository`.
+ */
+export interface GastoAnualIndividualRepository {
+  findById(usuarioId: string, id: string): Promise<GastoAnualIndividual | null>;
+  findAll(usuarioId: string): Promise<GastoAnualIndividual[]>;
+  findByCiclo(usuarioId: string, anioCiclo: number): Promise<GastoAnualIndividual[]>;
+  create(data: CrearGastoAnualIndividualInput): Promise<GastoAnualIndividual>;
+  update(
+    usuarioId: string,
+    id: string,
+    data: Partial<GastoAnualIndividual>,
+  ): Promise<GastoAnualIndividual | null>;
+  delete(usuarioId: string, id: string): Promise<void>;
+  /** Avanza el ciclo y registra el pago; devuelve null si el registro ya no existe. */
+  registrarPago(
+    usuarioId: string,
+    id: string,
+    anioCiclo: number,
+    fecha: Date,
+  ): Promise<GastoAnualIndividual | null>;
 }
 
 /** Credenciales internas de autenticación; nunca deben salir del servidor. */

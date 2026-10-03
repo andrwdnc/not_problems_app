@@ -1,9 +1,15 @@
 import { historicoRepository } from '../repositories/instances';
-import type { Accion } from '@/domain/entities';
+import type { Accion, EntidadAuditada } from '@/domain/entities';
+
+/**
+ * `EntidadAuditada` se declara en el dominio (derivado del enum de Postgres) y
+ * aquí solo se reexporta: no hay una segunda lista de entidades que mantener.
+ */
+export type { EntidadAuditada };
 
 export interface AuditarMovimientoParams {
   usuarioId: string;
-  entidad: 'meses' | 'aportaciones' | 'gastos' | 'gastos_anuales' | 'gastos_individuales';
+  entidad: EntidadAuditada;
   entidadId: string;
   accion: Accion;
   valorAnterior?: unknown | null;

@@ -7,15 +7,31 @@ import { Input } from '@/components/ui/Input';
 import { Card } from '@/components/ui/Card';
 import { centimosAEuros } from '@/domain/value-objects/ImporteMoneda';
 import { editarGastoAnual, marcarPagadoGastoAnual, eliminarGastoAnual } from '@/server-actions/gastos-anuales-actions';
+import {
+  editarGastoAnualIndividual,
+  marcarPagadoGastoAnualIndividual,
+  eliminarGastoAnualIndividual,
+} from '@/server-actions/gastos-anuales-individual-actions';
+import { rutaGastos, type VarianteCuenta } from '@/lib/cuenta';
 import type { GastoAnual } from '@/domain/entities';
 import { gastosAnuales as gastosAnualesLiterales, gastosAnualesErrores, formatos } from '@/literals';
 
 interface EditarGastoAnualFormProps {
   gastoAnual: GastoAnual & { detalle: string };
   devengoPrevio: boolean;
+  /**
+   * Área de cuenta. El formulario es idéntico en las dos: solo cambia el juego de
+   * Server Actions (la individual es owner-first: el id se busca siempre dentro de
+   * los gastos del usuario de la sesión) y la ruta de retorno.
+   */
+  variante?: VarianteCuenta;
 }
 
-export function EditarGastoAnualForm({ gastoAnual, devengoPrevio }: EditarGastoAnualFormProps) {
+export function EditarGastoAnualForm({
+  gastoAnual,
+  devengoPrevio,
+  variante = 'conjunta',
+}: EditarGastoAnualFormProps) {
   const router = useRouter();
   const [importeTotal, setImporteTotal] = useState(() =>
     String(centimosAEuros(gastoAnual.importeTotal)),
@@ -25,52 +41,65 @@ export function EditarGastoAnualForm({ gastoAnual, devengoPrevio }: EditarGastoA
   const [error, setError] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
 
+  /** Vuelve al listado del área correspondiente tras cualquier mutación. */
+  function volver() {
+    router.push(rutaGastos(variante));
+    router.refresh();
+  }
+
   async function guardar(formData: FormData) {
     setEnviando(true);
     setError(null);
-    const resultado = await editarGastoAnual({
+    const payload = {
       id: gastoAnual.id,
       detalle: detalle || undefined,
       importeTotal: formData.get('importeTotal') as string | undefined,
       mesPago: Number(formData.get('mesPago')) || undefined,
-    });
+    };
+    const resultado =
+      variante === 'individual'
+        ? await editarGastoAnualIndividual(payload)
+        : await editarGastoAnual(payload);
     setEnviando(false);
 
     if (!resultado.ok) {
       setError(resultado.error);
       return;
     }
-    router.push('/gastos');
-    router.refresh();
+    volver();
   }
 
   async function marcarPagado() {
     setEnviando(true);
     setError(null);
-    const resultado = await marcarPagadoGastoAnual({ id: gastoAnual.id });
+    const resultado =
+      variante === 'individual'
+        ? await marcarPagadoGastoAnualIndividual({ id: gastoAnual.id })
+        : await marcarPagadoGastoAnual({ id: gastoAnual.id });
     setEnviando(false);
 
     if (!resultado.ok) {
       setError(resultado.error);
       return;
     }
-    router.push('/gastos');
-    router.refresh();
+    volver();
   }
 
   async function eliminar() {
     if (!confirm(gastosAnualesErrores.gastoAnualNoEncontrada)) return;
     setEnviando(true);
     setError(null);
-    const resultado = await eliminarGastoAnual({ id: gastoAnual.id });
+    const resultado =
+      variante === 'individual'
+        ? await eliminarGastoAnualIndividual({ id: gastoAnual.id })
+        : await eliminarGastoAnual({ id: gastoAnual.id });
     setEnviando(false);
 
     if (!resultado.ok) {
       setError(resultado.error);
       return;
     }
-    router.push('/gastos');
-    router.refresh();
+    volver();
   }
 
   const estaPagadaEsteCiclo = gastoAnual.fechaUltimoPago

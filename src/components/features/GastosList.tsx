@@ -23,6 +23,11 @@ import { Card } from '@/components/ui/Card';
 import { formatCurrency } from '@/lib/formatters/currency';
 import { formatShortDate, nombreMes } from '@/lib/formatters/date';
 import { CATEGORIAS, type Categoria } from '@/domain/value-objects/Categoria';
+// `import type` puro: el tipo se borra al compilar, así que este componente
+// cliente NO arrastra el módulo de servidor. El tipo vive allí porque lo produce
+// la función compartida que usan las dos áreas; reexportarlo evita que cada
+// página redeclare la misma forma de datos y las dos se desincronicen.
+import type { GastoAnualVista } from '@/server-actions/vista-gastos-anuales';
 import { eliminarGasto } from '@/server-actions/gastos-actions';
 import { eliminarGastoIndividual } from '@/server-actions/individual-actions';
 import {
@@ -51,26 +56,6 @@ export interface GastoListable {
   esRecurrente: boolean;
   /** Actor que registró el gasto; se resuelve contra el mapa `usuarios`. */
   creadoPor: string;
-}
-
-interface GastoAnualVista {
-  id: string;
-  detalle: string;
-  importeTotal: number;
-  /** Cuota apartada este mes dentro de la ventana (0 si fuera de la ventana). */
-  cuotaMes: number;
-  /** Suma de cuotas desde el inicio de la ventana hasta el mes actual (cent-exacto). */
-  totalDevengado: number;
-  /** Posición 1-indexada del mes dentro de la ventana; 0 si fuera. */
-  posicion: number;
-  /** Número de meses de la ventana inclusiva actual. */
-  numMeses: number;
-  puedeEditar: boolean;
-  puedeEliminar: boolean;
-  mesPago: number;
-  anioCiclo: number;
-  fechaUltimoPago: Date | null;
-  estaPagadaEsteCiclo: boolean;
 }
 
 interface GastosListProps {
@@ -107,7 +92,7 @@ const ICONOS: Record<Categoria, LucideIcon> = {
   Otros: Package,
 };
 
-export { type GastoAnualVista };
+export type { GastoAnualVista };
 
 export function GastosList({
   gastos,

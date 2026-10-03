@@ -12,6 +12,7 @@
     "test:watch": "vitest",
     "db:migrate:gastos-anuales": "tsx --env-file=.env.local scripts/migrate-gastos-anuales.ts",
     "db:migrate:individual-accounts": "tsx --env-file=.env.local scripts/migrate-individual-accounts.ts",
+    "db:migrate:gastos-anuales-individuales": "tsx --env-file=.env.local scripts/migrate-gastos-anuales-individuales.ts",
     "db:generate": "drizzle-kit generate",
     "db:push": "drizzle-kit push",
     "db:migrate": "drizzle-kit migrate",
