@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation';
 import { getCurrentUser } from '@/server/auth';
 import { obtenerMesActual } from '@/server-actions/queries';
 import { gastoIndividualRepository } from '@/server-actions/repositories';
-import { IndividualGastosList } from '@/components/features/IndividualGastosList';
+import { GastosList } from '@/components/features/GastosList';
 import { IndividualGastosSectionSkeleton } from '@/components/features/skeletons';
 import { nav, individual } from '@/literals';
 
@@ -36,7 +36,9 @@ async function GastosIndividualesSection() {
     : [];
 
   return mes ? (
-    <IndividualGastosList gastos={gastos} />
+    // Sin `usuarios` (todos los gastos son del usuario de la sesión) y sin
+    // `gastosAnuales`: el área individual aún no expone esa sección.
+    <GastosList gastos={gastos} variante="individual" />
   ) : (
     <p className="text-sm text-brand-muted">{individual.sinMesAbierto}</p>
   );

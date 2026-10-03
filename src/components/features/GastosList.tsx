@@ -23,9 +23,35 @@ import { Card } from '@/components/ui/Card';
 import { formatCurrency } from '@/lib/formatters/currency';
 import { formatShortDate, nombreMes } from '@/lib/formatters/date';
 import { CATEGORIAS, type Categoria } from '@/domain/value-objects/Categoria';
-import type { Gasto } from '@/domain/entities';
 import { eliminarGasto } from '@/server-actions/gastos-actions';
+import { eliminarGastoIndividual } from '@/server-actions/individual-actions';
+import {
+  rutaGastoAnualDetalle,
+  rutaGastoAnualNuevo,
+  rutaGastoDetalle,
+  rutaGastosNuevo,
+  type VarianteCuenta,
+} from '@/lib/cuenta';
 import { gastos as gastosLiterales, gastoForm, formatos, gastosAnuales as gastosAnualesLiterales } from '@/literals';
+
+/**
+ * Gasto tal y como lo necesita la LISTA. Se declara estructuralmente (ISP) en
+ * vez de reutilizar `Gasto` o `GastoIndividual`: el componente solo consume estos
+ * campos, así que ambas entidades —y cualquier futuro tipo— encajan sin
+ * cambiarlo. Las dos áreas de cuenta pintan exactamente la misma fila.
+ */
+export interface GastoListable {
+  id: string;
+  categoria: Categoria;
+  detalle: string;
+  /** Importe en céntimos enteros. */
+  importe: number;
+  /** Fecha del gasto en ISO (`YYYY-MM-DD`); determina el mes al que pertenece. */
+  fechaGasto: string;
+  esRecurrente: boolean;
+  /** Actor que registró el gasto; se resuelve contra el mapa `usuarios`. */
+  creadoPor: string;
+}
 
 interface GastoAnualVista {
   id: string;
@@ -48,8 +74,26 @@ interface GastoAnualVista {
 }
 
 interface GastosListProps {
-  gastos: Gasto[];
-  usuarios: Map<string, string>;
+  gastos: GastoListable[];
+  /**
+   * Área de cuenta. Decide las Server Actions (la individual es owner-scoped) y
+   * el prefijo de rutas. El markup y los literales son los mismos.
+   */
+  variante?: VarianteCuenta;
+  /**
+   * Nombre del creador por `creadoPor`. Opcional: el área individual solo
+   * muestra gastos propios, así que omitirlo quita el nombre del pie de fila.
+   */
+  usuarios?: Map<string, string>;
+  /**
+   * Gastos anuales del mes.
+   *
+   * `undefined` = el área no tiene sección de gastos anuales (y no se pinta).
+   * `[]` = sí la tiene, pero vacía (se pinta el estado vacío con su nota).
+   *
+   * El gate es la DEFINICIÓN, no el tamaño: un array vacío en la conjunta debe
+   * seguir mostrando la tarjeta que explica cómo funciona el apartado.
+   */
   gastosAnuales?: GastoAnualVista[];
 }
 
@@ -65,7 +109,12 @@ const ICONOS: Record<Categoria, LucideIcon> = {
 
 export { type GastoAnualVista };
 
-export function GastosList({ gastos, usuarios, gastosAnuales = [] }: GastosListProps) {
+export function GastosList({
+  gastos,
+  variante = 'conjunta',
+  usuarios,
+  gastosAnuales,
+}: GastosListProps) {
   // Filtro "Todos" se modela como null (intervalor/dead-state de instancia)
   // en vez de un magic string, cumpliendo ISP/OCP.
   const [filtro, setFiltro] = useState<Categoria | null>(null);
@@ -76,12 +125,15 @@ export function GastosList({ gastos, usuarios, gastosAnuales = [] }: GastosListP
   }, [gastos, filtro]);
 
   const apartadosActivos = useMemo(
-    () => gastosAnuales.filter((p) => p.cuotaMes > 0),
+    () => (gastosAnuales ?? []).filter((p) => p.cuotaMes > 0),
     [gastosAnuales],
   );
 
   async function eliminarGastoHandler(id: string) {
-    const resultado = await eliminarGasto({ id });
+    const resultado =
+      variante === 'individual'
+        ? await eliminarGastoIndividual({ id })
+        : await eliminarGasto({ id });
     if (!resultado.ok) {
       alert(resultado.error);
     }
@@ -156,6 +208,9 @@ export function GastosList({ gastos, usuarios, gastosAnuales = [] }: GastosListP
         <div className="space-y-2">
           {filtrados.map((g) => {
             const Icono = ICONOS[g.categoria];
+            // El nombre del creador solo aparece si la página aporta el mapa:
+            // en el área individual todos los gastos son del propio usuario.
+            const autor = usuarios?.get(g.creadoPor) ?? null;
             return (
               <Card key={g.id}>
                 <div className="flex items-start gap-3">
@@ -167,8 +222,9 @@ export function GastosList({ gastos, usuarios, gastosAnuales = [] }: GastosListP
                       {g.detalle}
                     </p>
                     <p className="text-xs text-brand-muted">
-                      {g.categoria} · {usuarios.get(g.creadoPor) ?? formatos.vacio} ·{' '}
-                      {formatShortDate(g.fechaGasto)}
+                      {autor
+                        ? `${g.categoria} · ${autor} · ${formatShortDate(g.fechaGasto)}`
+                        : `${g.categoria} · ${formatShortDate(g.fechaGasto)}`}
                     </p>
                     {g.esRecurrente && (
                       <Badge tone="primary" className="mt-1">
@@ -182,7 +238,7 @@ export function GastosList({ gastos, usuarios, gastosAnuales = [] }: GastosListP
                     </span>
                     <div className="flex gap-1">
                       <Link
-                        href={`/gastos/${g.id}`}
+                        href={rutaGastoDetalle(variante, g.id)}
                         className="text-brand-muted hover:text-brand-primary"
                         aria-label={gastosLiterales.editar}
                       >
@@ -204,130 +260,135 @@ export function GastosList({ gastos, usuarios, gastosAnuales = [] }: GastosListP
         </div>
       )}
 
-      <section className="space-y-2 pt-4 border-t border-brand-border">
-        <div className="flex items-center justify-between">
-          <h2 className="text-base font-semibold text-brand-navy">
-            {gastosAnualesLiterales.titulo}
-          </h2>
-          <Link
-            href="/gastos/anuales/nueva"
-            className="text-sm font-medium text-brand-primary"
-          >
-            {gastosAnualesLiterales.nuevo}
-          </Link>
-        </div>
+      {/* Gastos anuales: solo en las áreas que los tienen. El gate es
+          `gastosAnuales !== undefined`, NO su tamaño: un array vacío debe pintar
+          la tarjeta vacía con su nota explicativa. */}
+      {gastosAnuales !== undefined && (
+        <section className="space-y-2 pt-4 border-t border-brand-border">
+          <div className="flex items-center justify-between">
+            <h2 className="text-base font-semibold text-brand-navy">
+              {gastosAnualesLiterales.titulo}
+            </h2>
+            <Link
+              href={rutaGastoAnualNuevo(variante)}
+              className="text-sm font-medium text-brand-primary"
+            >
+              {gastosAnualesLiterales.nuevo}
+            </Link>
+          </div>
 
-        {gastosAnuales.length === 0 ? (
-          <Card>
-            <p className="text-sm text-brand-muted">
-              {gastosAnualesLiterales.sinGastosAnuales}
-            </p>
-            <p className="mt-1 text-xs text-brand-muted">
-              {gastosAnualesLiterales.nota}
-            </p>
-          </Card>
-        ) : (
-          gastosAnuales.map((p) => {
-            const porcentaje =
-              p.importeTotal > 0
-                ? Math.round((p.totalDevengado / p.importeTotal) * 100)
-                : 0;
-            const dentroVentana = p.posicion > 0 && p.posicion <= p.numMeses;
-            return (
-              <Card key={p.id} className="space-y-3">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-pale text-brand-navy">
-                    <CreditCard size={20} />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium text-brand-ink">
-                      {p.detalle}
-                    </p>
-                    <div className="mt-1 flex flex-wrap gap-1">
-                      <Badge tone="muted">
-                        {gastosAnualesLiterales.ciclo(p.anioCiclo)}
-                      </Badge>
-                      {dentroVentana && (
-                        <Badge tone="primary">
-                          {gastosAnualesLiterales.ventana(p.posicion, p.numMeses)}
+          {gastosAnuales.length === 0 ? (
+            <Card>
+              <p className="text-sm text-brand-muted">
+                {gastosAnualesLiterales.sinGastosAnuales}
+              </p>
+              <p className="mt-1 text-xs text-brand-muted">
+                {gastosAnualesLiterales.nota}
+              </p>
+            </Card>
+          ) : (
+            gastosAnuales.map((p) => {
+              const porcentaje =
+                p.importeTotal > 0
+                  ? Math.round((p.totalDevengado / p.importeTotal) * 100)
+                  : 0;
+              const dentroVentana = p.posicion > 0 && p.posicion <= p.numMeses;
+              return (
+                <Card key={p.id} className="space-y-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-pale text-brand-navy">
+                      <CreditCard size={20} />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium text-brand-ink">
+                        {p.detalle}
+                      </p>
+                      <div className="mt-1 flex flex-wrap gap-1">
+                        <Badge tone="muted">
+                          {gastosAnualesLiterales.ciclo(p.anioCiclo)}
+                        </Badge>
+                        {dentroVentana && (
+                          <Badge tone="primary">
+                            {gastosAnualesLiterales.ventana(p.posicion, p.numMeses)}
+                          </Badge>
+                        )}
+                      </div>
+                      {p.estaPagadaEsteCiclo && (
+                        <Badge tone="positive" className="mt-1">
+                          {gastosAnualesLiterales.pagado}
                         </Badge>
                       )}
                     </div>
-                    {p.estaPagadaEsteCiclo && (
-                      <Badge tone="positive" className="mt-1">
-                        {gastosAnualesLiterales.pagado}
-                      </Badge>
-                    )}
-                  </div>
-                  <div className="flex flex-col items-end gap-1">
-                    <span className="font-mono text-sm font-semibold text-brand-primary">
-                      {formatCurrency(p.cuotaMes)}
-                    </span>
-                    <div className="flex gap-1">
-                      {p.puedeEditar && !p.estaPagadaEsteCiclo && (
-                        <Link
-                          href={`/gastos/anuales/${p.id}`}
-                          className="text-brand-muted hover:text-brand-primary"
-                          aria-label={gastosAnualesLiterales.editar}
-                        >
-                          <Pencil size={16} />
-                        </Link>
-                      )}
-                      {p.puedeEliminar && !p.estaPagadaEsteCiclo && (
-                        <button
-                          onClick={() => eliminarGastoAnualHandler(p.id)}
-                          className="text-brand-muted hover:text-financial-negative"
-                          aria-label={gastosAnualesLiterales.eliminar}
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      )}
-                      {p.puedeEditar && !p.estaPagadaEsteCiclo && (
-                        <button
-                          onClick={() => marcarPagadoGastoAnual(p.id)}
-                          className="text-brand-primary hover:text-brand-navy font-medium text-sm"
-                          aria-label={gastosAnualesLiterales.pagar}
-                        >
-                          {gastosAnualesLiterales.pagar}
-                        </button>
-                      )}
+                    <div className="flex flex-col items-end gap-1">
+                      <span className="font-mono text-sm font-semibold text-brand-primary">
+                        {formatCurrency(p.cuotaMes)}
+                      </span>
+                      <div className="flex gap-1">
+                        {p.puedeEditar && !p.estaPagadaEsteCiclo && (
+                          <Link
+                            href={rutaGastoAnualDetalle(variante, p.id)}
+                            className="text-brand-muted hover:text-brand-primary"
+                            aria-label={gastosAnualesLiterales.editar}
+                          >
+                            <Pencil size={16} />
+                          </Link>
+                        )}
+                        {p.puedeEliminar && !p.estaPagadaEsteCiclo && (
+                          <button
+                            onClick={() => eliminarGastoAnualHandler(p.id)}
+                            className="text-brand-muted hover:text-financial-negative"
+                            aria-label={gastosAnualesLiterales.eliminar}
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        )}
+                        {p.puedeEditar && !p.estaPagadaEsteCiclo && (
+                          <button
+                            onClick={() => marcarPagadoGastoAnual(p.id)}
+                            className="text-brand-primary hover:text-brand-navy font-medium text-sm"
+                            aria-label={gastosAnualesLiterales.pagar}
+                          >
+                            {gastosAnualesLiterales.pagar}
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                <div className="space-y-1">
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="text-brand-muted">
-                      {gastosAnualesLiterales.progreso(
-                        formatCurrency(p.totalDevengado),
-                        formatCurrency(p.importeTotal),
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-brand-muted">
+                        {gastosAnualesLiterales.progreso(
+                          formatCurrency(p.totalDevengado),
+                          formatCurrency(p.importeTotal),
+                        )}
+                      </span>
+                      <span className="font-mono text-brand-muted">
+                        {porcentaje}%
+                      </span>
+                    </div>
+                    <div className="h-2 w-full rounded-full bg-brand-pale overflow-hidden">
+                      <div
+                        className="h-full bg-brand-primary transition-all duration-700"
+                        style={{ width: `${Math.min(porcentaje, 100)}%` }}
+                      />
+                    </div>
+                    <p className="text-xs text-brand-muted">
+                      {gastosAnualesLiterales.para(
+                        nombreMes(p.mesPago),
+                        p.anioCiclo,
                       )}
-                    </span>
-                    <span className="font-mono text-brand-muted">
-                      {porcentaje}%
-                    </span>
+                    </p>
                   </div>
-                  <div className="h-2 w-full rounded-full bg-brand-pale overflow-hidden">
-                    <div
-                      className="h-full bg-brand-primary transition-all duration-700"
-                      style={{ width: `${Math.min(porcentaje, 100)}%` }}
-                    />
-                  </div>
-                  <p className="text-xs text-brand-muted">
-                    {gastosAnualesLiterales.para(
-                      nombreMes(p.mesPago),
-                      p.anioCiclo,
-                    )}
-                  </p>
-                </div>
-              </Card>
-            );
-          })
-        )}
-      </section>
+                </Card>
+              );
+            })
+          )}
+        </section>
+      )}
 
       <Link
-        href="/gastos/nuevo"
+        href={rutaGastosNuevo(variante)}
         className="fixed bottom-20 right-4 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-brand-primary text-white shadow-lg transition-transform active:scale-95"
         aria-label={gastosLiterales.nuevoGasto}
       >
