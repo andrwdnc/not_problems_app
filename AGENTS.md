@@ -260,7 +260,7 @@ export const historicoMovimientos = pgTable('historico_movimientos', {
 
 > **Conexión lazy (serverless):** la DB se accede siempre mediante `getDb()` (`src/infrastructure/db/connection.ts`), que crea un pool singleton cacheado a nivel global y establece la conexión **al primer uso**, no al importar el módulo. Esto evita fugas de sockets en Vercel (serverless) y permite que el build funcione sin la DB. Nunca crear un `Pool` nuevo en el cuerpo de una Server Action.
 
-> **Única base de datos (en pruebas):** mientras la app esté en fase de pruebas, **desarrollo y producción comparten la misma Supabase (Postgres)**. `DATABASE_URL`/`DIRECT_URL` apuntan a la misma instancia en todos los entornos de Vercel. Las operaciones que escriben o borran datos (`db:push`, `db:migrate`, `db:vaciar`) afectan por igual a dev y prod; no hay dataset separado por entorno. Al resetear se pierde cualquier dato (esperado: la app aún no está en producción real).
+> **Única base de datos (en pruebas):** mientras la app esté en fase de pruebas, **desarrollo y producción comparten la misma Supabase (Postgres)**. `DATABASE_URL`/`DIRECT_URL` apuntan a la misma instancia en todos los entornos de Vercel. Las operaciones que escriben o borran datos (`db:push`, `db:migrate`) afectan por igual a dev y prod; no hay dataset separado por entorno.
 
 ---
 
@@ -279,7 +279,8 @@ export const historicoMovimientos = pgTable('historico_movimientos', {
 | `npm run db:push` | Aplicar el schema Drizzle a la Supabase (única: dev y prod comparten instancia) |
 | `npm run db:migrate` | Aplicar las migraciones SQL generadas (producción) |
 | `npm run db:studio` | Abrir Drizzle Studio |
-| `npm run db:vaciar` | Vaciar la Supabase (gastos, aportaciones, histórico, meses, usuarios). Afecta a dev y prod porque comparten la misma BD; solo para fase de pruebas |
+| `npm run db:migrate:gastos-anuales` | Migrar el esquema de gastos anuales (idempotente) |
+| `npm run db:migrate:individual-accounts` | Migrar el esquema de gastos individuales (idempotente) |
 
 > Si algún script aún no existe en `package.json`, créalo en lugar de asumir que funciona.
 
@@ -305,7 +306,7 @@ export const historicoMovimientos = pgTable('historico_movimientos', {
 - Nunca commitear: `.env*`, claves, tokens ni `node_modules`.
 - **Flujo de ramas / despliegue:** el desarrollo se hace sobre `develop`; `master` es la rama de producción con despliegue automático a Vercel. Los commits de trabajos intermedios y de documentación quedan en `develop`. Promociona a `master` (con su commit en Conventional Commits) cuando el trabajo esté listo y verificado para producción.
   - **Entornos de Vercel:** `Preview` (limitada a la rama `develop`) y `Production` tienen **variables de entorno independientes**. Reparar `.env.local` no repara Vercel: una credencial válida en local puede seguir rota en el despliegue, y el síntoma es idéntico (`authErrores.errorConexion`). Tras cambiar una variable hay que relanzar el deployment (`npx vercel redeploy <url>`).
-  - **Producción:** `https://notproblems.vercel.app` (proyecto `andrew-67d3/not_problems_app`). Los previews están protegidos por SSO: un `curl` normal recibe un `302` a `vercel.com/sso-api` y no llega a la app; hay que usar `npx vercel curl /ruta --deployment <url>`.
+  - **Producción:** la rama `master` despliega automáticamente en Vercel (la URL y el nombre del proyecto no se documentan en el repo por ser públicos). Los previews están protegidos por SSO: un `curl` normal recibe un `302` a `vercel.com/sso-api` y no llega a la app; hay que usar `npx vercel curl /ruta --deployment <url>`.
 - Antes de confirmar un trabajo: `npm run typecheck && npm run lint && npm run test` (y `npm run build` si es un cambio relevante).
 
 ---

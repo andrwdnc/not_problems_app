@@ -27,7 +27,7 @@ La app no gestiona gastos personales ni dinero real: todo lo registrado en ella 
 | Estilos | Tailwind CSS | Desarrollo rápido sin diseñar un sistema de componentes desde cero |
 | Control de versiones | GitHub (repo privado) | Conecta directamente con Vercel para despliegue continuo |
 
-> **Una única base de datos:** mientras la app esté en pruebas, **desarrollo y producción comparten la misma Supabase (Postgres)**. No hay un dataset separado por entorno: las operaciones que escriben o borran datos (`db:push`, `db:migrate`, `db:vaciar`) afectan a dev y a prod por igual. Al ejecutar el reset se borran los datos (la app aún está en pruebas, no hay datos de producción real que preservar).
+> **Una única base de datos:** mientras la app esté en pruebas, **desarrollo y producción comparten la misma Supabase (Postgres)**. No hay un dataset separado por entorno: las operaciones que escriben o borran datos (`db:push`, `db:migrate`) afectan a dev y a prod por igual.
 
 ### Pasos de arranque sugeridos
 1. `npx create-next-app@latest` (TypeScript + Tailwind + App Router).

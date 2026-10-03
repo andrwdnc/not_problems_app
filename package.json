@@ -10,7 +10,6 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "db:vaciar": "tsx --env-file=.env.local scripts/vaciar-db.ts",
     "db:migrate:gastos-anuales": "tsx --env-file=.env.local scripts/migrate-gastos-anuales.ts",
     "db:migrate:individual-accounts": "tsx --env-file=.env.local scripts/migrate-individual-accounts.ts",
     "db:generate": "drizzle-kit generate",

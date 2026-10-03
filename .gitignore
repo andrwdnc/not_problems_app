@@ -9,3 +9,4 @@ drizzle
 next-env.d.ts
 .vercel
 .idea/
+.atl/
