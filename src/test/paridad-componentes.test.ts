@@ -25,18 +25,26 @@ const RAIZ = join(process.cwd(), 'src');
 const AREA_CONJUNTA = join(RAIZ, 'app/(dashboard)');
 const AREA_INDIVIDUAL = join(RAIZ, 'app/individual');
 
-/** Componentes compartidos que el área conjunta usa y la individual no. */
+/**
+ * Componentes compartidos que el área conjunta usa y la individual no.
+ *
+ * No es una lista de "los que nos gustan": es la foto real de lo que ambas
+ * áreas importan hoy, comprobada por los tests de este mismo fichero. Al
+ * alcanzarlos a través de otro componente (caso de `AnilloProgreso` y
+ * `TarjetaEstado`, que ahora quedan detrás de `InicioResumen`) desaparecen de
+ * aquí, porque ya no es la página quien elige si una pantalla los usa.
+ */
 const COMPONENTES_COMPARTIDOS = [
-  'AnilloProgreso',
   'AportarForm',
   'EditarGastoAnualForm',
   'EditarGastoForm',
   'GastoMesAcciones',
   'GastosList',
+  'InicioResumen',
   'NuevoGastoAnualForm',
   'NuevoGastoForm',
   'skeletons',
-  'TarjetaEstado',
+  'UltimosGastos',
 ];
 
 /**

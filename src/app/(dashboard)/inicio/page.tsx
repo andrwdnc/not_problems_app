@@ -6,15 +6,22 @@ import {
 } from '@/domain/rules/CalculadoraGastoAnual';
 
 export const dynamic = 'force-dynamic';
-import { aportacionRepository, gastoRepository, usuarioRepository, gastoAnualRepository } from '@/server-actions/repositories';
-import { AnilloProgreso } from '@/components/features/AnilloProgreso';
-import { TarjetaEstado } from '@/components/features/TarjetaEstado';
-import { ResumenInicioSkeleton, UltimosGastosSkeleton } from '@/components/features/skeletons';
-import { Card } from '@/components/ui/Card';
+import {
+  aportacionRepository,
+  gastoRepository,
+  usuarioRepository,
+  gastoAnualRepository,
+} from '@/server-actions/repositories';
+import { InicioResumen } from '@/components/features/InicioResumen';
+import { UltimosGastos } from '@/components/features/UltimosGastos';
+import {
+  ResumenInicioSkeleton,
+  UltimosGastosSkeleton,
+} from '@/components/features/skeletons';
 import { nombreMes } from '@/lib/formatters/date';
-import Link from 'next/link';
 import { formatCurrency } from '@/lib/formatters/currency';
 import { inicio, resumen as literalesResumen, formatos } from '@/literals';
+import type { InicioResumenVista } from '@/components/features/vista-inicio';
 
 export default function InicioPage() {
   // Cada sección resuelve su propia query y se rellena por streaming bajo su
@@ -69,79 +76,63 @@ async function ResumenInicioSection() {
     }
   }
 
-  const resumen = mes ? calcularResumen(aportaciones, gastos, mes.presupuesto, apartadoMes) : null;
+  const resumen = mes
+    ? calcularResumen(aportaciones, gastos, mes.presupuesto, apartadoMes)
+    : null;
 
-  const porcentajeAnillo =
-    resumen && resumen.porcentajePresupuesto != null
-      ? resumen.porcentajePresupuesto
-      : resumen?.porcentajeGastado ?? 0;
-  const etiquetaAnillo =
-    resumen && resumen.porcentajePresupuesto != null
-      ? literalesResumen.presupuestoRing
-      : literalesResumen.gastadoRing;
-  const superadoPresupuesto =
-    resumen?.restantePresupuesto != null && resumen.restantePresupuesto < 0;
+  // Esta función solo CONSTRUYE el modelo de vista. El markup vive en
+  // `InicioResumen`, que es el mismo componente que usa el área individual: las
+  // dos pantallas de Inicio no pueden separarse porque no tienen dos copias del
+  // JSX que separar.
+  const vista: InicioResumenVista = {
+    titulo: mes ? `${nombreMes(mes.mes)} ${mes.anio}` : inicio.sinMesAbierto,
+    hayDatos: resumen != null,
+    mensajeSinDatos: inicio.sinDatos,
+    anillo: {
+      // Con presupuesto, el anillo mide lo consumido de él; sin presupuesto, mide
+      // lo aportado. Es la misma decisión en ambas ramas.
+      porcentaje:
+        resumen?.porcentajePresupuesto ?? resumen?.porcentajeGastado ?? 0,
+      etiqueta:
+        resumen?.porcentajePresupuesto != null
+          ? literalesResumen.presupuestoRing
+          : literalesResumen.gastadoRing,
+    },
+    cifraAnillo: {
+      etiqueta: literalesResumen.presupuesto,
+      valor: resumen?.presupuesto ?? null,
+    },
+    tarjetas: resumen
+      ? [
+          {
+            variante: 'aportado',
+            etiqueta: literalesResumen.aportado,
+            importe: resumen.aportado,
+          },
+          {
+            variante: 'gastado',
+            etiqueta: literalesResumen.gastado,
+            importe: resumen.gastado,
+          },
+          {
+            variante: 'ahorro',
+            etiqueta: literalesResumen.ahorro,
+            importe: resumen.ahorro,
+          },
+        ]
+      : [],
+    avisoSuperado:
+      resumen?.restantePresupuesto != null && resumen.restantePresupuesto < 0
+        ? inicio.teHasPasadoPresupuesto(
+            formatCurrency(-(resumen.restantePresupuesto as number)),
+          )
+        : undefined,
+    notaCifraAnillo: resumen
+      ? `· ${inicio.contadorGastos(resumen.numeroGastos)}`
+      : undefined,
+  };
 
-  return (
-    <>
-      <header className="flex items-center justify-between">
-        <h1 className="text-xl font-bold text-brand-navy">
-          {mes ? `${nombreMes(mes.mes)} ${mes.anio}` : inicio.sinMesAbierto}
-        </h1>
-      </header>
-
-      {resumen ? (
-        <>
-          <Card className="flex flex-col items-center gap-4 py-6">
-            <AnilloProgreso porcentaje={porcentajeAnillo} etiqueta={etiquetaAnillo} />
-            <p className="text-center text-sm text-brand-muted">
-              {literalesResumen.presupuesto}:{' '}
-              {resumen.presupuesto != null ? (
-                <span className="font-mono font-semibold text-brand-ink">
-                  {formatCurrency(resumen.presupuesto)}
-                </span>
-              ) : (
-                <span className="font-mono font-semibold text-brand-muted">{formatos.vacio}</span>
-              )}{' '}
-              · {inicio.contadorGastos(resumen.numeroGastos)}
-            </p>
-          </Card>
-
-          <div className="flex min-w-0 flex-wrap gap-2 sm:flex-nowrap sm:gap-3">
-            <TarjetaEstado
-              variante="aportado"
-              etiqueta={literalesResumen.aportado}
-              importe={resumen.aportado}
-            />
-            <TarjetaEstado
-              variante="gastado"
-              etiqueta={literalesResumen.gastado}
-              importe={resumen.gastado}
-            />
-            <TarjetaEstado
-              variante="ahorro"
-              etiqueta={literalesResumen.ahorro}
-              importe={resumen.ahorro}
-            />
-          </div>
-
-          {superadoPresupuesto && (
-            <p className="rounded-xl bg-financial-negativeBg p-3 text-center text-sm font-medium text-financial-negative">
-              {inicio.teHasPasadoPresupuesto(
-                formatCurrency(-(resumen.restantePresupuesto as number)),
-              )}
-            </p>
-          )}
-        </>
-      ) : (
-        <Card>
-          <p className="text-sm text-brand-muted">
-            {inicio.sinDatos}
-          </p>
-        </Card>
-      )}
-    </>
-  );
+  return <InicioResumen vista={vista} />;
 }
 
 async function UltimosGastosSection() {
@@ -155,47 +146,20 @@ async function UltimosGastosSection() {
   if (!mes) return null;
 
   const gastos = await gastoRepository.findByMes(mes.id);
-  const ultimosGastos = gastos.slice(0, 3);
   const usuarioPorId = new Map(usuarios.map((u) => [u.id, u.username]));
 
   return (
-    <section>
-      <div className="mb-2 flex items-center justify-between">
-        <h2 className="text-base font-semibold text-brand-navy">
-          {inicio.ultimosGastos}
-        </h2>
-        <Link
-          href="/gastos"
-          className="text-sm font-medium text-brand-primary"
-        >
-          {inicio.verTodos}
-        </Link>
-      </div>
-      {ultimosGastos.length === 0 ? (
-        <Card>
-          <p className="text-sm text-brand-muted">
-            {inicio.sinGastosMes}
-          </p>
-        </Card>
-      ) : (
-        <div className="space-y-2">
-          {ultimosGastos.map((g) => (
-            <Card key={g.id} className="flex min-w-0 items-center justify-between">
-              <div className="min-w-0">
-                <p className="truncate text-sm font-medium text-brand-ink">
-                  {g.detalle}
-                </p>
-                <p className="text-xs text-brand-muted">
-                  {g.categoria} · {usuarioPorId.get(g.creadoPor) ?? formatos.vacio}
-                </p>
-              </div>
-              <span className="ml-4 shrink-0 font-mono text-sm font-semibold text-financial-negative">
-                {formatCurrency(g.importe)}
-              </span>
-            </Card>
-          ))}
-        </div>
-      )}
-    </section>
+    <UltimosGastos
+      variante="conjunta"
+      gastos={gastos.map((g) => ({
+        id: g.id,
+        detalle: g.detalle,
+        categoria: g.categoria,
+        importe: g.importe,
+        // Se conserva el comportamiento previo: un `creadoPor` que no esté en el
+        // mapa se pintaba como marcador de formato, no como hueco vacío.
+        creador: usuarioPorId.get(g.creadoPor) ?? formatos.vacio,
+      }))}
+    />
   );
 }
