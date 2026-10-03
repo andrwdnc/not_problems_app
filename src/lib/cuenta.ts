@@ -41,6 +41,11 @@ export function rutaGastosNuevo(variante: VarianteCuenta): string {
   return `${prefijoDe(variante)}/gastos/nuevo`;
 }
 
+/** Ruta del detalle de un gasto según la variante. */
+export function rutaGastoDetalle(variante: VarianteCuenta, gastoId: string): string {
+  return `${prefijoDe(variante)}/gastos/${gastoId}`;
+}
+
 /** Campos comunes del formulario de gasto (conjunto e individual). */
 export interface CamposGastoBase {
   categoria: Categoria;

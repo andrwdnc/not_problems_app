@@ -14,7 +14,7 @@ import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { formatCurrency } from '@/lib/formatters/currency';
 import { formatShortDate, nombreMes } from '@/lib/formatters/date';
-import { GastoIndividualMesAcciones } from '@/components/features/GastoIndividualMesAcciones';
+import { GastoMesAcciones } from '@/components/features/GastoMesAcciones';
 import { IndividualHistoricoDetalleSkeleton } from '@/components/features/skeletons';
 import { historicoDetalle, individual, resumen, gastos as gastosLiterales, formatos } from '@/literals';
 
@@ -136,10 +136,11 @@ async function HistoricoIndividualDetalleSection({ id }: { id: string }) {
                   <span className="font-mono text-sm font-semibold text-financial-negative">
                     {formatCurrency(g.importe)}
                   </span>
-                  <GastoIndividualMesAcciones
+                  <GastoMesAcciones
                     gastoId={g.id}
                     puedeEditar={permisos.puedeEditar}
                     puedeEliminar={permisos.puedeEliminar}
+                    variante="individual"
                   />
                 </div>
               </div>
