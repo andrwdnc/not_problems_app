@@ -1,10 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { calcularResumen } from './queries';
-import {
-  calcularDisponibleIndividual,
-  porcentajeJointDesdeIndividual,
-  porcentajeIndividualDesdeJoint,
-} from '../domain/rules/CalculadoraIndividual';
+import { calcularDisponibleIndividual } from '../domain/rules/CalculadoraIndividual';
 import { calcularImporteAportado } from '../domain/rules/CalculadoraAportacion';
 
 // Cifras expresadas en céntimos enteros (100 = 1 €).
@@ -219,42 +215,42 @@ describe('calcularResumen', () => {
 // fijan la derivación contra la regla pura de T5 (CalculadoraIndividual) de
 // la misma forma en que `obtenerResumenIndividual` la compondrá en S3.
 describe('derivación del resumen individual (vs regla T5)', () => {
+  // El área individual comparte el porcentaje único del mes, así que el mismo
+  // `calcularDisponibleIndividual` debe quedarse pegado a `calcularResumen`:
+  // mi cuota es exactamente lo que aporta la cuenta conjunta por mi parte.
   const disponibleIndividual = (
     sueldoCentimos: number,
-    joint: number,
+    porcentaje: number,
     gastosCentimos: Array<{ importe: number }>,
-  ) => calcularDisponibleIndividual(
-    sueldoCentimos,
-    porcentajeIndividualDesdeJoint(joint),
-    gastosCentimos,
-  );
+  ) => calcularDisponibleIndividual(sueldoCentimos, porcentaje, gastosCentimos);
 
-  it('IA-2 feliz: sueldo 2000 €, X=30 (joint 70), gastos 150 € -> disponible 450 €', () => {
-    expect(disponibleIndividual(200000, 70, [{ importe: 15000 }])).toBe(45000);
+  it('IA-2 feliz: sueldo 2000 €, 30 %, gastos 150 € -> disponible 450 €', () => {
+    expect(disponibleIndividual(200000, 30, [{ importe: 15000 }])).toBe(45000);
   });
 
   it('IA-2 déficit: gastos 700 € frente a cuota 600 € -> disponible -100 €', () => {
-    expect(disponibleIndividual(200000, 70, [{ importe: 70000 }])).toBe(-10000);
+    expect(disponibleIndividual(200000, 30, [{ importe: 70000 }])).toBe(-10000);
   });
 
   it('sin gastos, el disponible es la cuota completa (sueldo 2000 € × 30 %)', () => {
-    expect(disponibleIndividual(200000, 70, [])).toBe(60000);
+    expect(disponibleIndividual(200000, 30, [])).toBe(60000);
   });
 
-  it('consistencia con el recálculo conjunto: cuota individual + importe_aportado = sueldo', () => {
-    // X = 30 -> J = 100 - 30 = 70 (una única inversión, D3).
+  it('paridad con la cuenta conjunta: mi cuota coincide con lo que aporta mi aportación', () => {
+    // Al compartir porcentaje, la cuota individual NO es el complemento: es
+    // exactamente `importe_aportado` de mi aportación en el resumen conjunto.
+    // Esa equivalencia es la que sostiene que ambas áreas pintan lo mismo.
     const sueldo = 200000;
-    const individual = 30;
-    const joint = porcentajeJointDesdeIndividual(individual);
-    expect(joint).toBe(70);
-    // La cuota individual (30 %) y el importe aportado conjunto (70 %)
-    // recomponen el sueldo sin pérdidas: no hay doble inversión (MP-1).
-    const cuotaIndividual = calcularImporteAportado(sueldo, individual);
-    const importeAportado = calcularImporteAportado(sueldo, joint);
-    expect(cuotaIndividual).toBe(60000);
-    expect(importeAportado).toBe(140000);
-    // `?? 0` solo para acotar el tipo: los toBe de arriba ya fijan ambos valores.
-    expect((cuotaIndividual ?? 0) + (importeAportado ?? 0)).toBe(sueldo);
+    const porcentaje = 30;
+    const miAportacion = aportacion(calcularImporteAportado(sueldo, porcentaje));
+
+    const resumenConjunto = calcularResumen([miAportacion], [], null);
+    expect(resumenConjunto.aportado).toBe(60000);
+
+    // Mi disponible individual con los mismos gastos es mi cuota menos lo gastado.
+    expect(disponibleIndividual(sueldo, porcentaje, [])).toBe(
+      resumenConjunto.aportado,
+    );
   });
 
   it('sin sueldo registrado, el disponible es null (estado vacío para la UI)', () => {

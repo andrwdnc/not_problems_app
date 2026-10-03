@@ -2,24 +2,26 @@ import { obtenerMesActual } from './queries';
 import { mesRepository, aportacionRepository, gastoIndividualRepository } from './repositories';
 import { ventanaDeMes } from '@/domain/rules/VentanaEdicionGastos';
 import type { PermisosEdicion } from '@/domain/rules/VentanaEdicionGastos';
-import { calcularDisponibleIndividual, porcentajeIndividualDesdeJoint } from '@/domain/rules/CalculadoraIndividual';
+import { calcularDisponibleIndividual } from '@/domain/rules/CalculadoraIndividual';
 import type { Aportacion, GastoIndividual, Mes } from '@/domain/entities';
 
 /**
  * Resumen mensual del área individual (IA-2). Todos los importes en céntimos
- * enteros. Por diseño (D3/MP-1), el porcentaje individual X se deriva del
- * porcentaje conjunto persistido: NUNCA se guarda un X en la base de datos.
+ * enteros.
+ *
+ * El porcentaje es el MISMO valor único y compartido que usa la cuenta conjunta
+ * (`meses.porcentaje`): no hay porcentaje derivado ni inversión. La cuota es por
+ * tanto mi aportación al mes, calculada con la misma regla pura que en el área
+ * conjunta.
  */
 export interface ResumenIndividual {
   mesId: string;
   anio: number;
   mes: number;
-  /** Porcentaje conjunto persistido (meses.porcentaje). */
-  porcentajeJoint: number | null;
-  /** Porcentaje individual derivado X = 100 - joint. */
-  porcentajeIndividual: number | null;
+  /** Porcentaje único y compartido del mes (`meses.porcentaje`). */
+  porcentaje: number | null;
   sueldo: number | null;
-  /** Cuota mensual = sueldo * X / 100. */
+  /** Mi cuota mensual = sueldo * porcentaje / 100. */
   cuota: number | null;
   /** Suma de gastos individuales del mes (siempre visible aunque falte sueldo). */
   gastado: number;
@@ -49,8 +51,7 @@ export function derivarResumenIndividual(
       mesId: '',
       anio: 0,
       mes: 0,
-      porcentajeJoint: null,
-      porcentajeIndividual: null,
+      porcentaje: null,
       sueldo: null,
       cuota: null,
       gastado: 0,
@@ -58,19 +59,14 @@ export function derivarResumenIndividual(
     };
   }
 
-  const porcentajeJoint = mes.porcentaje;
-  const porcentajeIndividual =
-    porcentajeJoint != null ? porcentajeIndividualDesdeJoint(porcentajeJoint) : null;
-
+  const porcentaje = mes.porcentaje;
   const sueldo = aportacion?.sueldo ?? null;
   const gastado = gastos.reduce((acc, g) => acc + g.importe, 0);
 
-  // calcularDisponibleIndividual valida "1 <= X <= 99": el caso degenerado
-  // joint=100 -> X=0 deja cuota y disponible en null (fila en gris, MP-2).
   let disponible: number | null = null;
   let cuota: number | null = null;
-  if (sueldo != null && porcentajeIndividual != null) {
-    disponible = calcularDisponibleIndividual(sueldo, porcentajeIndividual, gastos);
+  if (sueldo != null && porcentaje != null) {
+    disponible = calcularDisponibleIndividual(sueldo, porcentaje, gastos);
     if (disponible != null) {
       cuota = disponible + gastado;
     }
@@ -80,8 +76,7 @@ export function derivarResumenIndividual(
     mesId: mes.id,
     anio: mes.anio,
     mes: mes.mes,
-    porcentajeJoint,
-    porcentajeIndividual,
+    porcentaje,
     sueldo,
     cuota,
     gastado,

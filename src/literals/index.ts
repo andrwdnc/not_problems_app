@@ -182,11 +182,11 @@ export const aportar = {
 /**
  * Errores de validación de los formularios de la cuenta individual. Los
  * esquemas de servidor (T14) rechazan cualquier campo foráneo (usuarioId,
- * mesId) y acotan el porcentaje individual al rango 1-99 (MP-2).
+ * mesId). El porcentaje usa las mismas reglas de rango que la cuenta conjunta,
+ * porque las dos áreas fijan el mismo valor único y compartido del mes.
  */
 export const individualErrores = {
   campoNoPermitido: 'Campos no permitidos en esta operación',
-  porcentajeRango: 'El porcentaje debe estar entre 1 y 99',
 };
 
 /**

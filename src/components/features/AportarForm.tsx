@@ -3,6 +3,10 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { fijarSueldo, fijarPorcentaje, fijarPresupuesto } from '@/server-actions/aportaciones-actions';
+import {
+  fijarSueldoIndividual,
+  fijarPorcentajeIndividual,
+} from '@/server-actions/individual-actions';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Badge } from '@/components/ui/Badge';
@@ -15,18 +19,38 @@ import {
   calcularImporteAportado,
 } from '@/domain/rules/CalculadoraAportacion';
 import type { Aportacion, Mes, Usuario } from '@/domain/entities';
+import type { VarianteCuenta } from '@/lib/cuenta';
 import { aportar, formatos } from '@/literals';
 
 interface AportarFormProps {
   mes: Mes;
   usuarios: Usuario[];
   aportaciones: Aportacion[];
+  /**
+   * Área de cuenta.
+   *
+   * La ÚNICA diferencia funcional entre las dos áreas es el número de sueldos:
+   * la conjunta recibe las 2 aportaciones y pinta 2 tarjetas; la individual
+   * recibe 1 aportación y pinta 1. Todo lo demás —marcador de pendiente, forma
+   * de fijar el sueldo, inmutabilidad, recálculo optimista del importe aportado,
+   * tarjeta de porcentaje y footer— es el MISMO componente.
+   *
+   * Las dos tarjetas de conceptos conjuntos (presupuesto y total de la cuenta
+   * compartida) se omiten en el área individual: no son "otra área", son datos
+   * que solo existen cuando hay dos aportes.
+   *
+   * `usuarioId` se deriva de la sesión en el área individual: aquí solo se usa
+   * como "a quién pertenece este sueldo" para iterar, nunca se envía desde el
+   * cliente (los esquemas lo rechazan con `.strict()`).
+   */
+  variante?: VarianteCuenta;
 }
 
 export function AportarForm({
   mes: mesInicial,
   usuarios,
   aportaciones: aportacionesIniciales,
+  variante = 'conjunta',
 }: AportarFormProps) {
   const router = useRouter();
   const [mensaje, setMensaje] = useState<string | null>(null);
@@ -63,11 +87,12 @@ export function AportarForm({
     setMensaje(null);
     setEnviando(`sueldo:${usuarioId}`);
     try {
-      const resultado = await fijarSueldo({
-        mesId: mes.id,
-        usuarioId,
-        sueldo,
-      });
+      // En el área individual el dueño lo resuelve la Server Action desde la
+      // sesión; aquí solo se le pasa el mes y el sueldo escrito.
+      const resultado =
+        variante === 'individual'
+          ? await fijarSueldoIndividual({ mesId: mes.id, sueldo })
+          : await fijarSueldo({ mesId: mes.id, usuarioId, sueldo });
       if (!resultado.ok) {
         setMensaje(resultado.error);
         return;
@@ -91,7 +116,12 @@ export function AportarForm({
     setMensaje(null);
     setEnviando('porcentaje');
     try {
-      const resultado = await fijarPorcentaje({ mesId: mes.id, porcentaje });
+      // Ambas áreas fijan el MISMO porcentaje único y compartido del mes; solo
+      // cambia quién lo pide y a qué rutas hay que revalidar.
+      const resultado =
+        variante === 'individual'
+          ? await fijarPorcentajeIndividual({ mesId: mes.id, porcentaje })
+          : await fijarPorcentaje({ mesId: mes.id, porcentaje });
       if (!resultado.ok) {
         setMensaje(resultado.error);
         return;
@@ -239,58 +269,66 @@ export function AportarForm({
         )}
       </Card>
 
-      <Card className="border-brand-primary/30 bg-brand-pale/40">
-        <h3 className="mb-2 flex items-center gap-2 text-sm font-semibold text-brand-navy">
-          {aportar.presupuestoGastos}
-          {mes.presupuesto != null && <Lock size={14} className="text-brand-muted" />}
-        </h3>
-        {mes.presupuesto != null ? (
-          <>
-            <p className="font-mono text-3xl font-bold text-brand-navy">
-              {formatCurrency(mes.presupuesto)}
-            </p>
-            {(() => {
-              const fijadoPorUsuario = mes.presupuestoFijadoPor
-                ? usuarios.find((u) => u.id === mes.presupuestoFijadoPor)
-                : null;
-              if (!fijadoPorUsuario || !mes.presupuestoFechaRegistro) return null;
-              return (
-                <p className="mt-1 text-xs text-brand-muted">
-                  {aportar.fijadoPor(
-                    fijadoPorUsuario.username,
-                    formatShortDate(mes.presupuestoFechaRegistro),
-                  )}
-                </p>
-              );
-            })()}
-          </>
-        ) : (
-          <form action={guardarPresupuesto}>
-            <Input
-              label={aportar.presupuestoUnicoMes}
-              name="presupuesto"
-              type="text"
-              inputMode="decimal"
-              autoComplete="off"
-              pattern="[0-9]*[.,]?[0-9]*"
-              value={presupuestoValor}
-              onChange={(e) => setPresupuestoValor(e.target.value)}
-              placeholder={formatos.importeEjemplo}
-              required
-            />
-            <Button
-              type="submit"
-              fullWidth
-              className="mt-3"
-              loading={enviando === 'presupuesto'}
-            >
-              {aportar.fijarPresupuesto}
-            </Button>
-          </form>
-        )}
-      </Card>
+      {/* El presupuesto es un concepto exclusivo de la cuenta conjunta: en el
+          área individual la tarjeta se omite hasta que exista un presupuesto
+          propio por usuario (tabla `presupuestos_individuales`). */}
+      {variante === 'conjunta' && (
+        <Card className="border-brand-primary/30 bg-brand-pale/40">
+          <h3 className="mb-2 flex items-center gap-2 text-sm font-semibold text-brand-navy">
+            {aportar.presupuestoGastos}
+            {mes.presupuesto != null && <Lock size={14} className="text-brand-muted" />}
+          </h3>
+          {mes.presupuesto != null ? (
+            <>
+              <p className="font-mono text-3xl font-bold text-brand-navy">
+                {formatCurrency(mes.presupuesto)}
+              </p>
+              {(() => {
+                const fijadoPorUsuario = mes.presupuestoFijadoPor
+                  ? usuarios.find((u) => u.id === mes.presupuestoFijadoPor)
+                  : null;
+                if (!fijadoPorUsuario || !mes.presupuestoFechaRegistro) return null;
+                return (
+                  <p className="mt-1 text-xs text-brand-muted">
+                    {aportar.fijadoPor(
+                      fijadoPorUsuario.username,
+                      formatShortDate(mes.presupuestoFechaRegistro),
+                    )}
+                  </p>
+                );
+              })()}
+            </>
+          ) : (
+            <form action={guardarPresupuesto}>
+              <Input
+                label={aportar.presupuestoUnicoMes}
+                name="presupuesto"
+                type="text"
+                inputMode="decimal"
+                autoComplete="off"
+                pattern="[0-9]*[.,]?[0-9]*"
+                value={presupuestoValor}
+                onChange={(e) => setPresupuestoValor(e.target.value)}
+                placeholder={formatos.importeEjemplo}
+                required
+              />
+              <Button
+                type="submit"
+                fullWidth
+                className="mt-3"
+                loading={enviando === 'presupuesto'}
+              >
+                {aportar.fijarPresupuesto}
+              </Button>
+            </form>
+          )}
+        </Card>
+      )}
 
-      {mes.porcentaje != null && (
+      {/* El total de la cuenta conjunta solo tiene sentido con dos aportes. En el
+          área individual la única aportación ES la cuota, así que la tarjeta
+          repetiría la cifra de arriba con un rótulo engañoso: se omite. */}
+      {variante === 'conjunta' && mes.porcentaje != null && (
         <Card className="bg-brand-navy">
           <p className="text-xs text-brand-sky">{aportar.totalCuentaConjunta}</p>
           <p className="font-mono text-2xl font-bold text-white">
@@ -308,7 +346,7 @@ export function AportarForm({
       </p>
 
       {mensaje && (
-        <p className="rounded-xl bg-financial-negativeBg p-3 text-center text-sm text-financial-negative">
+        <p className="rounded-xl bg-financial-negativeBg p-3 text-center text-sm font-medium text-financial-negative">
           {mensaje}
         </p>
       )}

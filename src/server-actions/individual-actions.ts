@@ -14,7 +14,6 @@ import { fijarSueldoCore, fijarPorcentajeCore } from './aportaciones-core';
 import { gastoIndividualRepository, mesRepository } from './repositories';
 import { auditarMovimiento } from '@/infrastructure/audit/auditarMovimiento';
 import { ventanaEdicionGastos } from '@/domain/rules/VentanaEdicionGastos';
-import { porcentajeJointDesdeIndividual } from '@/domain/rules/CalculadoraIndividual';
 import { getCurrentUserId } from '@/server/auth';
 import type { Aportacion, GastoIndividual, Mes } from '@/domain/entities';
 import type { ActionResult } from './action-result';
@@ -258,9 +257,14 @@ export async function fijarSueldoIndividual(
 }
 
 /**
- * Fija el porcentaje individual "mi porcentaje" X (1-99). ÚNICO punto de
- * inversión (D3, MP-1): X se traduce a joint 100 - X antes de persistir vía el
- * mismo core conjunto -> importe_aportado se recalcula por el mismo camino.
+ * Fija el porcentaje único y compartido del mes desde el área individual.
+ *
+ * El área individual ya no manipula un porcentaje propio: escribe directamente
+ * `meses.porcentaje` a través del MISMO core que la cuenta conjunta, con la
+ * misma validación y las mismas consecuencias (inmutabilidad, recálculo reactivo
+ * de `importe_aportado` para todas las aportaciones del mes y auditoría). Por
+ * eso la paridad es real y no solo visual: las dos áreas comparten una única
+ * fuente de verdad.
  */
 export async function fijarPorcentajeIndividual(
   input: unknown,
@@ -277,9 +281,7 @@ export async function fijarPorcentajeIndividual(
 
   const { mesId, porcentaje } = parsed.data;
 
-  const porcentajeConjunto = porcentajeJointDesdeIndividual(porcentaje);
-
-  const resultado = await fijarPorcentajeCore(usuarioId, mesId, porcentajeConjunto);
+  const resultado = await fijarPorcentajeCore(usuarioId, mesId, porcentaje);
 
   if (resultado.ok) {
     revalidarAmbasAreas();

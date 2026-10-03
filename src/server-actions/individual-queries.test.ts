@@ -15,15 +15,14 @@ const gasto = (importe: number) =>
   ({ id: 'g1', mesId: 'mes-2026-9', importe }) as any as import('@/domain/entities').GastoIndividual;
 
 describe('derivarResumenIndividual (IA-2)', () => {
-  it('calcula cuota, gastado y disponible: sueldo 2000€, X=30%, gastos 150€', () => {
+  it('calcula cuota, gastado y disponible: sueldo 2000€, 30%, gastos 150€', () => {
     const resumen = derivarResumenIndividual(
-      mes(2026, 9, 70), // joint 70 -> individual X = 30
+      mes(2026, 9, 30), // mismo porcentaje único y compartido del mes
       aportacion(200000),
       [gasto(15000)],
     );
 
-    expect(resumen.porcentajeJoint).toBe(70);
-    expect(resumen.porcentajeIndividual).toBe(30);
+    expect(resumen.porcentaje).toBe(30);
     expect(resumen.sueldo).toBe(200000);
     expect(resumen.gastado).toBe(15000);
     expect(resumen.cuota).toBe(60000); // 200000 * 0.30
@@ -32,7 +31,7 @@ describe('derivarResumenIndividual (IA-2)', () => {
 
   it('permite déficit negativo cuando los gastos superan la cuota', () => {
     const resumen = derivarResumenIndividual(
-      mes(2026, 9, 70),
+      mes(2026, 9, 30),
       aportacion(200000),
       [gasto(70000)],
     );
@@ -42,7 +41,7 @@ describe('derivarResumenIndividual (IA-2)', () => {
 
   it('sin gastos el disponible coincide con la cuota', () => {
     const resumen = derivarResumenIndividual(
-      mes(2026, 9, 70),
+      mes(2026, 9, 30),
       aportacion(200000),
       [],
     );
@@ -51,29 +50,32 @@ describe('derivarResumenIndividual (IA-2)', () => {
     expect(resumen.disponible).toBe(60000);
   });
 
-  it('sin porcentaje conjunto no hay cuota ni disponible', () => {
+  it('sin porcentaje no hay cuota ni disponible', () => {
     const resumen = derivarResumenIndividual(
       mes(2026, 9, null),
       aportacion(200000),
       [gasto(15000)],
     );
 
-    expect(resumen.porcentajeIndividual).toBeNull();
+    expect(resumen.porcentaje).toBeNull();
     expect(resumen.cuota).toBeNull();
     expect(resumen.disponible).toBeNull();
     expect(resumen.gastado).toBe(15000); // el gasto sí se muestra
   });
 
-  it('caso degenerado joint=100 -> X=0 inválido -> fila en gris (MP-2)', () => {
+  it('el 100 % es un valor legítimo: cuota íntegra, sin fila en gris', () => {
+    // Antes el 100 % conjunto era degenerado (el complemento daba 0 y se
+    // invalidaba la fila). Al compartir el mismo porcentaje, 100 % significa
+    // "aportas tu sueldo íntegro" y debe calcularse con normalidad.
     const resumen = derivarResumenIndividual(
       mes(2026, 9, 100),
       aportacion(200000),
       [gasto(15000)],
     );
 
-    expect(resumen.porcentajeIndividual).toBe(0);
-    expect(resumen.cuota).toBeNull();
-    expect(resumen.disponible).toBeNull();
+    expect(resumen.porcentaje).toBe(100);
+    expect(resumen.cuota).toBe(200000);
+    expect(resumen.disponible).toBe(185000);
   });
 
   it('sin mes devuelve un resumen vacío sin lanzar', () => {
@@ -92,9 +94,9 @@ describe('derivarHistoricoIndividual (IA-2)', () => {
 
   it('incluye solo meses con datos, ordenados desc, con sus permisos', () => {
     const meses = [
-      mes(2026, 9, 70),
-      mes(2026, 8, 70),
-      mes(2026, 7, 70),
+      mes(2026, 9, 30),
+      mes(2026, 8, 30),
+      mes(2026, 7, 30),
       mes(2026, 6, 70), // sin datos -> debe quedar excluido
     ];
     const aportaciones = [
@@ -131,7 +133,7 @@ describe('derivarHistoricoIndividual (IA-2)', () => {
   });
 
   it('un mes con solo gastos (sin sueldo) cuenta como histórico', () => {
-    const meses = [mes(2026, 9, 70), mes(2026, 8, null)];
+    const meses = [mes(2026, 9, 30), mes(2026, 8, null)];
     const historico = derivarHistoricoIndividual(hoy, meses, [], [
       { ...gasto(3000), mesId: 'mes-2026-8' },
     ]);

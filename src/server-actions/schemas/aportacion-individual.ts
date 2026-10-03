@@ -4,7 +4,6 @@ import {
   esImporteValido,
   numeroDecimalDesdeCadena,
 } from '@/domain/value-objects/ImporteMoneda';
-import { esPorcentajeIndividualValido } from '@/domain/rules/CalculadoraIndividual';
 import { aportacionErrores, individualErrores } from '@/literals';
 
 // El usuario escribe su sueldo individual en euros ("2500"); convertimos a
@@ -22,18 +21,19 @@ export const sueldoIndividualSchema = z
   })
   .strict(individualErrores.campoNoPermitido);
 
-// El porcentaje individual se escribe con coma o punto ("12,5") como el
-// conjunto, pero acotado a X en [1, 99] (MP-2): el joint (100 - X) recibe
-// siempre al menos un 1 %.
+// El área individual fija el MISMO porcentaje único y compartido del mes que la
+// cuenta conjunta (`meses.porcentaje`), así que la validación es idéntica a la
+// de `schemas/aportacion.ts`: 0 < porcentaje <= 100. `.strict()` es lo que
+// mantiene la frontera de privacidad: rechaza `usuarioId` aunque el cliente lo
+// envíe, porque el dueño siempre se deriva de la sesión (IA-4).
 const porcentajeDecimal = z.string().transform(numeroDecimalDesdeCadena);
 
 export const porcentajeIndividualSchema = z
   .object({
     mesId: z.string().uuid(),
-    porcentaje: porcentajeDecimal.refine(
-      esPorcentajeIndividualValido,
-      individualErrores.porcentajeRango,
-    ),
+    porcentaje: porcentajeDecimal
+      .refine((v) => v > 0, aportacionErrores.porcentajePositivo)
+      .refine((v) => v <= 100, aportacionErrores.porcentajeMaximo),
   })
   .strict(individualErrores.campoNoPermitido);
 

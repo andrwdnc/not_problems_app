@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { authErrores, gastosErrores, individualErrores } from '@/literals';
+import { aportacionErrores, authErrores, gastosErrores, individualErrores } from '@/literals';
 
 // Núcleo de los tests: las acciones individuales orquestan (sesión -> esquema
 // -> reglas/repositorio -> auditoría -> revalidación). Los límites con I/O se
@@ -84,28 +84,39 @@ describe('fijarPorcentajeIndividual (IA-4, MP-1, MP-2)', () => {
     expect(porcentajeCoreMock).not.toHaveBeenCalled();
   });
 
-  it('invierte X -> joint (100 - X) una única vez y persiste vía core (MP-1)', async () => {
+  it('persiste el porcentaje tal cual vía el core compartido, sin invertirlo', async () => {
     getCurrentUserIdMock.mockResolvedValue('u1');
-    porcentajeCoreMock.mockResolvedValue({ ok: true, data: { id: mesId, porcentaje: 70 } });
+    porcentajeCoreMock.mockResolvedValue({ ok: true, data: { id: mesId, porcentaje: 30 } });
 
     const resultado = await fijarPorcentajeIndividual({ mesId, porcentaje: '30' });
 
     expect(resultado.ok).toBe(true);
-    // X=30 (mío) -> joint 70 (lo que se guarda en meses.porcentaje).
-    expect(porcentajeCoreMock).toHaveBeenCalledWith('u1', mesId, 70);
+    // Paridad de dominio: el área individual escribe el MISMO
+    // `meses.porcentaje` que la conjunta, sin complemento 100-X ni traducción.
+    expect(porcentajeCoreMock).toHaveBeenCalledWith('u1', mesId, 30);
     // Revalida el área individual y la conjunta (ambas leen % e importe_aportado).
     expect(revalidatePathMock).toHaveBeenCalledWith('/individual/aportar');
     expect(revalidatePathMock).toHaveBeenCalledWith('/aportar');
   });
 
-  it('X=0 es rechazado por el esquema (MP-2) sin llamar al core', async () => {
+  it('acepta el 100 % (mismo rango que la cuenta conjunta)', async () => {
+    getCurrentUserIdMock.mockResolvedValue('u1');
+    porcentajeCoreMock.mockResolvedValue({ ok: true, data: { id: mesId, porcentaje: 100 } });
+
+    const resultado = await fijarPorcentajeIndividual({ mesId, porcentaje: '100' });
+
+    expect(resultado.ok).toBe(true);
+    expect(porcentajeCoreMock).toHaveBeenCalledWith('u1', mesId, 100);
+  });
+
+  it('X=0 es rechazado por el esquema sin llamar al core', async () => {
     getCurrentUserIdMock.mockResolvedValue('u1');
 
     const resultado = await fijarPorcentajeIndividual({ mesId, porcentaje: '0' });
 
     expect(resultado.ok).toBe(false);
     if (!resultado.ok) {
-      expect(resultado.error).toContain(individualErrores.porcentajeRango);
+      expect(resultado.error).toContain(aportacionErrores.porcentajePositivo);
     }
     expect(porcentajeCoreMock).not.toHaveBeenCalled();
   });

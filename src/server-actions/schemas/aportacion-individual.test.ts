@@ -49,10 +49,12 @@ describe('sueldoIndividualSchema', () => {
   });
 });
 
-describe('porcentajeIndividualSchema (MP-2: rango 1-99)', () => {
+// El área individual fija el mismo porcentaje único y compartido del mes que la
+// cuenta conjunta, así que el rango válido es idéntico: 0 < porcentaje <= 100.
+describe('porcentajeIndividualSchema (paridad con el conjunto: 0 < % <= 100)', () => {
   const mesId = '123e4567-e89b-12d3-a456-426614174000';
 
-  it('acepta X=30 (mi porcentaje individual)', () => {
+  it('acepta el 30 %', () => {
     const resultado = porcentajeIndividualSchema.safeParse({
       mesId,
       porcentaje: '30',
@@ -63,20 +65,28 @@ describe('porcentajeIndividualSchema (MP-2: rango 1-99)', () => {
     }
   });
 
-  it('acepta los límites X=1 y X=99 (joint siempre >= 1%)', () => {
+  it('acepta los límites 1 % y 100 %', () => {
     const uno = porcentajeIndividualSchema.safeParse({ mesId, porcentaje: '1' });
-    const noventaYNueve = porcentajeIndividualSchema.safeParse({
-      mesId,
-      porcentaje: '99',
-    });
+    const cien = porcentajeIndividualSchema.safeParse({ mesId, porcentaje: '100' });
     expect(uno.success).toBe(true);
-    expect(noventaYNueve.success).toBe(true);
+    expect(cien.success).toBe(true);
     if (uno.success) {
       expect(uno.data.porcentaje).toBe(1);
     }
   });
 
-  it('rechaza X=0 (joint 100%)', () => {
+  it('acepta porcentajes decimales (12,5)', () => {
+    const resultado = porcentajeIndividualSchema.safeParse({
+      mesId,
+      porcentaje: '12,5',
+    });
+    expect(resultado.success).toBe(true);
+    if (resultado.success) {
+      expect(resultado.data.porcentaje).toBe(12.5);
+    }
+  });
+
+  it('rechaza el 0 % con el mismo mensaje que la cuenta conjunta', () => {
     const resultado = porcentajeIndividualSchema.safeParse({
       mesId,
       porcentaje: '0',
@@ -85,36 +95,28 @@ describe('porcentajeIndividualSchema (MP-2: rango 1-99)', () => {
     if (!resultado.success) {
       expect(
         resultado.error.issues.some(
-          (i) => i.message === individualErrores.porcentajeRango,
+          (i) => i.message === aportacionErrores.porcentajePositivo,
         ),
       ).toBe(true);
     }
   });
 
-  it('rechaza X=100 (joint 0%)', () => {
-    const resultado = porcentajeIndividualSchema.safeParse({
-      mesId,
-      porcentaje: '100',
-    });
-    expect(resultado.success).toBe(false);
-    if (!resultado.success) {
-      expect(
-        resultado.error.issues.some(
-          (i) => i.message === individualErrores.porcentajeRango,
-        ),
-      ).toBe(true);
-    }
-  });
-
-  it('rechaza X=100,5 (fuera de rango)', () => {
+  it('rechaza más de 100 % con el mismo mensaje que la cuenta conjunta', () => {
     const resultado = porcentajeIndividualSchema.safeParse({
       mesId,
       porcentaje: '100,5',
     });
     expect(resultado.success).toBe(false);
+    if (!resultado.success) {
+      expect(
+        resultado.error.issues.some(
+          (i) => i.message === aportacionErrores.porcentajeMaximo,
+        ),
+      ).toBe(true);
+    }
   });
 
-  it('rechaza texto no numérico (numeroDecimalDesdeCadena -> 0 -> fuera de rango)', () => {
+  it('rechaza texto no numérico', () => {
     const resultado = porcentajeIndividualSchema.safeParse({
       mesId,
       porcentaje: 'abc',
@@ -122,7 +124,7 @@ describe('porcentajeIndividualSchema (MP-2: rango 1-99)', () => {
     expect(resultado.success).toBe(false);
   });
 
-  it('REJECTA usuarioId en el formulario de porcentaje (MP-1: inversión única en el servidor)', () => {
+  it('REJECTA usuarioId: el dueño se deriva siempre de la sesión (IA-4)', () => {
     const resultado = porcentajeIndividualSchema.safeParse({
       mesId,
       porcentaje: '30',
