@@ -1,37 +1,35 @@
 import { obtenerMesActual } from '@/server-actions/queries';
+import { PantallaFormGasto } from '@/components/features/pantallas/PantallaFormGasto';
+import { gastoForm } from '@/literals';
+import type { VistaPantallaFormGasto } from '@/components/features/vista-pantallas';
 
 export const dynamic = 'force-dynamic';
-import { NuevoGastoForm } from '@/components/features/NuevoGastoForm';
-import Link from 'next/link';
-import { ChevronLeft } from 'lucide-react';
-import { gastoForm } from '@/literals';
 
-export default async function NuevoGastoPage() {
+/**
+ * Ruta de ALTA de gasto en la cuenta CONJUNTA.
+ *
+ * El formulario y la cabecera los pone `PantallaFormGasto`, el mismo componente que
+ * usan el alta individual y las dos pantallas de edición. Aquí solo se decide que
+ * no hay mes abierto o sí, y a qué mes se apunta el gasto.
+ */
+export default function NuevoGastoPage() {
+  return (
+    <PantallaFormGasto
+      hrefVolver="/gastos"
+      titulo={gastoForm.nuevoGasto}
+      vista={resolverVista()}
+    />
+  );
+}
+
+async function resolverVista(): Promise<VistaPantallaFormGasto> {
   const mes = await obtenerMesActual();
 
-  if (!mes) {
-    return (
-      <div className="space-y-4">
-        <div className="flex items-center gap-2">
-          <Link href="/gastos" className="text-brand-muted">
-            <ChevronLeft />
-          </Link>
-          <h1 className="text-xl font-bold text-brand-navy">{gastoForm.nuevoGasto}</h1>
-        </div>
-        <p className="text-sm text-brand-muted">{gastoForm.sinMesAbierto}</p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-4">
-      <div className="flex items-center gap-2">
-        <Link href="/gastos" className="text-brand-muted">
-          <ChevronLeft />
-        </Link>
-        <h1 className="text-xl font-bold text-brand-navy">{gastoForm.nuevoGasto}</h1>
-      </div>
-      <NuevoGastoForm mesId={mes.id} />
-    </div>
-  );
+  return {
+    variante: 'conjunta',
+    sinMes: mes ? null : gastoForm.sinMesAbierto,
+    avisoCongelado: null,
+    gasto: null,
+    mesId: mes?.id ?? null,
+  };
 }

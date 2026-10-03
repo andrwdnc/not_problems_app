@@ -1,15 +1,10 @@
-import { Suspense } from 'react';
 import { redirect } from 'next/navigation';
 import { getCurrentUser } from '@/server/auth';
 import { obtenerResumenIndividual } from '@/server-actions/individual-queries';
 import { obtenerMesActual } from '@/server-actions/queries';
 import { gastoIndividualRepository } from '@/server-actions/repositories';
-import { InicioResumen } from '@/components/features/InicioResumen';
-import { UltimosGastos } from '@/components/features/UltimosGastos';
-import {
-  IndividualInicioSectionSkeleton,
-  UltimosGastosSkeleton,
-} from '@/components/features/skeletons';
+import { PantallaInicio } from '@/components/features/pantallas/PantallaInicio';
+import type { DatosUltimosGastos } from '@/components/features/pantallas/PantallaInicio';
 import { nombreMes } from '@/lib/formatters/date';
 import { formatCurrency } from '@/lib/formatters/currency';
 import { inicio, individual, resumen as literalesResumen } from '@/literals';
@@ -18,36 +13,23 @@ import type { InicioResumenVista } from '@/components/features/vista-inicio';
 export const dynamic = 'force-dynamic';
 
 /**
- * Inicio del área individual.
+ * Ruta del INICIO en el ÁREA INDIVIDUAL.
  *
- * Usa los MISMOS componentes que la cuenta conjunta (`InicioResumen` y
- * `UltimosGastos`): lo único que hace esta página es consultar SUS datos y
- * construir el modelo de vista con SU vocabulario. Si mañana cambia el orden de
- * las tarjetas o el estilo de un importe, el cambio sale en las dos pantallas.
+ * Misma pantalla que la cuenta conjunta, mismo componente (`PantallaInicio`) y
+ * mismas reglas puras. Solo cambian dos cosas, y las dos son legítimas: los datos
+ * son los del usuario de la sesión (owner-first) y los rótulos van en primera
+ * persona porque aquí el número es de una sola persona.
  *
- * PARIDAD: la pantalla tiene las mismas dos secciones que la conjunta —resumen y
- * últimos gastos—, no un subconjunto.
- *
- * Lo que sí es propio del área: el dueño de los gastos sale de la sesión (D8) y
- * los rótulos nombran las cifras en primera persona ("Mi cuota", "Mi sueldo"),
- * porque aquí el número es de una sola persona.
+ * PARIDAD: las mismas dos secciones que la conjunta —resumen con contador de
+ * gastos y últimos gastos—, no un subconjunto.
  */
 export default function InicioIndividualPage() {
-  // Dos secciones con su propio streaming: el resumen no espera a la lista de
-  // gastos, igual que en la cuenta conjunta.
   return (
-    <div className="space-y-5">
-      <Suspense fallback={<IndividualInicioSectionSkeleton />}>
-        <ResumenInicioSection />
-      </Suspense>
-      <Suspense fallback={<UltimosGastosSkeleton />}>
-        <UltimosGastosIndividualSection />
-      </Suspense>
-    </div>
+    <PantallaInicio resumen={resolverResumen()} gastos={resolverUltimosGastos()} />
   );
 }
 
-async function ResumenInicioSection() {
+async function resolverResumen(): Promise<InicioResumenVista | null> {
   const user = await getCurrentUser();
   if (!user) redirect('/login');
 
@@ -61,23 +43,22 @@ async function ResumenInicioSection() {
     resumen.restantePresupuesto != null && resumen.restantePresupuesto < 0;
   const hayPresupuesto = resumen.presupuesto != null;
 
-  // Cuota = sueldo * porcentaje compartido. `> 0` evita dividir por cero cuando
-  // aún no hay sueldo ni porcentaje fijados.
+  // Sin presupuesto el anillo mide lo COMPROMETIDO (gasto + apartado) sobre mi
+  // cuota, igual que en la conjunta mide `gastadoComprometido / aportado`: si un
+  // gasto anual no bajara la barra en una de las dos cuentas, la paridad se
+  // rompería en la cifra que el usuario usa para decidir.
   const porcentajeSobreCuota =
     resumen.cuota != null && resumen.cuota > 0
-      ? Math.round((resumen.gastado / resumen.cuota) * 100)
+      ? Math.round((resumen.gastadoComprometido / resumen.cuota) * 100)
       : 0;
 
-  const vista: InicioResumenVista = {
+  return {
     titulo: hayMes
       ? `${nombreMes(resumen.mes)} ${resumen.anio}`
       : individual.sinMesAbierto,
     hayDatos: hayMes,
     mensajeSinDatos: individual.sinMesAbierto,
     anillo: {
-      // Con presupuesto, el anillo mide lo consumido de él; sin presupuesto mide
-      // lo gastado sobre MI cuota. Es la MISMA decisión que toma la cuenta
-      // conjunta en sus dos ramas, calculada con las mismas reglas puras.
       porcentaje: hayPresupuesto
         ? (resumen.porcentajePresupuesto ?? 0)
         : porcentajeSobreCuota,
@@ -118,20 +99,15 @@ async function ResumenInicioSection() {
       : sobreCuota
         ? individual.teHasPasado(formatCurrency(-(resumen.disponible as number)))
         : undefined,
+    // El contador "· N gastos" también es paridad: la conjunta lo muestra bajo la
+    // cifra del anillo y el área individual no lo tenía.
+    notaCifraAnillo: hayMes
+      ? `· ${inicio.contadorGastos(resumen.numeroGastos)}`
+      : undefined,
   };
-
-  return <InicioResumen vista={vista} />;
 }
 
-/**
- * Últimos gastos individuales del mes.
- *
- * La cuenta conjunta lista los 3 últimos gastos en su Inicio; el área individual
- * hace lo propio con el MISMO componente. Es paridad de secciones, no una
- * funcionalidad extra: si se quitara de aquí, el Inicio individual sería un
- * subconjunto del conjunto y la unificación no habría servido de nada.
- */
-async function UltimosGastosIndividualSection() {
+async function resolverUltimosGastos(): Promise<DatosUltimosGastos> {
   const user = await getCurrentUser();
   if (!user) redirect('/login');
 
@@ -144,17 +120,15 @@ async function UltimosGastosIndividualSection() {
   // Owner-first: la consulta solo puede devolver gastos de la sesión (D8).
   const gastos = await gastoIndividualRepository.findByMes(user.id, mes.id);
 
-  return (
-    <UltimosGastos
-      variante="individual"
-      gastos={gastos.map((g) => ({
-        id: g.id,
-        detalle: g.detalle,
-        categoria: g.categoria,
-        importe: g.importe,
-        // Sin `creador`: los gastos son del propio usuario y el pie de fila no
-        // necesita repetir el nombre en cada línea.
-      }))}
-    />
-  );
+  return {
+    variante: 'individual',
+    // Sin `creador`: los gastos son del propio usuario y el pie de fila no
+    // necesita repetir el nombre en cada línea.
+    gastos: gastos.map((g) => ({
+      id: g.id,
+      detalle: g.detalle,
+      categoria: g.categoria,
+      importe: g.importe,
+    })),
+  };
 }

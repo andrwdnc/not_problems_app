@@ -1,13 +1,19 @@
 import { notFound } from 'next/navigation';
-import Link from 'next/link';
-import { ChevronLeft, Lock } from 'lucide-react';
 import { gastoRepository } from '@/server-actions/repositories';
+import { ventanaEdicionGastos } from '@/domain/rules/VentanaEdicionGastos';
+import { PantallaFormGasto } from '@/components/features/pantallas/PantallaFormGasto';
+import { gastoForm } from '@/literals';
+import type { VistaPantallaFormGasto } from '@/components/features/vista-pantallas';
 
 export const dynamic = 'force-dynamic';
-import { EditarGastoForm } from '@/components/features/EditarGastoForm';
-import { ventanaEdicionGastos } from '@/domain/rules/VentanaEdicionGastos';
-import { gastoForm } from '@/literals';
 
+/**
+ * Ruta de EDICIÓN de gasto en la cuenta CONJUNTA.
+ *
+ * El aviso de gasto congelado y el formulario son los de `PantallaFormGasto`, que
+ * también sirve al alta y a las dos pantallas individuales. Aquí solo se resuelve
+ * el gasto y su ventana de edición.
+ */
 export default async function EditarGastoPage({
   params,
 }: {
@@ -18,6 +24,18 @@ export default async function EditarGastoPage({
     notFound();
   }
 
+  return (
+    <PantallaFormGasto
+      hrefVolver="/gastos"
+      titulo={gastoForm.editarGasto}
+      vista={resolverVista(gasto)}
+    />
+  );
+}
+
+async function resolverVista(
+  gasto: NonNullable<Awaited<ReturnType<typeof gastoRepository.findById>>>,
+): Promise<VistaPantallaFormGasto> {
   const [anio, mes] = gasto.fechaGasto.split('-').map(Number);
   const ventana = ventanaEdicionGastos({
     hoy: new Date(),
@@ -25,23 +43,11 @@ export default async function EditarGastoPage({
     mesGasto: mes,
   });
 
-  return (
-    <div className="space-y-4">
-      <div className="flex items-center gap-2">
-        <Link href="/gastos" className="text-brand-muted">
-          <ChevronLeft />
-        </Link>
-        <h1 className="text-xl font-bold text-brand-navy">{gastoForm.editarGasto}</h1>
-      </div>
-
-      {!ventana.puedeEditar && (
-        <div className="flex items-center gap-2 rounded-xl bg-brand-pale p-3 text-sm text-brand-navy">
-          <Lock size={16} />
-          {gastoForm.gastoCongelado}
-        </div>
-      )}
-
-      <EditarGastoForm gasto={gasto} />
-    </div>
-  );
+  return {
+    variante: 'conjunta',
+    sinMes: null,
+    avisoCongelado: ventana.puedeEditar ? null : gastoForm.gastoCongelado,
+    gasto,
+    mesId: null,
+  };
 }

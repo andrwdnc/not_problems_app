@@ -1,44 +1,39 @@
-import { Suspense } from 'react';
 import { obtenerMesActual } from '@/server-actions/queries';
+import { aportacionRepository, usuarioRepository } from '@/server-actions/repositories';
+import { PantallaAportar } from '@/components/features/pantallas/PantallaAportar';
+import { aportar } from '@/literals';
+import type { VistaPantallaAportar } from '@/components/features/vista-pantallas';
 
 export const dynamic = 'force-dynamic';
-import { aportacionRepository, usuarioRepository } from '@/server-actions/repositories';
-import { AportarForm } from '@/components/features/AportarForm';
-import { AportarSectionSkeleton } from '@/components/features/skeletons';
-import { Card } from '@/components/ui/Card';
-import { aportar } from '@/literals';
 
+/**
+ * Ruta de APORTAR en la cuenta CONJUNTA.
+ *
+ * Solo datos: dos usuarios, sus aportaciones del mes y el presupuesto único del
+ * mes. El formulario, el esqueleto y el aviso "sin mes" los pone `PantallaAportar`,
+ * el mismo componente que usa el área individual.
+ */
 export default function AportarPage() {
-  // Título estático: pinta al instante; el formulario se rellena por streaming
-  // cuando resuelven las queries del mes y de las aportaciones.
   return (
-    <div className="space-y-5">
-      <h1 className="text-xl font-bold text-brand-navy">{aportar.titulo}</h1>
-      <Suspense fallback={<AportarSectionSkeleton />}>
-        <AportarSection />
-      </Suspense>
-    </div>
+    <PantallaAportar titulo={aportar.titulo} vista={resolverVista()} />
   );
 }
 
-async function AportarSection() {
+async function resolverVista(): Promise<VistaPantallaAportar> {
   const [mes, usuarios] = await Promise.all([
     obtenerMesActual(),
     usuarioRepository.findAll(),
   ]);
-  const aportaciones = mes
-    ? await aportacionRepository.findByMes(mes.id)
-    : [];
+  const aportaciones = mes ? await aportacionRepository.findByMes(mes.id) : [];
 
-  if (!mes) {
-    return (
-      <Card>
-        <p className="text-sm text-brand-muted">
-          {aportar.sinMesAbierto}
-        </p>
-      </Card>
-    );
-  }
-
-  return <AportarForm mes={mes} usuarios={usuarios} aportaciones={aportaciones} />;
+  return {
+    variante: 'conjunta',
+    sinMes: mes ? null : aportar.sinMesAbierto,
+    mes,
+    usuarios,
+    aportaciones,
+    // El presupuesto de la conjunta vive en `meses.presupuesto`: no hay
+    // presupuesto por persona que traer aquí.
+    presupuestoIndividual: null,
+  };
 }

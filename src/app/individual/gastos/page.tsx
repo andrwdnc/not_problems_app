@@ -1,4 +1,3 @@
-import { Suspense } from 'react';
 import { redirect } from 'next/navigation';
 import { getCurrentUser } from '@/server/auth';
 import { obtenerMesActual } from '@/server-actions/queries';
@@ -7,36 +6,34 @@ import {
   gastoAnualIndividualRepository,
 } from '@/server-actions/repositories';
 import { mapearGastosAnualesAVista } from '@/server-actions/vista-gastos-anuales';
-import { GastosList } from '@/components/features/GastosList';
-import { IndividualGastosSectionSkeleton } from '@/components/features/skeletons';
-import { nav, individual } from '@/literals';
+import { PantallaGastos } from '@/components/features/pantallas/PantallaGastos';
+import { nav, inicio } from '@/literals';
+import type { VistaPantallaGastos } from '@/components/features/vista-pantallas';
 
 export const dynamic = 'force-dynamic';
 
 /**
- * Lista de gastos individuales: el repositorio es owner-first, de modo que la
- * consulta SOLO ve los gastos del usuario de la sesión (D8).
+ * Ruta de GASTOS en el ÁREA INDIVIDUAL.
+ *
+ * La misma pantalla que en la conjunta, con el mismo componente. Solo cambia el
+ * origen de los datos: los dos repositorios son owner-first, así que la consulta
+ * SOLO ve los gastos y los gastos anuales del usuario de la sesión (D8).
+ *
+ * Sin `usuarios`: todos los gastos son del propio usuario y el pie de fila no
+ * necesita nombre de creador. Con `gastosAnuales` presente (aunque sea `[]`) se
+ * pinta la sección, igual que en la cuenta conjunta.
  */
 export default function GastosIndividualesPage() {
-  // El título es estático: pinta al instante; la lista de gastos se rellena
-  // por streaming cuando resuelven mes + repositorio (Suspense por sección).
-  return (
-    <div className="space-y-4">
-      <h1 className="text-xl font-bold text-brand-navy">{nav.gastos}</h1>
-      <Suspense fallback={<IndividualGastosSectionSkeleton />}>
-        <GastosIndividualesSection />
-      </Suspense>
-    </div>
-  );
+  return <PantallaGastos titulo={nav.gastos} vista={resolverVista()} />;
 }
 
-async function GastosIndividualesSection() {
+async function resolverVista(): Promise<VistaPantallaGastos> {
   const user = await getCurrentUser();
   if (!user) redirect('/login');
 
   const mes = await obtenerMesActual();
 
-  // Ambas consultas son owner-first: solo se ven los gastos del usuario de la
+  // Ambas consultas son owner-first: solo se ven los datos del usuario de la
   // sesión (D8). Los anuales van en paralelo porque no dependen del mes (el
   // cálculo de ventana lo recibe como parámetro).
   const [gastos, gastosAnuales] = await Promise.all([
@@ -45,17 +42,18 @@ async function GastosIndividualesSection() {
   ]);
 
   if (!mes) {
-    return <p className="text-sm text-brand-muted">{individual.sinMesAbierto}</p>;
+    return {
+      variante: 'individual',
+      gastos: [],
+      gastosAnuales: [],
+      sinMes: inicio.sinMesAbierto,
+    };
   }
 
-  return (
-    // Sin `usuarios`: todos los gastos son del usuario de la sesión, así que el
-    // pie de fila no necesita nombre de creador. Con `gastosAnuales` presente
-    // (aunque sea `[]`) se pinta la sección, igual que en la cuenta conjunta.
-    <GastosList
-      gastos={gastos}
-      variante="individual"
-      gastosAnuales={mapearGastosAnualesAVista(gastosAnuales, mes)}
-    />
-  );
+  return {
+    variante: 'individual',
+    gastos,
+    gastosAnuales: mapearGastosAnualesAVista(gastosAnuales, mes),
+    sinMes: null,
+  };
 }

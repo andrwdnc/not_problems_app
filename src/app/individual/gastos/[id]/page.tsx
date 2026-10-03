@@ -1,50 +1,45 @@
-import { Suspense } from 'react';
 import { notFound, redirect } from 'next/navigation';
-import Link from 'next/link';
-import { ChevronLeft, Lock } from 'lucide-react';
 import { getCurrentUser } from '@/server/auth';
 import { gastoIndividualRepository } from '@/server-actions/repositories';
-import { EditarGastoForm } from '@/components/features/EditarGastoForm';
 import { ventanaEdicionGastos } from '@/domain/rules/VentanaEdicionGastos';
-import { IndividualGastoFormSkeleton } from '@/components/features/skeletons';
+import { PantallaFormGasto } from '@/components/features/pantallas/PantallaFormGasto';
 import { gastoForm } from '@/literals';
+import type { VistaPantallaFormGasto } from '@/components/features/vista-pantallas';
 
 export const dynamic = 'force-dynamic';
 
-export default function EditarGastoIndividualPage({
+/**
+ * Ruta de EDICIÓN de gasto en el ÁREA INDIVIDUAL.
+ *
+ * La lectura es owner-first (`findById(usuarioId, id)`): si el id es de otra
+ * persona la consulta devuelve `null` y la pantalla responde 404, sin distinguir
+ * entre "no existe" y "no es tuyo" para no revelar la existencia de datos ajenos.
+ */
+export default async function EditarGastoIndividualPage({
   params,
 }: {
   params: { id: string };
 }) {
-  // La cabecera es estática: pinta al instante (volver + título); el aviso de
-  // gasto congelado y el formulario se rellenan por streaming cuando el
-  // repositorio owner-first resuelve el gasto.
-  return (
-    <div className="space-y-4">
-      <div className="flex items-center gap-2">
-        <Link href="/individual/gastos" className="text-brand-muted">
-          <ChevronLeft />
-        </Link>
-        <h1 className="text-xl font-bold text-brand-navy">{gastoForm.editarGasto}</h1>
-      </div>
-
-      <Suspense fallback={<IndividualGastoFormSkeleton />}>
-        <EditarGastoIndividualSection id={params.id} />
-      </Suspense>
-    </div>
-  );
-}
-
-async function EditarGastoIndividualSection({ id }: { id: string }) {
   const user = await getCurrentUser();
   if (!user) redirect('/login');
 
-  // Owner-first: findById devuelve null si el gasto no es del usuario (D8).
-  const gasto = await gastoIndividualRepository.findById(user.id, id);
+  const gasto = await gastoIndividualRepository.findById(user.id, params.id);
   if (!gasto) {
     notFound();
   }
 
+  return (
+    <PantallaFormGasto
+      hrefVolver="/individual/gastos"
+      titulo={gastoForm.editarGasto}
+      vista={resolverVista(gasto)}
+    />
+  );
+}
+
+async function resolverVista(
+  gasto: NonNullable<Awaited<ReturnType<typeof gastoIndividualRepository.findById>>>,
+): Promise<VistaPantallaFormGasto> {
   const [anio, mes] = gasto.fechaGasto.split('-').map(Number);
   const ventana = ventanaEdicionGastos({
     hoy: new Date(),
@@ -52,16 +47,11 @@ async function EditarGastoIndividualSection({ id }: { id: string }) {
     mesGasto: mes,
   });
 
-  return (
-    <>
-      {!ventana.puedeEditar && (
-        <div className="flex items-center gap-2 rounded-xl bg-brand-pale p-3 text-sm text-brand-navy">
-          <Lock size={16} />
-          {gastoForm.gastoCongelado}
-        </div>
-      )}
-
-      <EditarGastoForm gasto={gasto} variante="individual" />
-    </>
-  );
+  return {
+    variante: 'individual',
+    sinMes: null,
+    avisoCongelado: ventana.puedeEditar ? null : gastoForm.gastoCongelado,
+    gasto,
+    mesId: null,
+  };
 }

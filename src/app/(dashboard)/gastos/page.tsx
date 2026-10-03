@@ -1,48 +1,56 @@
-import { Suspense } from 'react';
 import { obtenerMesActual } from '@/server-actions/queries';
-import { mapearGastosAnualesAVista } from '@/server-actions/vista-gastos-anuales';
-
-export const dynamic = 'force-dynamic';
 import {
   gastoRepository,
   usuarioRepository,
   gastoAnualRepository,
 } from '@/server-actions/repositories';
-import { GastosList } from '@/components/features/GastosList';
-import { GastosSectionSkeleton } from '@/components/features/skeletons';
-import { nav } from '@/literals';
+import { mapearGastosAnualesAVista } from '@/server-actions/vista-gastos-anuales';
+import { PantallaGastos } from '@/components/features/pantallas/PantallaGastos';
+import { nav, inicio } from '@/literals';
+import type { VistaPantallaGastos } from '@/components/features/vista-pantallas';
 
+export const dynamic = 'force-dynamic';
+
+/**
+ * Ruta de GASTOS en la cuenta CONJUNTA.
+ *
+ * Solo datos: el listado completo del mes (los gastos de los dos), quién creó
+ * cada uno y los gastos anuales. `PantallaGastos` pone los chips de filtro, la
+ * lista y la sección de anuales, igual que en el área individual.
+ */
 export default function GastosPage() {
-  // El título es estático: pinta al instante; la lista de gastos se rellena
-  // por streaming cuando su query resuelve (Suspense por sección).
-  return (
-    <div className="space-y-4">
-      <h1 className="text-xl font-bold text-brand-navy">{nav.gastos}</h1>
-      <Suspense fallback={<GastosSectionSkeleton />}>
-        <GastosSection />
-      </Suspense>
-    </div>
-  );
+  return <PantallaGastos titulo={nav.gastos} vista={resolverVista()} />;
 }
 
-async function GastosSection() {
+async function resolverVista(): Promise<VistaPantallaGastos> {
   const [mes, usuarios, gastosAnuales] = await Promise.all([
     obtenerMesActual(),
     usuarioRepository.findAll(),
     gastoAnualRepository.findAll(),
   ]);
-  const gastos = mes ? await gastoRepository.findByMes(mes.id) : [];
-  const usuarioPorId = new Map(usuarios.map((u) => [u.id, u.username]));
 
-  // La transformación a vista (ventana de apartado, cuota del mes, total
-  // devengado, permisos) es la MISMA función que usa el área individual: la
-  // paridad de los gastos anuales no depende de que alguien mantenga dos
-  // copias de este cálculo alineadas.
-  return (
-    <GastosList
-      gastos={gastos}
-      usuarios={usuarioPorId}
-      gastosAnuales={mapearGastosAnualesAVista(gastosAnuales, mes)}
-    />
-  );
+  if (!mes) {
+    // Sin mes abierto: se dice explícitamente, igual que en el área individual.
+    // Antes esta pantalla enseñaba una lista vacía sin explicación, que es
+    // indistinguible de "no has registrado ningún gasto este mes".
+    return {
+      variante: 'conjunta',
+      gastos: [],
+      usuarios: new Map(usuarios.map((u) => [u.id, u.username])),
+      gastosAnuales: [],
+      sinMes: inicio.sinMesAbierto,
+    };
+  }
+
+  const gastos = await gastoRepository.findByMes(mes.id);
+
+  return {
+    variante: 'conjunta',
+    gastos,
+    // Con nombre de creador: en la conjunta los gastos son de los dos y el pie de
+    // fila tiene que decir de quién es cada uno.
+    usuarios: new Map(usuarios.map((u) => [u.id, u.username])),
+    gastosAnuales: mapearGastosAnualesAVista(gastosAnuales, mes),
+    sinMes: null,
+  };
 }

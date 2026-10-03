@@ -209,6 +209,48 @@ export function calcularApartadoMes(
 }
 
 /**
+ * Suma el apartado de una lista de gastos anuales para un mes de referencia.
+ *
+ * Es la REGLA ÚNICA del apartado, y la usan las dos áreas de cuenta por el mismo
+ * camino: antes cada página(sumaba con su propio bucle `calcularVentanaApartado`
+ * + `calcularApartadoMes`) y por eso el área individual, que tenía el CRUD de
+ * gastos anuales pero no esta suma, devolvía un disponible más alto del que
+ * correspondía.
+ *
+ * Trabaja con `GastoAnual` a propósito: `GastoAnualIndividual` extiende ese tipo
+ * con `usuarioId` y no añade campos de cálculo, así que ambas clases entran por
+ * el mismo parámetro sin conversiones ni casts.
+ */
+export function calcularApartadoTotal(
+  gastosAnuales: ReadonlyArray<{
+    importeTotal: number;
+    fechaCreacion: Date;
+    fechaUltimoPago: Date | null;
+    anioCiclo: number;
+    mesPago: number;
+  }>,
+  anio: number,
+  mes: number,
+): number {
+  let total = 0;
+  for (const gastoAnual of gastosAnuales) {
+    const ventana = calcularVentanaApartado(
+      gastoAnual.fechaCreacion,
+      gastoAnual.fechaUltimoPago,
+      gastoAnual.anioCiclo,
+      gastoAnual.mesPago,
+    );
+    total += calcularApartadoMes(
+      gastoAnual.importeTotal,
+      ventana,
+      anio,
+      mes,
+    ).cuota;
+  }
+  return total;
+}
+
+/**
  * Suma exacta de las cuotas apartadas desde la posición 1 hasta `posicion`
  * dentro de la ventana, reusando `calcularCuotaMes` (nunca reimplementa el
  * reparto del residuo).

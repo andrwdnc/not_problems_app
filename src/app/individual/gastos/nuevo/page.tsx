@@ -1,43 +1,40 @@
-import { Suspense } from 'react';
 import { redirect } from 'next/navigation';
-import Link from 'next/link';
-import { ChevronLeft } from 'lucide-react';
 import { getCurrentUser } from '@/server/auth';
 import { obtenerMesActual } from '@/server-actions/queries';
-import { NuevoGastoForm } from '@/components/features/NuevoGastoForm';
-import { IndividualGastoFormSkeleton } from '@/components/features/skeletons';
-import { gastoForm, individual } from '@/literals';
+import { PantallaFormGasto } from '@/components/features/pantallas/PantallaFormGasto';
+import { gastoForm, inicio } from '@/literals';
+import type { VistaPantallaFormGasto } from '@/components/features/vista-pantallas';
 
 export const dynamic = 'force-dynamic';
 
+/**
+ * Ruta de ALTA de gasto en el ÁREA INDIVIDUAL.
+ *
+ * Misma pantalla y mismo componente que la cuenta conjunta. La diferencia real es
+ * la prop `variante` del formulario, que hace que la Server Action sea owner-scoped
+ * y que vuelva a `/individual/gastos`.
+ */
 export default function NuevoGastoIndividualPage() {
-  // La cabecera es estática (volver + título): pinta al instante; el
-  // formulario se rellena por streaming cuando obtenerMesActual resuelve.
   return (
-    <div className="space-y-4">
-      <div className="flex items-center gap-2">
-        <Link href="/individual/gastos" className="text-brand-muted">
-          <ChevronLeft />
-        </Link>
-        <h1 className="text-xl font-bold text-brand-navy">{gastoForm.nuevoGasto}</h1>
-      </div>
-
-      <Suspense fallback={<IndividualGastoFormSkeleton />}>
-        <NuevoGastoIndividualSection />
-      </Suspense>
-    </div>
+    <PantallaFormGasto
+      hrefVolver="/individual/gastos"
+      titulo={gastoForm.nuevoGasto}
+      vista={resolverVista()}
+    />
   );
 }
 
-async function NuevoGastoIndividualSection() {
+async function resolverVista(): Promise<VistaPantallaFormGasto> {
   const user = await getCurrentUser();
   if (!user) redirect('/login');
 
   const mes = await obtenerMesActual();
 
-  return mes ? (
-    <NuevoGastoForm mesId={mes.id} variante="individual" />
-  ) : (
-    <p className="text-sm text-brand-muted">{individual.sinMesAbierto}</p>
-  );
+  return {
+    variante: 'individual',
+    sinMes: mes ? null : inicio.sinMesAbierto,
+    avisoCongelado: null,
+    gasto: null,
+    mesId: mes?.id ?? null,
+  };
 }

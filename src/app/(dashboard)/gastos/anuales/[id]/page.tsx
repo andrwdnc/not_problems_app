@@ -1,13 +1,19 @@
 import { notFound } from 'next/navigation';
-import Link from 'next/link';
-import { ChevronLeft, Lock, AlertCircle } from 'lucide-react';
 import { gastoAnualRepository } from '@/server-actions/repositories';
 import { calcularDevengoPrevio } from '@/domain/rules/CalculadoraGastoAnual';
+import { PantallaFormGastoAnual } from '@/components/features/pantallas/PantallaFormGastoAnual';
+import { gastosAnuales, gastosAnualesErrores } from '@/literals';
+import type { VistaPantallaFormGastoAnual } from '@/components/features/vista-pantallas';
 
 export const dynamic = 'force-dynamic';
-import { EditarGastoAnualForm } from '@/components/features/EditarGastoAnualForm';
-import { gastosAnuales, gastosAnualesErrores } from '@/literals';
 
+/**
+ * Ruta de EDICIÓN de gasto anual en la cuenta CONJUNTA.
+ *
+ * `devengoPrevio` sale de la MISMA regla pura que en el área individual
+ * (`calcularDevengoPrevio`), así que el criterio de inmutabilidad no puede
+ * divergir entre las dos cuentas.
+ */
 export default async function EditarGastoAnualPage({
   params,
 }: {
@@ -18,33 +24,31 @@ export default async function EditarGastoAnualPage({
     notFound();
   }
 
-  const hoy = new Date();
-  const anioActual = hoy.getFullYear();
-  const mesActual = hoy.getMonth() + 1;
-  const devengoPrevio = calcularDevengoPrevio(
-    anioActual,
-    mesActual,
-    gastoAnualData.anioCiclo,
-    gastoAnualData.mesPago,
-  );
-
   return (
-    <div className="space-y-4">
-      <div className="flex items-center gap-2">
-        <Link href="/gastos" className="text-brand-muted">
-          <ChevronLeft />
-        </Link>
-        <h1 className="text-xl font-bold text-brand-navy">{gastosAnuales.editar}</h1>
-      </div>
-
-      {devengoPrevio && (
-        <div className="flex items-center gap-2 rounded-xl bg-financial-negativeBg p-3 text-sm text-financial-negative">
-          <AlertCircle size={16} />
-          {gastosAnualesErrores.devengoPrevio}
-        </div>
-      )}
-
-      <EditarGastoAnualForm gastoAnual={gastoAnualData} devengoPrevio={devengoPrevio} />
-    </div>
+    <PantallaFormGastoAnual
+      hrefVolver="/gastos"
+      titulo={gastosAnuales.editar}
+      vista={resolverVista(gastoAnualData)}
+    />
   );
+}
+
+async function resolverVista(
+  gastoAnual: NonNullable<Awaited<ReturnType<typeof gastoAnualRepository.findById>>>,
+): Promise<VistaPantallaFormGastoAnual> {
+  const hoy = new Date();
+  const devengoPrevio = calcularDevengoPrevio(
+    hoy.getFullYear(),
+    hoy.getMonth() + 1,
+    gastoAnual.anioCiclo,
+    gastoAnual.mesPago,
+  );
+
+  return {
+    variante: 'conjunta',
+    sinMes: null,
+    avisoDevengoPrevio: devengoPrevio ? gastosAnualesErrores.devengoPrevio : null,
+    gastoAnual,
+    devengoPrevio,
+  };
 }

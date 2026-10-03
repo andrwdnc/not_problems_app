@@ -1,37 +1,36 @@
 import { obtenerMesActual } from '@/server-actions/queries';
+import { PantallaFormGastoAnual } from '@/components/features/pantallas/PantallaFormGastoAnual';
+import { gastosAnuales, gastoForm } from '@/literals';
+import type { VistaPantallaFormGastoAnual } from '@/components/features/vista-pantallas';
 
 export const dynamic = 'force-dynamic';
-import { NuevoGastoAnualForm } from '@/components/features/NuevoGastoAnualForm';
-import Link from 'next/link';
-import { ChevronLeft } from 'lucide-react';
-import { gastosAnuales } from '@/literals';
 
-export default async function NuevoGastoAnualPage() {
+/**
+ * Ruta de ALTA de gasto anual en la cuenta CONJUNTA.
+ *
+ * Sin mes abierto no se puede dar de alta nada: un gasto anual se devenga dentro de
+ * la ventana del mes actual, así que sin mes la pantalla no tiene sentido. El
+ * formulario y el aviso de devengo son de `PantallaFormGastoAnual`, compartido con
+ * las otras tres rutas de gasto anual.
+ */
+export default function NuevoGastoAnualPage() {
+  return (
+    <PantallaFormGastoAnual
+      hrefVolver="/gastos"
+      titulo={gastosAnuales.nuevo}
+      vista={resolverVista()}
+    />
+  );
+}
+
+async function resolverVista(): Promise<VistaPantallaFormGastoAnual> {
   const mes = await obtenerMesActual();
 
-  if (!mes) {
-    return (
-      <div className="space-y-4">
-        <div className="flex items-center gap-2">
-          <Link href="/gastos" className="text-brand-muted">
-            <ChevronLeft />
-          </Link>
-          <h1 className="text-xl font-bold text-brand-navy">{gastosAnuales.nuevo}</h1>
-        </div>
-        <p className="text-sm text-brand-muted">{gastosAnuales.sinGastosAnuales}</p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-4">
-      <div className="flex items-center gap-2">
-        <Link href="/gastos" className="text-brand-muted">
-          <ChevronLeft />
-        </Link>
-        <h1 className="text-xl font-bold text-brand-navy">{gastosAnuales.nuevo}</h1>
-      </div>
-      <NuevoGastoAnualForm />
-    </div>
-  );
+  return {
+    variante: 'conjunta',
+    sinMes: mes ? null : gastoForm.sinMesAbierto,
+    avisoDevengoPrevio: null,
+    gastoAnual: null,
+    devengoPrevio: false,
+  };
 }

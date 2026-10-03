@@ -1,45 +1,35 @@
-import { Suspense } from 'react';
 import { obtenerMesActual, calcularResumen } from '@/server-actions/queries';
-import {
-  calcularVentanaApartado,
-  calcularApartadoMes,
-} from '@/domain/rules/CalculadoraGastoAnual';
-
-export const dynamic = 'force-dynamic';
+import { calcularApartadoTotal } from '@/domain/rules/CalculadoraGastoAnual';
 import {
   aportacionRepository,
   gastoRepository,
   usuarioRepository,
   gastoAnualRepository,
 } from '@/server-actions/repositories';
-import { InicioResumen } from '@/components/features/InicioResumen';
-import { UltimosGastos } from '@/components/features/UltimosGastos';
-import {
-  ResumenInicioSkeleton,
-  UltimosGastosSkeleton,
-} from '@/components/features/skeletons';
+import { PantallaInicio } from '@/components/features/pantallas/PantallaInicio';
+import type { DatosUltimosGastos } from '@/components/features/pantallas/PantallaInicio';
 import { nombreMes } from '@/lib/formatters/date';
 import { formatCurrency } from '@/lib/formatters/currency';
 import { inicio, resumen as literalesResumen, formatos } from '@/literals';
 import type { InicioResumenVista } from '@/components/features/vista-inicio';
 
+export const dynamic = 'force-dynamic';
+
+/**
+ * Ruta del INICIO en la cuenta CONJUNTA.
+ *
+ * No contiene markup: trae los datos de las dos áreas de la pantalla (resumen y
+ * últimos gastos), resuelve la aritmética con las reglas puras compartidas y se
+ * lo pasa a `PantallaInicio`, el mismo componente que usa el área individual. Aquí
+ * no hay una etiqueta, ni una clase, ni una condición visual propias.
+ */
 export default function InicioPage() {
-  // Cada sección resuelve su propia query y se rellena por streaming bajo su
-  // Suspense: el anillo/tarjetas aparecen cuando la DB responde, sin esperar
-  // a la lista de últimos gastos (y viceversa).
   return (
-    <div className="space-y-5">
-      <Suspense fallback={<ResumenInicioSkeleton />}>
-        <ResumenInicioSection />
-      </Suspense>
-      <Suspense fallback={<UltimosGastosSkeleton />}>
-        <UltimosGastosSection />
-      </Suspense>
-    </div>
+    <PantallaInicio resumen={resolverResumen()} gastos={resolverUltimosGastos()} />
   );
 }
 
-async function ResumenInicioSection() {
+async function resolverResumen(): Promise<InicioResumenVista | null> {
   // 1º pasada en paralelo: mes actual + usuarios (no dependen entre sí).
   const [mes, usuarios] = await Promise.all([
     obtenerMesActual(),
@@ -55,36 +45,15 @@ async function ResumenInicioSection() {
       ])
     : [[], [], []];
 
-  // Calcular apartado del mes actual con la ventana [inicio → mesPago] INCLUSIVE:
-  // cada gasto anual aparta desde su mes de creación (o mes tras el último pago)
-  // hasta el mes de pago del ciclo actual, contando los dos extremos.
-  let apartadoMes = 0;
-  if (mes) {
-    for (const gastoAnual of gastosAnuales) {
-      const ventana = calcularVentanaApartado(
-        gastoAnual.fechaCreacion,
-        gastoAnual.fechaUltimoPago,
-        gastoAnual.anioCiclo,
-        gastoAnual.mesPago,
-      );
-      apartadoMes += calcularApartadoMes(
-        gastoAnual.importeTotal,
-        ventana,
-        mes.anio,
-        mes.mes,
-      ).cuota;
-    }
-  }
+  const apartadoMes = mes
+    ? calcularApartadoTotal(gastosAnuales, mes.anio, mes.mes)
+    : 0;
 
   const resumen = mes
     ? calcularResumen(aportaciones, gastos, mes.presupuesto, apartadoMes)
     : null;
 
-  // Esta función solo CONSTRUYE el modelo de vista. El markup vive en
-  // `InicioResumen`, que es el mismo componente que usa el área individual: las
-  // dos pantallas de Inicio no pueden separarse porque no tienen dos copias del
-  // JSX que separar.
-  const vista: InicioResumenVista = {
+  return {
     titulo: mes ? `${nombreMes(mes.mes)} ${mes.anio}` : inicio.sinMesAbierto,
     hayDatos: resumen != null,
     mensajeSinDatos: inicio.sinDatos,
@@ -131,35 +100,31 @@ async function ResumenInicioSection() {
       ? `· ${inicio.contadorGastos(resumen.numeroGastos)}`
       : undefined,
   };
-
-  return <InicioResumen vista={vista} />;
 }
 
-async function UltimosGastosSection() {
+async function resolverUltimosGastos(): Promise<DatosUltimosGastos> {
   const [mes, usuarios] = await Promise.all([
     obtenerMesActual(),
     usuarioRepository.findAll(),
   ]);
 
   // Sin mes abierto no hay lista: se conserva el estado vacío de la sección de
-  // resumen ("sin mes"), como antes de separar las secciones.
+  // resumen ("sin mes"), en vez de añadir un bloque vacío sin explicación.
   if (!mes) return null;
 
   const gastos = await gastoRepository.findByMes(mes.id);
   const usuarioPorId = new Map(usuarios.map((u) => [u.id, u.username]));
 
-  return (
-    <UltimosGastos
-      variante="conjunta"
-      gastos={gastos.map((g) => ({
-        id: g.id,
-        detalle: g.detalle,
-        categoria: g.categoria,
-        importe: g.importe,
-        // Se conserva el comportamiento previo: un `creadoPor` que no esté en el
-        // mapa se pintaba como marcador de formato, no como hueco vacío.
-        creador: usuarioPorId.get(g.creadoPor) ?? formatos.vacio,
-      }))}
-    />
-  );
+  return {
+    variante: 'conjunta',
+    gastos: gastos.map((g) => ({
+      id: g.id,
+      detalle: g.detalle,
+      categoria: g.categoria,
+      importe: g.importe,
+      // Se conserva el comportamiento previo: un `creadoPor` que no esté en el
+      // mapa se pintaba como marcador de formato, no como hueco vacío.
+      creador: usuarioPorId.get(g.creadoPor) ?? formatos.vacio,
+    })),
+  };
 }

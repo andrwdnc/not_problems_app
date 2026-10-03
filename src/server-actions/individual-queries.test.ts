@@ -24,6 +24,17 @@ const presupuesto = (id: string, mesId: string, importe: number) =>
     fechaRegistro: new Date('2026-09-01T10:00:00.000Z'),
   }) as import('@/domain/entities').PresupuestoIndividual;
 
+/**
+ * Gasto anual para la regla del apartado. Se construye igual que el `GastoAnual`
+ * real: la función pura solo mira importe/ventana/ciclo, no el propietario.
+ */
+const gastoAnual = (
+  importeTotal: number,
+  mesPago: number,
+  anioCiclo = 2027,
+  fechaCreacion = new Date('2026-09-01T00:00:00.000Z'),
+) => ({ importeTotal, fechaCreacion, fechaUltimoPago: null, anioCiclo, mesPago });
+
 describe('derivarResumenIndividual (IA-2)', () => {
   it('calcula cuota, gastado y disponible: sueldo 2000€, 30%, gastos 150€', () => {
     const resumen = derivarResumenIndividual(
@@ -159,6 +170,99 @@ describe('derivarResumenIndividual (IA-2)', () => {
       expect(resumen.porcentajePresupuesto).toBe(37.5);
       expect(resumen.cuota).toBeNull();
       expect(resumen.disponible).toBeNull();
+    });
+  });
+
+  // El apartado es la brecha que quedaba: el área individual tenía el CRUD de
+  // gastos anuales pero NO su efecto en el disponible. Estos tests son la red de
+  // seguridad de esa paridad.
+  describe('apartado de gastos anuales (paridad con la cuenta conjunta)', () => {
+    it('sin gastos anuales el apartado es 0 y nada cambia', () => {
+      const resumen = derivarResumenIndividual(
+        mes(2026, 9, 30),
+        aportacion(200000),
+        [gasto(15000)],
+      );
+
+      expect(resumen.apartado).toBe(0);
+      expect(resumen.gastadoComprometido).toBe(15000);
+      expect(resumen.disponible).toBe(45000);
+    });
+
+    it('un gasto anual de 600€ en 12 meses aparta 50€ en el mes de su ventana', () => {
+      // Creado en septiembre 2026, ciclo con mesPago = 7 (julio de 2027):
+      // la ventana va de septiembre a julio, 11 meses. Septiembre es la posición
+      // 1 de 11. 60000 / 11 = 5454 con residuo 6, y el residuo reparte 1 céntimo
+      // a los 6 primeros meses (`calcularCuotaMes`): 5455 céntimos.
+      const resumen = derivarResumenIndividual(
+        mes(2026, 9, 30),
+        aportacion(200000),
+        [gasto(15000)],
+        null,
+        [gastoAnual(60000, 7)],
+      );
+
+      expect(resumen.apartado).toBe(5455);
+      // El disponible BAJA respecto a no tener el gasto anual: 60000 - 15000 - 5454.
+      expect(resumen.gastadoComprometido).toBe(20455);
+      expect(resumen.disponible).toBe(39545);
+      // La cuota NO cambia: el apartado no es una aportación.
+      expect(resumen.cuota).toBe(60000);
+      // Y el gasto real sigue siendo el que se ve en la tarjeta de "Gastado".
+      expect(resumen.gastado).toBe(15000);
+    });
+
+    it('un mes fuera de la ventana no aparta nada', () => {
+      // Agosto de 2026 es ANTERIOR a la ventana (que empieza en septiembre).
+      const resumen = derivarResumenIndividual(
+        mes(2026, 8, 30),
+        aportacion(200000),
+        [],
+        null,
+        [gastoAnual(60000, 7)],
+      );
+
+      expect(resumen.apartado).toBe(0);
+      expect(resumen.disponible).toBe(60000);
+    });
+
+    it('el apartado puede volver negativo el disponible', () => {
+      const resumen = derivarResumenIndividual(
+        mes(2026, 9, 30),
+        aportacion(200000),
+        [gasto(55000)],
+        null,
+        [gastoAnual(60000, 7)],
+      );
+
+      expect(resumen.disponible).toBe(60000 - 55000 - 5455);
+      expect(resumen.disponible).toBeLessThan(0);
+    });
+
+    it('cuenta los gastos del mes para el contador del Inicio', () => {
+      const resumen = derivarResumenIndividual(
+        mes(2026, 9, 30),
+        aportacion(200000),
+        [gasto(15000), gasto(2500), gasto(3000)],
+      );
+
+      expect(resumen.numeroGastos).toBe(3);
+    });
+
+    it('el presupuesto NO se ve afectado por el apartado, igual que en la conjunta', () => {
+      // `calcularResumen` documenta que `restantePresupuesto` y
+      // `porcentajePresupuesto` usan solo `gastado`. La individual mantiene el
+      // mismo contrato: el tope mide gasto real, no dinero comprometido.
+      const resumen = derivarResumenIndividual(
+        mes(2026, 9, 30),
+        aportacion(200000),
+        [gasto(15000)],
+        40000,
+        [gastoAnual(60000, 7)],
+      );
+
+      expect(resumen.restantePresupuesto).toBe(25000);
+      expect(resumen.porcentajePresupuesto).toBe(37.5);
     });
   });
 });
