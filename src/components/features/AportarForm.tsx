@@ -19,6 +19,7 @@ import {
   calcularTotalCuentaConjunta,
   calcularImporteAportado,
 } from '@/domain/rules/CalculadoraAportacion';
+import { calcularPorcentajeIndividual } from '@/domain/value-objects/Porcentaje';
 import type { Aportacion, Mes, PresupuestoIndividual, Usuario } from '@/domain/entities';
 import type { VarianteCuenta } from '@/lib/cuenta';
 import { aportar, formatos } from '@/literals';
@@ -342,7 +343,9 @@ export function AportarForm({
         </h3>
         {mes.porcentaje != null ? (
           <p className="font-mono text-3xl font-bold text-brand-navy">
-            {mes.porcentaje}%
+            {variante === 'individual'
+              ? `${calcularPorcentajeIndividual(mes.porcentaje) ?? 0}%`
+              : `${mes.porcentaje}%`}
           </p>
         ) : (
           <form action={guardarPorcentaje}>

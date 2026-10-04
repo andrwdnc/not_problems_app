@@ -224,22 +224,22 @@ describe('derivación del resumen individual (vs regla T5)', () => {
     gastosCentimos: Array<{ importe: number }>,
   ) => calcularDisponibleIndividual(sueldoCentimos, porcentaje, gastosCentimos);
 
-  it('IA-2 feliz: sueldo 2000 €, 30 %, gastos 150 € -> disponible 450 €', () => {
-    expect(disponibleIndividual(200000, 30, [{ importe: 15000 }])).toBe(45000);
+  it('IA-2 feliz: sueldo 2000 €, 30 % a lo común, gastos 150 € -> cuota 1400 €, disponible 1250 €', () => {
+    expect(disponibleIndividual(200000, 30, [{ importe: 15000 }])).toBe(125000);
   });
 
-  it('IA-2 déficit: gastos 700 € frente a cuota 600 € -> disponible -100 €', () => {
-    expect(disponibleIndividual(200000, 30, [{ importe: 70000 }])).toBe(-10000);
+  it('IA-2 déficit: gastos 1500 € frente a cuota 1400 € -> disponible -100 €', () => {
+    expect(disponibleIndividual(200000, 30, [{ importe: 150000 }])).toBe(-10000);
   });
 
-  it('sin gastos, el disponible es la cuota completa (sueldo 2000 € × 30 %)', () => {
-    expect(disponibleIndividual(200000, 30, [])).toBe(60000);
+  it('sin gastos, el disponible es la cuota completa (sueldo 2000 € × 70 %)', () => {
+    expect(disponibleIndividual(200000, 30, [])).toBe(140000);
   });
 
-  it('paridad con la cuenta conjunta: mi cuota coincide con lo que aporta mi aportación', () => {
-    // Al compartir porcentaje, la cuota individual NO es el complemento: es
-    // exactamente `importe_aportado` de mi aportación en el resumen conjunto.
-    // Esa equivalencia es la que sostiene que ambas áreas pintan lo mismo.
+  it('paridad con la cuenta conjunta: el reparto suma el sueldo (los dos mundos distintos)', () => {
+    // La cuota individual ES el complemento del porcentaje compartido, no el
+    // mismo número que aporta la cuenta conjunta. Lo que tiene que encajar es
+    // el reparto: lo que se lleva a lo común + lo que me queda = mi sueldo.
     const sueldo = 200000;
     const porcentaje = 30;
     const miAportacion = aportacion(calcularImporteAportado(sueldo, porcentaje));
@@ -247,10 +247,9 @@ describe('derivación del resumen individual (vs regla T5)', () => {
     const resumenConjunto = calcularResumen([miAportacion], [], null);
     expect(resumenConjunto.aportado).toBe(60000);
 
-    // Mi disponible individual con los mismos gastos es mi cuota menos lo gastado.
-    expect(disponibleIndividual(sueldo, porcentaje, [])).toBe(
-      resumenConjunto.aportado,
-    );
+    // Mi cuota individual es 140000, no 60000. Ambos suman 200000.
+    expect(disponibleIndividual(sueldo, porcentaje, [])).toBe(140000);
+    expect(resumenConjunto.aportado + 140000).toBe(sueldo);
   });
 
   it('sin sueldo registrado, el disponible es null (estado vacío para la UI)', () => {

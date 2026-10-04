@@ -2,21 +2,30 @@ import { describe, expect, it } from 'vitest';
 import { calcularResumen } from './queries';
 import { derivarResumenIndividual } from './individual-queries';
 import { calcularImporteAportado } from '@/domain/rules/CalculadoraAportacion';
+import { calcularPorcentajeIndividual } from '@/domain/value-objects/Porcentaje';
 
 /**
  * PARIDAD NUMÉRICA ENTRE LAS DOS CUENTAS.
  *
- * Las dos áreas tienen reglas distintas escritas a propósito (una suma dos
- * sueldos, la otra uno), así que sus totales no siempre coinciden. Lo que SÍ tiene
- * que coincidir es la ARITMÉTICA: con una sola persona, la cuenta conjunta tiene
- * que dar exactamente las mismas cifras que el área individual. Si divergen, la
- * misma operación está implementada dos veces y una de las dos se ha roto.
+ * Las dos cuentas se montan sobre UN mismo hecho: el mismo sueldo y el mismo
+ * porcentaje único del mes. Pero el porcentaje se REPARTA, y por eso las dos
+ * cuentas NO dan las mismas cifras por el mismo lado:
  *
- * Este archivo es el detector de eso. Se compara la salida de las dos funciones
- * puras de resumen con ENTRADAS IDÉNTICAS y se exige igualdad campo a campo.
+ *   sueldo 2.000 €, 30 % a lo común
+ *     cuenta conjunta   aporta  2.000 × 30 % =  600 €
+ *     área individual    su cuota 2.000 × 70 % = 1.400 €
+ *                                        suma    2.000 €
  *
- * Regla de oro: cuando esto falla, NO se arregla el número, se arregla la regla
- * compartida para que las dos áreas vuelvan a llamarla.
+ * Este archivo estuvo defendiendo la premisa contraria ("con una sola persona
+ * ambas cuentas dan exactamente las mismas cifras"), y por eso no detectó nada:
+ * al aplicar el porcentaje compartido a las dos áreas, la igualdad se cumplía
+ * y la regla estaba mal. La premisa correcta es la del reparto, y es la que se
+ * comprueba aquí.
+ *
+ * Lo que TIENE que coincidir entre las dos áreas es la aritmética (misma
+ * resta, mismo apartado, mismo reparto de céntimos) y el reparto del sueldo. Si
+ * esto falla, NO se arregla el número: se arregla la regla compartida para que
+ * las dos áreas vuelvan a llamarla.
  */
 
 /** Un usuario, un sueldo y sus gastos: las entradas que ven ambas áreas. */
@@ -58,19 +67,102 @@ function escenario(sueldo: number, porcentaje: number, importes: number[]) {
   return { aportaciones, gastos, mes, aportacion };
 }
 
-describe('paridad numérica conjunta ↔ individual', () => {
-  it('con un solo usuario, ambas cuentas dan el mismo disponible', () => {
+describe('reparto del sueldo entre las dos cuentas', () => {
+  it('lo que va a lo común y lo que queda para mí suman el sueldo', () => {
+    // Es la aserción que no existía y que debería haber existido. Con la regla
+    // anterior esta suma daba 1.200 € sobre un sueldo de 2.000 €: el dinero de la
+    // parte individual se contaba dos veces, una como aportación común y otra
+    // como cuota personal.
+    const sueldo = 200000;
+    const porcentaje = 30;
+    const { mes, aportacion, gastos } = escenario(sueldo, porcentaje, [15000]);
+
+    const conjunto = calcularResumen(
+      [{ importeAportado: calcularImporteAportado(sueldo, porcentaje) }] as never,
+      gastos as never,
+      null,
+      0,
+    );
+    const individual = derivarResumenIndividual(mes, aportacion, gastos as never);
+
+    expect(individual.cuota).not.toBeNull();
+    expect(conjunto.aportado + (individual.cuota as number)).toBe(sueldo);
+  });
+
+  it('el reparto se mantiene en un barrido de porcentajes', () => {
+    // Un solo valor no demuestra una regla. Se recorre el rango entero porque
+    // el 50 % es el único punto donde la suma no distinguiría entre las dos
+    // implementaciones.
+    for (let porcentaje = 1; porcentaje <= 100; porcentaje++) {
+      const sueldo = 200000;
+      const { mes, aportacion, gastos } = escenario(sueldo, porcentaje, []);
+
+      const individual = derivarResumenIndividual(mes, aportacion, gastos as never);
+      const aLoComun = calcularImporteAportado(sueldo, porcentaje) as number;
+
+      expect(
+        aLoComun + (individual.cuota as number),
+        `sueldo repartido al ${porcentaje} %`,
+      ).toBe(sueldo);
+      expect(individual.porcentajeCompartido).toBe(porcentaje);
+      expect(individual.porcentajeIndividual).toBe(100 - porcentaje);
+    }
+  });
+
+  it('las dos cuentas son distintas salvo en el 50 %', () => {
+    // Fija por escrito el caso degenerado: es donde un error de reparto pasaría
+    // desapercibido, porque las dos bases coinciden.
+    const cincuenta = escenario(200000, 50, [15000]);
+    const individualCincuenta = derivarResumenIndividual(
+      cincuenta.mes,
+      cincuenta.aportacion,
+      cincuenta.gastos as never,
+    );
+    expect(individualCincuenta.cuota).toBe(100000);
+
+    const otro = escenario(200000, 30, [15000]);
+    const individualTreinta = derivarResumenIndividual(
+      otro.mes,
+      otro.aportacion,
+      otro.gastos as never,
+    );
+    expect(individualTreinta.cuota).not.toBe(individualCincuenta.cuota);
+  });
+
+  it('el porcentaje compartido es el mismo valor en las dos cuentas', () => {
+    const { mes, aportacion, gastos } = escenario(200000, 30, [15000]);
+    const individual = derivarResumenIndividual(mes, aportacion, gastos as never);
+
+    // Hay UN porcentaje almacenado. El individual es su complemento, no otro
+    // valor guardado: por eso se derivan los dos del mismo `mes.porcentaje`.
+    expect(individual.porcentajeCompartido).toBe(30);
+    expect(individual.porcentajeIndividual).toBe(
+      calcularPorcentajeIndividual(individual.porcentajeCompartido),
+    );
+  });
+});
+
+describe('paridad aritmética conjunta ↔ individual', () => {
+  it('la misma resta sobre bases distintas', () => {
+    // La aritmética es la misma función; lo único que cambia es la base contra la
+    // que se resta. Si algún día estas dos cuentas hacen la resta con bases
+    // iguales, es que la regla del reparto se ha perdido.
     const { aportaciones, gastos, mes, aportacion } = escenario(200000, 30, [15000]);
 
     const conjunto = calcularResumen(aportaciones, gastos, null, 0);
     const individual = derivarResumenIndividual(mes, aportacion, gastos as never);
 
-    expect(individual.cuota).toBe(conjunto.aportado);
     expect(individual.gastado).toBe(conjunto.gastado);
     expect(individual.apartado).toBe(conjunto.apartado);
     expect(individual.gastadoComprometido).toBe(conjunto.gastadoComprometido);
-    expect(individual.disponible).toBe(conjunto.disponible);
     expect(individual.numeroGastos).toBe(conjunto.numeroGastos);
+
+    // Cada disponible sale de SU base menos el mismo comprometido.
+    expect(conjunto.disponible).toBe(conjunto.aportado - conjunto.gastadoComprometido);
+    expect(individual.disponible).toBe(
+      (individual.cuota as number) - individual.gastadoComprometido,
+    );
+    expect(individual.disponible).not.toBe(conjunto.disponible);
   });
 
   it('con apartado de gastos anuales, ambas cuentas discount igual', () => {
@@ -86,15 +178,19 @@ describe('paridad numérica conjunta ↔ individual', () => {
     const conjunto = calcularResumen(aportaciones, gastos, null, 5455);
     const individual = derivarResumenIndividual(mes, aportacion, gastos as never, null, [anual]);
 
-    // El apartado es el término que la individual NO tenía: si mañana se
-    // rompe en un área, esta aserción lo dice.
+    // El apartado es el término que la individual NO tenía: si mañana se rompe
+    // en un área, esta aserción lo dice.
     expect(conjunto.apartado).toBe(5455);
     expect(individual.apartado).toBe(5455);
     expect(individual.gastadoComprometido).toBe(conjunto.gastadoComprometido);
-    expect(individual.disponible).toBe(conjunto.disponible);
+    expect(individual.disponible).toBe(
+      (individual.cuota as number) - individual.gastadoComprometido,
+    );
   });
 
   it('el presupuesto mide lo mismo en las dos cuentas', () => {
+    // El presupuesto no depende del porcentaje repartido, así que aquí sí tiene
+    // que dar exactamente lo mismo en las dos áreas.
     const { aportaciones, gastos, mes, aportacion } = escenario(200000, 30, [15000, 2500]);
 
     const conjunto = calcularResumen(aportaciones, gastos, 40000, 0);
@@ -108,7 +204,7 @@ describe('paridad numérica conjunta ↔ individual', () => {
   it('el reparto de las cuotas anuales es idéntico en las dos áreas', () => {
     // El reparto del residuo (cuántos céntimos exactos caen en cada mes) es la
     // parte donde es más fácil que dos implementaciones difieran en 1 céntimo.
-    // Se recorren los 11 meses de la ventana de un gasto de 600€ en 12.
+    // Se recorren los 4 meses de la ventana de un gasto de 600 € en 12.
     const anual = {
       importeTotal: 60000,
       fechaCreacion: new Date('2026-09-01T00:00:00.000Z'),
@@ -128,5 +224,17 @@ describe('paridad numérica conjunta ↔ individual', () => {
     // 4 meses * 5455 = 21820 exactos (posiciones 1..4 de una ventana de 11;
     // 60000 / 11 = 5454 con residuo 6 repartido en los 6 primeros meses).
     expect(sumaIndividual).toBe(21820);
+  });
+
+  it('sin sueldo, el área individual no inventa cifras', () => {
+    const { mes, gastos } = escenario(200000, 30, [15000]);
+    const sinSueldo = derivarResumenIndividual(mes, null, gastos as never);
+
+    expect(sinSueldo.cuota).toBeNull();
+    expect(sinSueldo.disponible).toBeNull();
+    // El porcentaje sí se conoce aunque no haya sueldo: se pins, pero no hay
+    // sobre qué aplicarlo.
+    expect(sinSueldo.porcentajeIndividual).toBe(70);
+    expect(sinSueldo.gastado).toBe(15000);
   });
 });

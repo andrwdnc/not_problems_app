@@ -36,18 +36,19 @@ const gastoAnual = (
 ) => ({ importeTotal, fechaCreacion, fechaUltimoPago: null, anioCiclo, mesPago });
 
 describe('derivarResumenIndividual (IA-2)', () => {
-  it('calcula cuota, gastado y disponible: sueldo 2000€, 30%, gastos 150€', () => {
+  it('calcula cuota, gastado y disponible: sueldo 2000€, 30% a lo común, gastos 150€', () => {
     const resumen = derivarResumenIndividual(
-      mes(2026, 9, 30), // mismo porcentaje único y compartido del mes
+      mes(2026, 9, 30), // porcentaje único del mes: el de lo común
       aportacion(200000),
       [gasto(15000)],
     );
 
-    expect(resumen.porcentaje).toBe(30);
+    expect(resumen.porcentajeCompartido).toBe(30);
+    expect(resumen.porcentajeIndividual).toBe(70); // el complemento
     expect(resumen.sueldo).toBe(200000);
     expect(resumen.gastado).toBe(15000);
-    expect(resumen.cuota).toBe(60000); // 200000 * 0.30
-    expect(resumen.disponible).toBe(45000); // cuota - gastado
+    expect(resumen.cuota).toBe(140000); // 200000 * 0.70, lo que queda para mí
+    expect(resumen.disponible).toBe(125000); // cuota - gastado
   });
 
   it('permite déficit negativo cuando los gastos superan la cuota', () => {
@@ -57,7 +58,7 @@ describe('derivarResumenIndividual (IA-2)', () => {
       [gasto(70000)],
     );
 
-    expect(resumen.disponible).toBe(-10000);
+    expect(resumen.disponible).toBe(70000);
   });
 
   it('sin gastos el disponible coincide con la cuota', () => {
@@ -68,7 +69,7 @@ describe('derivarResumenIndividual (IA-2)', () => {
     );
 
     expect(resumen.gastado).toBe(0);
-    expect(resumen.disponible).toBe(60000);
+    expect(resumen.disponible).toBe(140000);
   });
 
   it('sin porcentaje no hay cuota ni disponible', () => {
@@ -78,25 +79,27 @@ describe('derivarResumenIndividual (IA-2)', () => {
       [gasto(15000)],
     );
 
-    expect(resumen.porcentaje).toBeNull();
+    expect(resumen.porcentajeCompartido).toBeNull();
+    expect(resumen.porcentajeIndividual).toBeNull();
     expect(resumen.cuota).toBeNull();
     expect(resumen.disponible).toBeNull();
     expect(resumen.gastado).toBe(15000); // el gasto sí se muestra
   });
 
-  it('el 100 % es un valor legítimo: cuota íntegra, sin fila en gris', () => {
-    // Antes el 100 % conjunto era degenerado (el complemento daba 0 y se
-    // invalidaba la fila). Al compartir el mismo porcentaje, 100 % significa
-    // "aportas tu sueldo íntegro" y debe calcularse con normalidad.
+  it('con el 100 % a lo común no queda nada para el gasto individual, y se puede quedar en negativo', () => {
+    // El complemento del 100 % es 0. `validarPorcentaje` rechaza el 0 escrito a
+    // mano, así que si la regla revalidase el rango esto saldría null y la
+    // pantalla diría "sin datos" en vez de "te has pasado por 150 €".
     const resumen = derivarResumenIndividual(
       mes(2026, 9, 100),
       aportacion(200000),
       [gasto(15000)],
     );
 
-    expect(resumen.porcentaje).toBe(100);
-    expect(resumen.cuota).toBe(200000);
-    expect(resumen.disponible).toBe(185000);
+    expect(resumen.porcentajeCompartido).toBe(100);
+    expect(resumen.porcentajeIndividual).toBe(0);
+    expect(resumen.cuota).toBe(0);
+    expect(resumen.disponible).toBe(-15000);
   });
 
   it('sin mes devuelve un resumen vacío sin lanzar', () => {
@@ -125,8 +128,8 @@ describe('derivarResumenIndividual (IA-2)', () => {
       expect(resumen.restantePresupuesto).toBeNull();
       expect(resumen.porcentajePresupuesto).toBeNull();
       // El resto del resumen NO se ve afectado por la ausencia de tope.
-      expect(resumen.cuota).toBe(60000);
-      expect(resumen.disponible).toBe(45000);
+      expect(resumen.cuota).toBe(140000);
+      expect(resumen.disponible).toBe(125000);
     });
 
     it('calcula restante y % consumido: 400€ de tope con 150€ gastados', () => {
@@ -186,7 +189,7 @@ describe('derivarResumenIndividual (IA-2)', () => {
 
       expect(resumen.apartado).toBe(0);
       expect(resumen.gastadoComprometido).toBe(15000);
-      expect(resumen.disponible).toBe(45000);
+      expect(resumen.disponible).toBe(125000);
     });
 
     it('un gasto anual de 600€ en 12 meses aparta 50€ en el mes de su ventana', () => {
@@ -205,9 +208,9 @@ describe('derivarResumenIndividual (IA-2)', () => {
       expect(resumen.apartado).toBe(5455);
       // El disponible BAJA respecto a no tener el gasto anual: 60000 - 15000 - 5454.
       expect(resumen.gastadoComprometido).toBe(20455);
-      expect(resumen.disponible).toBe(39545);
+      expect(resumen.disponible).toBe(119545);
       // La cuota NO cambia: el apartado no es una aportación.
-      expect(resumen.cuota).toBe(60000);
+      expect(resumen.cuota).toBe(140000);
       // Y el gasto real sigue siendo el que se ve en la tarjeta de "Gastado".
       expect(resumen.gastado).toBe(15000);
     });
@@ -223,20 +226,20 @@ describe('derivarResumenIndividual (IA-2)', () => {
       );
 
       expect(resumen.apartado).toBe(0);
-      expect(resumen.disponible).toBe(60000);
+      expect(resumen.disponible).toBe(140000);
     });
 
     it('el apartado puede volver negativo el disponible', () => {
       const resumen = derivarResumenIndividual(
         mes(2026, 9, 30),
         aportacion(200000),
-        [gasto(55000)],
+        [gasto(150000)], // supera con creces la cuota de 1.400 €
         null,
-        [gastoAnual(60000, 7)],
+        [gastoAnual(60000, 7)], // +54,55 €
       );
 
-      expect(resumen.disponible).toBe(60000 - 55000 - 5455);
       expect(resumen.disponible).toBeLessThan(0);
+      expect(resumen.disponible).toBe(140000 - 150000 - 5455);
     });
 
     it('cuenta los gastos del mes para el contador del Inicio', () => {
@@ -296,9 +299,9 @@ describe('derivarHistoricoIndividual (IA-2)', () => {
       202609, 202608, 202607,
     ]);
 
-    // Sep: cuota 60000, disponible 45000, editable.
+    // Sep: cuota 140000, disponible 125000, editable.
     const sep = historico[0];
-    expect(sep.resumen.disponible).toBe(45000);
+    expect(sep.resumen.disponible).toBe(125000);
     expect(sep.permisos.estado).toBe('editable');
 
     // Ago (hace 1 mes, día 14): solo_altas.
@@ -309,7 +312,7 @@ describe('derivarHistoricoIndividual (IA-2)', () => {
     // Jul (hace 2 meses): congelado.
     const jul = historico[2];
     expect(jul.permisos.estado).toBe('congelado');
-    expect(jul.resumen.disponible).toBe(54000); // 180000 * 0.30 - 0
+    expect(jul.resumen.disponible).toBe(126000); // 180000 * 0.70 - 0
   });
 
   it('un mes con solo gastos (sin sueldo) cuenta como histórico', () => {

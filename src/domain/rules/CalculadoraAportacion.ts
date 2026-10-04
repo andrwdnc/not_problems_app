@@ -2,12 +2,18 @@ import { esImporteValido } from '../value-objects/ImporteMoneda';
 import { validarPorcentaje } from '../value-objects/Porcentaje';
 
 /**
- * Regla pura: importe_aportado = sueldo × (porcentaje / 100).
+ * Regla pura: importe = sueldo × (porcentaje / 100).
  * Trabaja en céntimos enteros: sueldo e importe del resultado en céntimos.
- * Solo produce un resultado válido cuando tanto sueldo como porcentaje
- * están presentes y son válidos; en caso contrario devuelve null.
+ *
+ * SIN validar el rango del porcentaje: úsese solo con porcentajes ya validados,
+ * típicamente los DERIVADOS de otra regla (el complemento `100 − compartido`
+ * del área individual puede ser exactamente 0, que es un valor legítimo que
+ * `validarPorcentaje` rechaza porque no tiene sentido escribirlo a mano).
+ *
+ * Quien venga del formulario de entrada del usuario usa
+ * `calcularImporteAportado`, que sí valida.
  */
-export function calcularImporteAportado(
+export function calcularImporte(
   sueldoCentimos: number | null | undefined,
   porcentaje: number | null | undefined,
 ): number | null {
@@ -19,12 +25,30 @@ export function calcularImporteAportado(
     return null;
   }
 
+  return Math.round(sueldoCentimos * (porcentaje / 100));
+}
+
+/**
+ * Regla pura: importe_aportado = sueldo × (porcentaje / 100), validando antes el
+ * porcentaje porque aquí el valor viene de lo que ha escrito una persona.
+ *
+ * Solo produce un resultado válido cuando tanto sueldo como porcentaje
+ * están presentes y son válidos; en caso contrario devuelve null.
+ */
+export function calcularImporteAportado(
+  sueldoCentimos: number | null | undefined,
+  porcentaje: number | null | undefined,
+): number | null {
+  if (porcentaje == null) {
+    return null;
+  }
+
   const { esValido } = validarPorcentaje(porcentaje);
   if (!esValido) {
     return null;
   }
 
-  return Math.round(sueldoCentimos * (porcentaje / 100));
+  return calcularImporte(sueldoCentimos, porcentaje);
 }
 
 /**

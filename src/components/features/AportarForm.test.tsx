@@ -359,7 +359,7 @@ describe('AportarForm', () => {
           variante="individual"
         />,
       );
-      expect(screen.getByText('30%')).toBeInTheDocument();
+      expect(screen.getByText('70%')).toBeInTheDocument();
       expect(
         screen.queryByLabelText(aportarLiterales.porcentajeUnico),
       ).not.toBeInTheDocument();

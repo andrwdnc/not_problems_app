@@ -11,9 +11,11 @@ import type { PermisosEdicion } from '@/domain/rules/VentanaEdicionGastos';
 import { calcularDisponibleIndividual } from '@/domain/rules/CalculadoraIndividual';
 import {
   calcularGastadoComprometido,
+  calcularImporte,
   calcularPorcentajePresupuestoConsumido,
   calcularRestantePresupuesto,
 } from '@/domain/rules/CalculadoraAportacion';
+import { calcularPorcentajeIndividual } from '@/domain/value-objects/Porcentaje';
 import { calcularApartadoTotal } from '@/domain/rules/CalculadoraGastoAnual';
 import type { Aportacion, GastoIndividual, Mes, PresupuestoIndividual } from '@/domain/entities';
 
@@ -35,19 +37,32 @@ export interface AportacionAnualParaApartado {
  * Resumen mensual del área individual (IA-2). Todos los importes en céntimos
  * enteros.
  *
- * El porcentaje es el MISMO valor único y compartido que usa la cuenta conjunta
- * (`meses.porcentaje`): no hay porcentaje derivado ni inversión. La cuota es por
- * tanto mi aportación al mes, calculada con la misma regla pura que en el área
- * conjunta.
+ * Hay UN porcentaje almacenado, el compartido (`meses.porcentaje`), pero dos
+ * porcentajes reales: el compartido y el individual, que es su complemento
+ * (`100 − compartido`). Se exponen con nombres distintos a propósito, porque
+ * llamarlos igual a los dos es lo que permitió que la cuota se calculara con el
+ * número equivocado sin que nada lo delatara.
+ *
+ * El reparto sale de `calcularPorcentajeIndividual` y la cuota de
+ * `calcularImporteAportado`; aquí no hay ninguna resta `100 - p` escrita a mano.
  */
 export interface ResumenIndividual {
   mesId: string;
   anio: number;
   mes: number;
-  /** Porcentaje único y compartido del mes (`meses.porcentaje`). */
-  porcentaje: number | null;
+  /**
+   * El porcentaje ÚNICO y compartido del mes (`meses.porcentaje`): la parte del
+   * sueldo que va a la cuenta común.
+   */
+  porcentajeCompartido: number | null;
+  /**
+   * MI parte del sueldo = `100 − porcentajeCompartido`, la que queda para el
+   * gasto individual de este usuario. Se deriva en la lectura, no se guarda.
+   */
+  porcentajeIndividual: number | null;
+  /** Sueldo bruto del usuario. No es una aportación: es la base sobre la que se reparte. */
   sueldo: number | null;
-  /** Mi cuota mensual = sueldo * porcentaje / 100. */
+  /** MI cuota mensual = sueldo * porcentajeIndividual / 100. */
   cuota: number | null;
   /** Suma de gastos individuales del mes (siempre visible aunque falte sueldo). */
   gastado: number;
@@ -98,7 +113,8 @@ export function derivarResumenIndividual(
       mesId: '',
       anio: 0,
       mes: 0,
-      porcentaje: null,
+      porcentajeCompartido: null,
+      porcentajeIndividual: null,
       sueldo: null,
       cuota: null,
       gastado: 0,
@@ -112,7 +128,8 @@ export function derivarResumenIndividual(
     };
   }
 
-  const porcentaje = mes.porcentaje;
+  const porcentajeCompartido = mes.porcentaje;
+  const porcentajeIndividual = calcularPorcentajeIndividual(porcentajeCompartido);
   const sueldo = aportacion?.sueldo ?? null;
   const gastado = gastos.reduce((acc, g) => acc + g.importe, 0);
 
@@ -124,15 +141,28 @@ export function derivarResumenIndividual(
   const apartado = calcularApartadoTotal(gastosAnuales, mes.anio, mes.mes);
   const gastadoComprometido = calcularGastadoComprometido(gastado, apartado);
 
-  // La cuota se recupera con la regla compartida en vez de deducirla del
-  // disponible: `disponible + gastado` daba el mismo número pero obligaba a
-  // calcular el disponible para después deshacerlo.
+  // La cuota se calcula con MI porcentaje (el complemento del compartido) y la
+  // regla pura de importe compartida con la cuenta conjunta. Antes se usaba el
+  // porcentaje compartido, con lo que el disponible se medía contra una cifra que
+  // ya incluía el dinero que se había ido a lo común.
   const disponible =
-    sueldo != null && porcentaje != null
-      ? calcularDisponibleIndividual(sueldo, porcentaje, gastos, apartado)
+    sueldo != null && porcentajeCompartido != null
+      ? calcularDisponibleIndividual(
+          sueldo,
+          porcentajeCompartido,
+          gastos,
+          apartado,
+        )
       : null;
+
+  // Se calcula la cuota por su cuenta en vez de deducirla del disponible
+  // (`disponible + gastado` daba el mismo número pero obligaba a calcular el
+  // disponible para deshacerlo después). Ambas salen de la misma regla pura, así
+  // que `cuota - disponible === gastadoComprometido` se cumple siempre.
   const cuota =
-    disponible != null ? disponible + gastadoComprometido : null;
+    sueldo != null && porcentajeIndividual != null
+      ? calcularImporte(sueldo, porcentajeIndividual)
+      : null;
 
   // Las dos métricas de presupuesto se delegan en las MISMAS reglas puras que usa
   // la cuenta conjunta (`CalculadoraAportacion`). Es lo que impide que el "restante"
@@ -148,7 +178,8 @@ export function derivarResumenIndividual(
     mesId: mes.id,
     anio: mes.anio,
     mes: mes.mes,
-    porcentaje,
+    porcentajeCompartido,
+    porcentajeIndividual,
     sueldo,
     cuota,
     gastado,
