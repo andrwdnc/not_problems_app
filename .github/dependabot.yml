@@ -1,0 +1,39 @@
+version: 2
+
+updates:
+  # Las dependencias son la superficie de ataque más expuesta de una app web
+  # (una app con Next 14 arrastra advisories de high/critical sin tocar código).
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "07:00"
+    open-pull-requests-limit: 5
+    labels: [dependencies]
+    groups:
+      # Un PR por familia en vez de uno por paquete: 22 vulnerabilidades sueltas
+      # son ruido; los minors de un mismo tipo sí se prueban juntos.
+      next-minor:
+        applies-to: version-updates
+        update-types: [minor, patch]
+        patterns: [next, eslint-config-next]
+      typescript:
+        applies-to: version-updates
+        update-types: [minor, patch]
+        patterns: [typescript, "@typescript-eslint/*"]
+      testing:
+        applies-to: version-updates
+        update-types: [minor, patch]
+        patterns: [vitest, vite, "@vitejs/plugin-react", jsdom]
+    commit-message:
+      prefix: "chore(deps)"
+    labels: [dependencies]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    labels: [dependencies, ci]
+    commit-message:
+      prefix: "chore(ci)"
