@@ -1,0 +1,45 @@
+name: CI
+
+on:
+  push:
+    branches: [master, develop]
+  pull_request:
+    branches: [master, develop]
+
+# Cancela un run anterior si llega un push nuevo a la misma rama: no hace falta
+# seguir validando un commit que ya quedó obsoleto mientras esperaba.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: typecheck · lint · test · build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # La versión se fija EXACTA a propósito: `engines.node` es "24.x" y un
+      # rango abierto dejaría que CI resuelva a un runtime que Vercel ya retiró.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.x
+          cache: npm
+
+      # `npm ci` en vez de `npm install`: instala exactamente el árbol del
+      # lockfile y falla si package.json y package-lock.json están desincronizados.
+      - run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Test
+        run: npm run test
+
+      - name: Build
+        run: npm run build
