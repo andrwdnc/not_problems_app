@@ -25,11 +25,18 @@ La app no gestiona gastos personales ni dinero real: todo lo registrado en ella 
 | Autenticación | Propia (username + bcrypt + cookie) | Login por usuario + contraseña hasheada; sesión en cookie HTTP-only firmada HMAC-SHA256. No usa Supabase Auth |
 | Testing | Vitest | Tests unitarios de las reglas puras del dominio |
 | Estilos | Tailwind CSS | Desarrollo rápido sin diseñar un sistema de componentes desde cero |
-| Control de versiones | GitHub (repo privado) | Conecta directamente con Vercel para despliegue continuo |
+| Control de versiones | GitHub (repo público, licencia MIT) | Conecta directamente con Vercel para despliegue continuo; CI ejecuta `typecheck`, `lint`, `test` y `build` en cada push |
 
 > **Una única base de datos:** mientras la app esté en pruebas, **desarrollo y producción comparten la misma Supabase (Postgres)**. No hay un dataset separado por entorno: las operaciones que escriben o borran datos (`db:push`, `db:migrate`) afectan a dev y a prod por igual.
 
-### Pasos de arranque sugeridos
+### Estado del proyecto
+
+Este documento se escribió como **guía de construcción** y se conserva como
+especificación funcional. Los pasos de arranque que siguen son el origen real del
+proyecto, no una instrucción vigente; para instalar hoy, ver `README.md`
+(§ Getting started) y `CONTRIBUTING.md`.
+
+### Pasos de arranque (histórico)
 1. `npx create-next-app@latest` (TypeScript + Tailwind + App Router).
 2. Repo en GitHub, importado en Vercel (despliegue automático en cada push; solo `master` para producción).
 3. Proyecto en Supabase → Postgres (la autenticación es propia, no usa Supabase Auth).

@@ -51,17 +51,19 @@ src/
 ├── domain/                     # Capa del Dominio (Lógica de Negocio Pura)
 │   ├── entities/               # Tipos e interfaces del dominio (Mes, Usuario, Gasto, Aportacion)
 │   ├── ports/                  # Puertos: interfaces de repositorio (contratos a implementar por infra)
-│   ├── rules/                  # Reglas de negocio puras (CalculadoraAportacion, VentanaEdicionGastos, GastosRecurrentes)
+│   ├── rules/                  # Reglas de negocio puras (CalculadoraAportacion, VentanaEdicionGastos, GastosRecurrentes, LimiteIntentosAuth)
 │   └── value-objects/          # Objetos de valor (ImporteMoneda, Porcentaje, Categoria)
 ├── infrastructure/             # Capa de Infraestructura (DB & Servicios Externos)
 │   ├── db/                     # Drizzle Schema, conexión lazy (getDb) y migraciones
 │   ├── repositories/           # Implementación Drizzle de los puertos del dominio (DIP)
 │   ├── audit/                  # Helper de auditoría (auditarMovimiento)
-│   └── config.ts               # Configuración validada con Zod (getConnectionUrl, getAuthSecret, esProduccion)
+│   ├── config.ts               # Configuración validada con Zod (getConnectionUrl, getAuthSecret, esProduccion)
+│   └── errores-postgres.ts     # Traducción de SQLSTATE a conceptos del dominio (esEspacioCompleto)
 ├── server-actions/             # Casos de Uso / Controladores (Server Actions de Next.js)
 │   ├── gastos-actions.ts       # Acciones relativas a gastos (crear, editar, eliminar)
 │   ├── aportaciones-actions.ts # Acciones de sueldo y porcentaje
-│   ├── auth-actions.ts         # Acciones de login/signup/logout
+│   ├── auth-actions.ts         # Acciones de login/signup/logout (coste constante + rate limit)
+│   ├── limite-intentos.ts      # Rate limiting de auth (Postgres, claves HMAC, degrada a permitir)
 │   ├── meses-actions.ts        # Apertura y generación automática de meses
 │   ├── queries.ts              # Resumen del mes actual
 │   ├── historico-queries.ts    # Consultas del histórico de meses
@@ -134,6 +136,31 @@ El Agente de IA debe velar por que estas reglas se cumplan al 100%:
 
 6. **Generación Automática de Mes:**
    - El día 1 de cada mes se debe inicializar el nuevo registro en `meses` y duplicar automáticamente los gastos marcados como `es_recurrente = true` del mes anterior.
+
+7. **Máximo 2 Usuarios (garantizado en base de datos):**
+   - El trigger `usuarios_max_2` (ver `scripts/migrate-auth-seguridad.ts`) es la **garantía**: comprueba y permite el `INSERT` en la misma transacción, serializados con `pg_advisory_xact_lock`.
+   - El `count()` de `signup` es solo un *fast-fail* de interfaz. **PROHIBIDO** presentarlo como la garantía o eliminar el trigger pensando que la aplicación ya lo cubre.
+   - Al añadir un usuario por otra vía (script, seed, SQL manual), revisa que esa vía **sí** queda sujeta al límite: el trigger solo cubre `INSERT` sobre `public.usuarios`.
+
+8. **Coste Constante en el Login:**
+   - `login` **SIEMPRE** ejecuta `bcrypt.compare`. Si el usuario no existe, el hash se sustituye por `HASH_SENUELO` (`src/lib/session/hashSenuelo.ts`).
+   - **PROHIBIDO** reintroducir un retorno temprano antes del `compare`: crea un oráculo de temporización que permite enumerar las cuentas registradas. Cubierto por `src/server-actions/auth-actions.test.ts`.
+
+---
+
+## 5.1 Invariantes de Seguridad
+
+Aplican a `login` y a `signup`:
+
+1. **Límite de intentos obligatorio.** Cualquier acción nueva que autentique debe pasar por `estaBloqueadoPorIntentos(accion, username)` (`src/server-actions/limite-intentos.ts`) **antes** de tocar la base de datos o de gastar CPU en bcrypt.
+2. **El límite de intentos es una TABLA**, no constantes sueltas en la Server Action: se declara en `src/domain/rules/LimiteIntentosAuth.ts`. Añadir una acción protegida = añadir una fila.
+3. **La respuesta al bloquear es indistinguible** del error de credenciales. **PROHIBIDO** introducir un literal tipo "demasiados intentos": confirmaría que la cuenta existe y de cuándo puede volver a probarse.
+4. **El estado del contador va en Postgres**, nunca en memoria. El despliegue es serverless y multi-instancia: un `Map` daría un límite real tantas veces como instancias haya.
+5. **Las claves del contador son digests HMAC con `AUTH_SECRET`.** **PROHIBIDO** almacenar usernames o IPs en claro.
+6. **Degradar a permitir, nunca a bloquear**, si el contador no está disponible. Ver el comentario de `estaBloqueadoPorIntentos`: el modo cerrado convertiría un fallo operativo en una caída total de la app.
+7. **Propietario desde la sesión.** En el área individual el `usuarioId` se deriva **siempre** de la sesión; los esquemas Zod son `.strict()` y rechazan un `usuarioId`/`mesId` del cliente. **PROHIBIDO** "simplificar" aceptando el id del cliente.
+8. **Ningún SQLSTATE llega a la capa de presentación.** Traducir con `esEspacioCompleto` (`src/infrastructure/errores-postgres.ts`) y devolver el literal de negocio.
+9. **Los advisories y la deuda de seguridad aceptada** están en `docs/security.md`. Antes de añadir una dependencia que afecte al runtime, actualizarlo. No retomar decisiones ya documentadas sin revisar ese archivo.
 
 ---
 
@@ -262,6 +289,8 @@ export const historicoMovimientos = pgTable('historico_movimientos', {
 
 > **Única base de datos (en pruebas):** mientras la app esté en fase de pruebas, **desarrollo y producción comparten la misma Supabase (Postgres)**. `DATABASE_URL`/`DIRECT_URL` apuntan a la misma instancia en todos los entornos de Vercel. Las operaciones que escriben o borran datos (`db:push`, `db:migrate`) afectan por igual a dev y prod; no hay dataset separado por entorno.
 
+> **Lo que NO está en el schema de Drizzle:** el contador de intentos (`auth_intentos`) sí lo está, pero el trigger `usuarios_max_2` no se puede expresar en Drizzle (una restricción `CHECK` no cuenta filas) y se crea en SQL. Cualquier cosa que deba garantizarse en base de datos y no sea declarativa va en `scripts/migrate-*.ts`, siguiendo el patrón idempotente de los scripts existentes.
+
 ---
 
 ## 8. Comandos de Desarrollo
@@ -281,6 +310,9 @@ export const historicoMovimientos = pgTable('historico_movimientos', {
 | `npm run db:studio` | Abrir Drizzle Studio |
 | `npm run db:migrate:gastos-anuales` | Migrar el esquema de gastos anuales (idempotente) |
 | `npm run db:migrate:individual-accounts` | Migrar el esquema de gastos individuales (idempotente) |
+| `npm run db:migrate:gastos-anuales-individuales` | Migrar gastos anuales del área individual (idempotente) |
+| `npm run db:migrate:presupuestos-individuales` | Migrar presupuestos individuales (idempotente) |
+| `npm run db:migrate:auth-seguridad` | Contador de intentos + trigger de máximo 2 usuarios (idempotente) |
 
 > Si algún script aún no existe en `package.json`, créalo en lugar de asumir que funciona.
 
