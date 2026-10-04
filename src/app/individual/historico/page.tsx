@@ -41,7 +41,10 @@ async function resolverVista(): Promise<VistaPantallaHistorico> {
       estado: h.permisos.estado,
       esDeficit: h.resumen.disponible != null && h.resumen.disponible < 0,
       columnas: [
-        { etiqueta: individual.miSueldo, valor: h.resumen.sueldo, variante: 'aportado' },
+        // MI cuota (sueldo x porcentaje), igual que la carta "aportado" de la
+        // cuenta conjunta. Va en la misma columna para que las dos áreas se
+        // puedan leer en vertical sin tener que saber qué área estás mirando.
+        { etiqueta: individual.miAportacion, valor: h.resumen.cuota, variante: 'aportado' },
         { etiqueta: resumen.gastado, valor: h.resumen.gastado, variante: 'gastado' },
         {
           // PARIDAD: el presupuesto es una de las cuatro columnas del resumen

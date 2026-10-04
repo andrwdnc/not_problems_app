@@ -217,7 +217,13 @@ export const chooser = {
  */
 export const individual = {
   titulo: 'Mi espacio',
-  miSueldo: 'Mi sueldo',
+  /**
+   * Rótulo de la carta de aportación del área individual: MI cuota
+   * (sueldo x porcentaje), no el sueldo bruto. El bruto se rotula
+   * `aportar.sueldoIntegro` y solo aparece en el formulario de
+   * `/individual/aportar`, que es donde se introduce.
+   */
+  miAportacion: 'Mi aportación',
   miCuota: 'Mi cuota',
   miPresupuesto: 'Mi presupuesto',
   deTuCuota: 'de tu cuota',

@@ -56,7 +56,7 @@ export default async function HistoricoIndividualDetallePage({
   const vista = derivarDetalleMesVista({
     cifras: cifrasDeResumenIndividual(resumenMes),
     rotulos: {
-      aportacion: individual.miSueldo,
+      aportacion: individual.miAportacion,
       gastado: literalesResumen.gastado,
       presupuesto: individual.miPresupuesto,
       saldo: literalesResumen.disponible,

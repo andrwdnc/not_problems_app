@@ -17,9 +17,28 @@
  */
 
 export interface CifrasMes {
-  /** Lo aportado al mes: la suma de sueldos (conjunta) o mi sueldo (individual). */
+  /**
+   * Lo aportado al mes, con el PORCENTAJE YA APLICADO en las dos áreas.
+   *
+   * Este campo es el que se pinta en la carta "aportado" de las tres pantallas,
+   * así que su significado no puede depender de qué área se esté viendo: en la
+   * conjunta es la suma de las cuotas de los dos, y en la individual es MI cuota.
+   *
+   * Antes mapeaba `r.sueldo` en el adaptador individual, de modo que la misma
+   * carta y el mismo tono verde significaban "suma de aportaciones" en una pantalla
+   * y "sueldo íntegro" en la otra, con el resto de cifras de la pantalla calculadas
+   * sobre la cuota. El resultado eran tres números que no cuadraban entre sí. Lo
+   * vigila `cifras-mes.test.ts`.
+   */
   aportacion: number | null;
-  /** Mi cuota = sueldo x porcentaje. `null` si aún no hay sueldo o porcentaje. */
+  /**
+   * MI cuota = sueldo x porcentaje. `null` en la conjunta, donde el concepto
+   * "cuota por persona" no existe (allí la aportación ES la cuota).
+   *
+   * En el área individual coincide con `aportacion` por construcción. Se conserva
+   * el campo para que el adaptador sea total y para dejar explícito de dónde sale
+   * el número; hoy ninguna pantalla lo pinta por separado.
+   */
   cuota: number | null;
   gastado: number;
   /** Tope de gastos del mes. `null` hasta que se fija. */
@@ -45,7 +64,15 @@ export interface ResumenMesLike {
 
 /** Forma mínima de `ResumenIndividual` que necesita el adaptador. */
 export interface ResumenIndividualLike {
-  sueldo: number | null;
+  /**
+   * MI cuota = sueldo x porcentaje. Es lo único que se pinta como aportación.
+   *
+   * `sueldo` (el bruto) NO forma parte de esta forma a propósito, aunque exista
+   * en `ResumenIndividual`: el salario llega a las pantallas del área individual por
+   * el formulario de `/individual/aportar`, no por el resumen. Dejarlo aquí
+   * invitaría a volver a mapear la carta "aportado" al bruto, que es justo la
+   * divergencia que este adaptador corregió.
+   */
   cuota: number | null;
   disponible: number | null;
   presupuesto: number | null;
@@ -68,7 +95,11 @@ export function cifrasDeResumenMes(r: ResumenMesLike): CifrasMes {
 
 export function cifrasDeResumenIndividual(r: ResumenIndividualLike): CifrasMes {
   return {
-    aportacion: r.sueldo,
+    // `r.cuota`, NO `r.sueldo`: la carta "aportado" tiene que mostrar la cifra con
+    // el porcentaje aplicado, que es la misma que consume `disponible` y la que
+    // mide el anillo. Mostrar aquí el bruto dejaba la pantalla con tres números
+    // sobre bases distintas.
+    aportacion: r.cuota,
     cuota: r.cuota,
     gastado: r.gastado,
     presupuesto: r.presupuesto,

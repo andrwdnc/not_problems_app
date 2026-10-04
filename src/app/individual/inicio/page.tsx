@@ -78,8 +78,11 @@ async function resolverResumen(): Promise<InicioResumenVista | null> {
     tarjetas: [
       {
         variante: 'aportado',
-        etiqueta: individual.miSueldo,
-        importe: resumen.sueldo,
+        // MI cuota (sueldo x porcentaje), no el bruto: es el mismo número que
+        // mide el anillo del que salen `gastado` y `disponible`. Con el bruto
+        // aquí, las tres tarjetas de la pantalla no cuadraban entre sí.
+        etiqueta: individual.miAportacion,
+        importe: resumen.cuota,
       },
       {
         variante: 'gastado',

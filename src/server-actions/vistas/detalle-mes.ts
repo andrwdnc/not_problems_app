@@ -17,7 +17,7 @@ import type {
  */
 
 export interface RotulosDetalleMes {
-  /** "Aportado" en la conjunta, "Mi sueldo" en la individual. */
+  /** "Aportado" en la conjunta, "Mi aportación" en la individual. */
   aportacion: string;
   gastado: string;
   /** "Presupuesto" / "Mi presupuesto". */
