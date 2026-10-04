@@ -193,3 +193,28 @@ export const historicoMovimientos = pgTable('historico_movimientos', {
   // La auditoría se consultará por usuario; indexa para que no degrade con el tiempo.
   index('historico_usuario_idx').on(table.usuarioId),
 ]);
+
+/**
+ * Contadores de intentos de autenticación para el límite de fuerza bruta.
+ *
+ * No es parte del dominio de negocio: es infraestructura de seguridad, y por eso
+ * no genera entradas en `historico_movimientos` ni aparece en `entidad_enum`.
+ *
+ * La clave es un digest HMAC del username o de la IP, nunca el valor en claro:
+ * así la tabla no almacena datos personales y un volcado accidental no revela
+ * qué usuarios existen ni desde dónde se conectan.
+ *
+ * `clave` es la PK, y eso es lo que permite que el contador se reinicie al
+ * vencer la ventana dentro del propio INSERT ... ON CONFLICT, sin necesitar una
+ * tarea programada de limpieza.
+ */
+export const authIntentos = pgTable('auth_intentos', {
+  // Digest HMAC-SHA256 en base64url. El ámbito ('usuario:' / 'ip:') entra en el
+  // material hasheado para que un username no pueda colisionar con una IP.
+  clave: text('clave').primaryKey(),
+  intentos: integer('intentos').notNull().default(1),
+  // Inicio de la ventana vigente; cuando expira, el intento siguiente la reinicia.
+  ventanaInicio: timestamp('ventana_inicio', { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+});

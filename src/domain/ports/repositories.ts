@@ -251,7 +251,44 @@ export interface UsuarioRepository {
   findByUsername(username: string): Promise<UsuarioConCredenciales | null>;
   findAll(): Promise<Usuario[]>;
   count(): Promise<number>;
+  /**
+   * Crea un usuario.
+   *
+   * Puede lanzar si el espacio compartido ya está completo con 2 cuentas: ese
+   * límite es una invariante del dominio y la base de datos lo garantiza con un
+   * trigger, de modo que dos registros simultáneos no puedan colarse. La Server
+   * Action traduce ese error al literal de negocio correspondiente.
+   */
   create(data: NuevoUsuario): Promise<Usuario>;
+}
+
+/** Estado del cubo de intentos tras contabilizar un intento. */
+export interface ContadorIntentos {
+  /** Intentos acumulados en la ventana vigente, incluido el recién contado. */
+  intentos: number;
+  /** Momento en que empezó la ventana vigente. */
+  ventanaInicio: Date;
+}
+
+/**
+ * Contador de intentos de autenticación por clave opaca (usuario o IP).
+ *
+ * El contrato es "contar y devolver el total", no "consultar": contabilizar y
+ * leer deben ser la MISMA operación atómica. Si fueran dos, dos peticiones
+ * simultáneas leerían el mismo total y ambas pasarían el umbral.
+ *
+ * Las claves las recibe ya hasheadas desde la capa de aplicación: el puerto no
+ * conoce usernames ni direcciones IP, solo cadenas opacas.
+ */
+export interface AuthIntentosRepository {
+  /**
+   * Contabiliza un intento para `clave` dentro de una ventana de `ventanaMs` y
+   * devuelve el total acumulado. Si la ventana vigente había expirado, la cuenta
+   * empieza de cero.
+   */
+  contar(clave: string, ventanaMs: number): Promise<ContadorIntentos>;
+  /** Elimina las claves cuya ventana venció hace más de `antiguedadMs`. */
+  purgar(antiguedadMs: number): Promise<number>;
 }
 
 export type { Accion };

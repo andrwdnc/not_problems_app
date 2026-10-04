@@ -8,6 +8,7 @@ import {
   GastoAnualIndividualDrizzleRepository,
   PresupuestoIndividualDrizzleRepository,
   UsuarioDrizzleRepository,
+  AuthIntentosDrizzleRepository,
 } from '.';
 
 /**
@@ -25,3 +26,4 @@ export const usuarioRepository = new UsuarioDrizzleRepository();
 export const gastoAnualRepository = new GastoAnualDrizzleRepository();
 export const gastoAnualIndividualRepository = new GastoAnualIndividualDrizzleRepository();
 export const presupuestoIndividualRepository = new PresupuestoIndividualDrizzleRepository();
+export const authIntentosRepository = new AuthIntentosDrizzleRepository();

@@ -7,6 +7,7 @@ export {
   gastoIndividualRepository,
   historicoRepository,
   usuarioRepository,
+  authIntentosRepository,
   gastoAnualRepository,
   gastoAnualIndividualRepository,
   presupuestoIndividualRepository,

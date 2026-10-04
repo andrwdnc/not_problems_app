@@ -1,5 +1,5 @@
 {
-  "name": "not_problems_app",
+  "name": "nest-shared-finance",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -14,6 +14,7 @@
     "db:migrate:individual-accounts": "tsx --env-file=.env.local scripts/migrate-individual-accounts.ts",
     "db:migrate:gastos-anuales-individuales": "tsx --env-file=.env.local scripts/migrate-gastos-anuales-individuales.ts",
     "db:migrate:presupuestos-individuales": "tsx --env-file=.env.local scripts/migrate-presupuestos-individuales.ts",
+    "db:migrate:auth-seguridad": "tsx --env-file=.env.local scripts/migrate-auth-seguridad.ts",
     "db:generate": "drizzle-kit generate",
     "db:push": "drizzle-kit push",
     "db:migrate": "drizzle-kit migrate",

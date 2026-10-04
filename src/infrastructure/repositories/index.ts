@@ -4,6 +4,7 @@ export { GastoDrizzleRepository } from './GastoRepository';
 export { GastoIndividualDrizzleRepository } from './GastoIndividualRepository';
 export { HistoricoDrizzleRepository } from './HistoricoRepository';
 export { UsuarioDrizzleRepository } from './UsuarioRepository';
+export { AuthIntentosDrizzleRepository } from './AuthIntentosRepository';
 export { GastoAnualDrizzleRepository } from './GastoAnualRepository';
 export { GastoAnualIndividualDrizzleRepository } from './GastoAnualIndividualRepository';
 export { PresupuestoIndividualDrizzleRepository } from './PresupuestoIndividualRepository';
@@ -12,6 +13,8 @@ export { PresupuestoIndividualDrizzleRepository } from './PresupuestoIndividualR
 // infraestructura implementa estos contratos, no los define.
 export type {
   AportacionRepository,
+  AuthIntentosRepository,
+  ContadorIntentos,
   CrearMesInput,
   GastoRepository,
   GastoIndividualRepository,

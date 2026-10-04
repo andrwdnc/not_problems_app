@@ -49,6 +49,12 @@ export const authErrores = {
   contrasenaCorta: 'La contraseña debe tener al menos 6 caracteres',
   usuarioFormatoInvalido:
     'El nombre solo puede tener letras, números, puntos, guiones y guion bajo',
+  /**
+   * Se usa también como respuesta al agotar el límite de intentos de login o
+   * de registro: es INDISTINGUIBLE a propósito. Un texto propio de "demasiados
+   * intentos" confirmaría que la cuenta existe y de cuándo puede volver a
+   * probarse.
+   */
   credencialesIncorrectas: 'Nombre de usuario o contraseña incorrectos.',
   usuarioEnUso: (username: string) =>
     `El nombre de usuario "${username}" ya está en uso.`,
