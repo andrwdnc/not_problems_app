@@ -307,16 +307,14 @@ Full details in [`AGENTS.md` §11.1](AGENTS.md).
 
 ## Deployment
 
-Vercel, with `master` as the production branch and `develop` as the preview
-branch. The runtime version is pinned exactly in `engines.node`: Vercel retired
-Node 20 without notice and failed the build in two seconds with no change in the
-repository, which is why a fixed version matters more than a flexible range.
+The application is deployed continuously from Git branches:
 
-Preview deployments are protected by SSO and do not respond to a plain `curl`.
+- `master` — production
+- `develop` — integration (preview)
 
-> **One database.** While the app is in testing, development and production share
-> the same Supabase instance. `db:push` and the migration scripts affect both.
-> There is no separate dataset per environment.
+The runtime version is pinned exactly in `engines.node` to prevent unexpected build failures due to Node.js version deprecations.
+
+> **One database.** While the app is in testing, development and production share the same Supabase instance. `db:push` and the migration scripts affect both. There is no separate dataset per environment.
 
 ### Required before the first deploy
 
