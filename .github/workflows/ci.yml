@@ -23,7 +23,7 @@ jobs:
 
       # La versión se fija EXACTA a propósito: `engines.node` es "24.x" y un
       # rango abierto dejaría que CI resuelva a un runtime que Vercel ya retiró.
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 24.x
           cache: npm
