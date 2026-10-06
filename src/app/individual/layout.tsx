@@ -9,8 +9,9 @@ import { chooser } from '@/literals';
 
 /**
  * Layout del área individual (NAV-1): mismo esqueleto que la conjunta pero con
- * el BottomNav prefijado a "/individual" y un enlace para volver al selector
- * de cuenta ("/").
+ * el BottomNav prefijado a "/individual". El enlace "Cambiar de cuenta" va
+ * directo al inicio de la OTRA área ("/inicio") en lugar de al selector: si se
+ * está aquí es porque ya se eligió cuenta, y el selector es un paso atrás.
  */
 export default async function IndividualLayout({
   children,
@@ -30,8 +31,9 @@ export default async function IndividualLayout({
           {user.username}
         </span>
         <div className="flex shrink-0 items-center gap-3">
+          {/* Cambiar de cuenta → salt directo al inicio del área conjunta. */}
           <Link
-            href="/"
+            href="/inicio"
             className="flex items-center gap-1 text-sm font-medium text-brand-primary"
           >
             <Repeat size={14} />

@@ -25,8 +25,9 @@ export default async function DashboardLayout({
           {user.username}
         </span>
         <div className="flex shrink-0 items-center gap-3">
+          {/* Cambiar de cuenta → salt directo al inicio del área individual. */}
           <Link
-            href="/"
+            href="/individual/inicio"
             className="flex items-center gap-1 text-sm font-medium text-brand-primary"
           >
             <Repeat size={14} />
