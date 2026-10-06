@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/Input';
 import { Card } from '@/components/ui/Card';
 import { CATEGORIAS, type Categoria } from '@/domain/value-objects/Categoria';
 import { centimosAEuros } from '@/domain/value-objects/ImporteMoneda';
+import { formatCurrency } from '@/lib/formatters/currency';
 import {
   eliminarGasto,
   editarGasto,
@@ -16,8 +17,9 @@ import {
   eliminarGastoIndividual,
   editarGastoIndividual,
 } from '@/server-actions/individual-actions';
-import { gastoForm, formatos } from '@/literals';
+import { gastoForm, formatos, dialogo, gastosErrores } from '@/literals';
 import { rutaGastos, type VarianteCuenta } from '@/lib/cuenta';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 
 /**
  * Vista mínima de gasto editable (ISP): el formulario solo consume estos
@@ -49,6 +51,9 @@ export function EditarGastoForm({ gasto, variante = 'conjunta' }: EditarGastoFor
   const [error, setError] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
   const [eliminando, setEliminando] = useState(false);
+  // Confirmación del borrado en un diálogo propio de la app (no window.confirm).
+  const [dialogoAbierto, setDialogoAbierto] = useState(false);
+  const [errorEliminacion, setErrorEliminacion] = useState<string | null>(null);
 
   async function guardar(formData: FormData) {
     setEnviando(true);
@@ -77,18 +82,24 @@ export function EditarGastoForm({ gasto, variante = 'conjunta' }: EditarGastoFor
   }
 
   async function eliminar() {
-    if (!confirm(gastoForm.confirmarEliminar)) return;
+    if (eliminando) return;
     const accion =
       variante === 'individual' ? eliminarGastoIndividual : eliminarGasto;
     setEliminando(true);
+    setErrorEliminacion(null);
     try {
       const resultado = await accion({ id: gasto.id });
       if (!resultado.ok) {
-        setError(resultado.error);
+        // Ventana de gracia, congelación y auditoría se resuelven en la Server
+        // Action; aquí se muestra su respuesta y se queda abierto el diálogo.
+        setErrorEliminacion(resultado.error);
         return;
       }
+      setDialogoAbierto(false);
       router.push(rutaGastos(variante));
       router.refresh();
+    } catch {
+      setErrorEliminacion(gastosErrores.errorEliminar);
     } finally {
       setEliminando(false);
     }
@@ -169,12 +180,27 @@ export function EditarGastoForm({ gasto, variante = 'conjunta' }: EditarGastoFor
         type="button"
         variant="danger"
         fullWidth
-        onClick={eliminar}
+        onClick={() => {
+          setErrorEliminacion(null);
+          setDialogoAbierto(true);
+        }}
         loading={eliminando}
         disabled={enviando || eliminando}
       >
         {gastoForm.eliminar}
       </Button>
+
+      <ConfirmDialog
+        abierto={dialogoAbierto}
+        titulo={gastoForm.confirmarEliminar}
+        descripcion={`${gasto.detalle} · ${formatCurrency(gasto.importe)}`}
+        textoCancelar={dialogo.cancelar}
+        textoConfirmar={dialogo.eliminar}
+        cargando={eliminando}
+        error={errorEliminacion}
+        onConfirmar={eliminar}
+        onCancelar={() => setDialogoAbierto(false)}
+      />
     </form>
   );
 }

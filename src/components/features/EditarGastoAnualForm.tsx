@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Card } from '@/components/ui/Card';
 import { centimosAEuros } from '@/domain/value-objects/ImporteMoneda';
+import { formatCurrency } from '@/lib/formatters/currency';
 import { editarGastoAnual, marcarPagadoGastoAnual, eliminarGastoAnual } from '@/server-actions/gastos-anuales-actions';
 import {
   editarGastoAnualIndividual,
@@ -13,8 +14,15 @@ import {
   eliminarGastoAnualIndividual,
 } from '@/server-actions/gastos-anuales-individual-actions';
 import { rutaGastos, type VarianteCuenta } from '@/lib/cuenta';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import type { GastoAnual } from '@/domain/entities';
-import { gastosAnuales as gastosAnualesLiterales, gastosAnualesErrores, formatos } from '@/literals';
+import {
+  gastoForm,
+  dialogo,
+  gastosAnuales as gastosAnualesLiterales,
+  gastosAnualesErrores,
+  formatos,
+} from '@/literals';
 
 interface EditarGastoAnualFormProps {
   gastoAnual: GastoAnual & { detalle: string };
@@ -40,6 +48,11 @@ export function EditarGastoAnualForm({
   const [mesPago, setMesPago] = useState(String(gastoAnual.mesPago));
   const [error, setError] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
+  // Borrado con confirmación de la app (no `window.confirm`): el error se
+  // queda dentro del diálogo para poder reintentar o cancelar.
+  const [dialogoAbierto, setDialogoAbierto] = useState(false);
+  const [eliminando, setEliminando] = useState(false);
+  const [errorEliminacion, setErrorEliminacion] = useState<string | null>(null);
 
   /** Vuelve al listado del área correspondiente tras cualquier mutación. */
   function volver() {
@@ -86,20 +99,25 @@ export function EditarGastoAnualForm({
   }
 
   async function eliminar() {
-    if (!confirm(gastosAnualesErrores.gastoAnualNoEncontrada)) return;
-    setEnviando(true);
-    setError(null);
-    const resultado =
-      variante === 'individual'
-        ? await eliminarGastoAnualIndividual({ id: gastoAnual.id })
-        : await eliminarGastoAnual({ id: gastoAnual.id });
-    setEnviando(false);
-
-    if (!resultado.ok) {
-      setError(resultado.error);
-      return;
+    if (eliminando) return;
+    setEliminando(true);
+    setErrorEliminacion(null);
+    try {
+      const resultado =
+        variante === 'individual'
+          ? await eliminarGastoAnualIndividual({ id: gastoAnual.id })
+          : await eliminarGastoAnual({ id: gastoAnual.id });
+      if (!resultado.ok) {
+        setErrorEliminacion(resultado.error);
+        return;
+      }
+      setDialogoAbierto(false);
+      volver();
+    } catch {
+      setErrorEliminacion(gastosAnualesErrores.errorEliminar);
+    } finally {
+      setEliminando(false);
     }
-    volver();
   }
 
   const estaPagadaEsteCiclo = gastoAnual.fechaUltimoPago
@@ -205,12 +223,26 @@ export function EditarGastoAnualForm({
         type="button"
         variant="danger"
         fullWidth
-        loading={enviando}
-        onClick={eliminar}
-        disabled={enviando || devengoPrevio}
+        onClick={() => {
+          setErrorEliminacion(null);
+          setDialogoAbierto(true);
+        }}
+        disabled={enviando || eliminando || devengoPrevio}
       >
         {gastosAnualesLiterales.eliminar}
       </Button>
+
+      <ConfirmDialog
+        abierto={dialogoAbierto}
+        titulo={gastoForm.confirmarEliminar}
+        descripcion={`${gastoAnual.detalle} · ${formatCurrency(gastoAnual.importeTotal)}`}
+        textoCancelar={dialogo.cancelar}
+        textoConfirmar={dialogo.eliminar}
+        cargando={eliminando}
+        error={errorEliminacion}
+        onConfirmar={eliminar}
+        onCancelar={() => setDialogoAbierto(false)}
+      />
     </form>
   );
 }

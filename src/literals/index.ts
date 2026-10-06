@@ -112,12 +112,30 @@ export const gastos = {
   verDetalle: 'Ver detalle',
 };
 
+/**
+ * Textos de los diálogos de confirmación (`components/ui/ConfirmDialog`).
+ *
+ * Son genéricos a propósito: el diálogo no sabe qué se va a afectar, solo
+ * ofrece confirmar o cancelar, y recibe el título y la descripción desde el
+ * componente que lo abre.
+ */
+export const dialogo = {
+  cancelar: 'Cancelar',
+  eliminar: 'Eliminar',
+};
+
 export const gastosErrores = {
   mesCongeladoNuevos:
     'Este mes está congelado y no admite nuevos gastos.',
   gastoNoEncontrado: 'Gasto no encontrado.',
   gastoNoEditable: 'Este gasto ya no es editable.',
   gastoNoEliminable: 'Este gasto ya no se puede eliminar.',
+  /**
+   * Fallo sin mensaje de dominio (red caída, servidor inaccesible): la acción
+   * devuelve `ok:false` con un texto o lanza, y en el segundo caso quien
+   * confirma el borrado necesita saber que NO se ha borrado.
+   */
+  errorEliminar: 'No se pudo eliminar el gasto. Inténtalo de nuevo.',
 };
 
 export const gastosAnualesValidaciones = {
@@ -130,6 +148,13 @@ export const gastosAnualesErrores = {
   gastoAnualNoEncontrada: 'Gasto anual no encontrado.',
   gastoAnualYaPagado: 'Este gasto anual ya está pagado para el ciclo actual.',
   devengoPrevio: 'No se puede editar/eliminar: este gasto anual ya tiene meses devengados en el ciclo actual.',
+  /**
+   * Fallo sin mensaje de dominio (red caída, servidor inaccesible): quien
+   * confirma el borrado o el pago dentro de la app necesita saber que NO se ha
+   * ejecutado. Se muestran en el diálogo (borrado) o en la tarjeta (pago).
+   */
+  errorEliminar: 'No se pudo eliminar el gasto anual. Inténtalo de nuevo.',
+  errorPagar: 'No se pudo marcar como pagado. Inténtalo de nuevo.',
 };
 
 export const gastosAnuales = {

@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { eliminarGasto } from '@/server-actions/gastos-actions';
 import { eliminarGastoIndividual } from '@/server-actions/individual-actions';
 import { rutaGastoDetalle } from '@/lib/cuenta';
-import { gastos as literalesGastos } from '@/literals';
+import { gastos as literalesGastos, dialogo } from '@/literals';
 
 // El componente es un Client Component: se mockean la navegación y las dos
 // Server Actions para poder observar a qué área se delega el borrado.
@@ -72,8 +72,12 @@ describe('GastoMesAcciones', () => {
         />,
       );
 
+      // El icono abre el diálogo; la Server Action se invoca al confirmar.
       fireEvent.click(screen.getByLabelText(literalesGastos.eliminar));
+      expect(screen.getByRole('dialog')).toBeInTheDocument();
+      expect(eliminarGasto).not.toHaveBeenCalled();
 
+      fireEvent.click(screen.getByText(dialogo.eliminar));
       await waitFor(() =>
         expect(eliminarGasto).toHaveBeenCalledWith({ id: 'g1' }),
       );
@@ -112,6 +116,7 @@ describe('GastoMesAcciones', () => {
       );
 
       fireEvent.click(screen.getByLabelText(literalesGastos.eliminar));
+      fireEvent.click(screen.getByText(dialogo.eliminar));
 
       await waitFor(() =>
         expect(eliminarGastoIndividual).toHaveBeenCalledWith({ id: 'g1' }),

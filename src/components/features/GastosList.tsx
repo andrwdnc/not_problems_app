@@ -20,6 +20,7 @@ import {
 import { Chip } from '@/components/ui/Chip';
 import { Badge } from '@/components/ui/Badge';
 import { Card } from '@/components/ui/Card';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { formatCurrency } from '@/lib/formatters/currency';
 import { formatShortDate, nombreMes } from '@/lib/formatters/date';
 import { CATEGORIAS, type Categoria } from '@/domain/value-objects/Categoria';
@@ -37,7 +38,15 @@ import {
   rutaGastosNuevo,
   type VarianteCuenta,
 } from '@/lib/cuenta';
-import { gastos as gastosLiterales, gastoForm, formatos, gastosAnuales as gastosAnualesLiterales } from '@/literals';
+import {
+  gastos as gastosLiterales,
+  gastoForm,
+  formatos,
+  gastosAnuales as gastosAnualesLiterales,
+  gastosAnualesErrores,
+  dialogo,
+  gastosErrores,
+} from '@/literals';
 
 /**
  * Gasto tal y como lo necesita la LISTA. Se declara estructuralmente (ISP) en
@@ -104,6 +113,28 @@ export function GastosList({
   // en vez de un magic string, cumpliendo ISP/OCP.
   const [filtro, setFiltro] = useState<Categoria | null>(null);
 
+  // Borrado de gasto: el diálogo de confirmación es ÚNICO para la lista (una
+  // sola ventana por pantalla) y se queda abierto si la acción falla, para que
+  // el error se lea en contexto y se pueda reintentar o cancelar.
+  const [gastoAEliminar, setGastoAEliminar] = useState<GastoListable | null>(
+    null,
+  );
+  const [eliminando, setEliminando] = useState(false);
+  const [errorEliminacion, setErrorEliminacion] = useState<string | null>(null);
+
+  // Borrado de un gasto anual: mismo `ConfirmDialog` que el gasto del mes. En
+  // la pantalla solo puede haber UNA ventana abierta, así que al pedir un
+  // borrado se cierra el otro (y viceversa). El error de "marcar como pagado"
+  // no es una confirmación: se pinta dentro de la propia sección.
+  const [anualAEliminar, setAnualAEliminar] = useState<GastoAnualVista | null>(
+    null,
+  );
+  const [eliminandoAnual, setEliminandoAnual] = useState(false);
+  const [errorEliminacionAnual, setErrorEliminacionAnual] = useState<
+    string | null
+  >(null);
+  const [errorAnual, setErrorAnual] = useState<string | null>(null);
+
   const filtrados = useMemo(() => {
     if (filtro === null) return gastos;
     return gastos.filter((g) => g.categoria === filtro);
@@ -114,34 +145,94 @@ export function GastosList({
     [gastosAnuales],
   );
 
-  async function eliminarGastoHandler(id: string) {
-    const resultado =
-      variante === 'individual'
-        ? await eliminarGastoIndividual({ id })
-        : await eliminarGasto({ id });
-    if (!resultado.ok) {
-      alert(resultado.error);
+  function pedirEliminacion(gasto: GastoListable) {
+    setErrorEliminacion(null);
+    setAnualAEliminar(null);
+    setGastoAEliminar(gasto);
+  }
+
+  /**
+   * Confirmación del borrado. La ventaja de gracia, la congelación del mes y
+   * la escritura en `historico_movimientos` siguen viviendo en la Server
+   * Action: aquí solo se pide confirmación y se traduce su respuesta (o su
+   * fallo de red) al diálogo.
+   */
+  async function eliminarGastoHandler() {
+    const gasto = gastoAEliminar;
+    if (!gasto || eliminando) return;
+
+    setEliminando(true);
+    setErrorEliminacion(null);
+    try {
+      const resultado =
+        variante === 'individual'
+          ? await eliminarGastoIndividual({ id: gasto.id })
+          : await eliminarGasto({ id: gasto.id });
+      if (!resultado.ok) {
+        setErrorEliminacion(resultado.error);
+        return;
+      }
+      // La acción ya ha hecho `revalidatePath`, así que la fila desaparece con
+      // los datos frescos del servidor.
+      setGastoAEliminar(null);
+    } catch {
+      setErrorEliminacion(gastosErrores.errorEliminar);
+    } finally {
+      setEliminando(false);
     }
+  }
+
+  function pedirEliminacionAnual(apartado: GastoAnualVista) {
+    setErrorAnual(null);
+    setErrorEliminacionAnual(null);
+    setGastoAEliminar(null);
+    setAnualAEliminar(apartado);
   }
 
   async function marcarPagadoGastoAnual(id: string) {
-    const { marcarPagadoGastoAnual } = await import('@/server-actions/gastos-anuales-actions');
-    const resultado = await marcarPagadoGastoAnual({ id });
-    if (!resultado.ok) {
-      alert(resultado.error);
-    } else {
+    setErrorAnual(null);
+    try {
+      const { marcarPagadoGastoAnual } = await import(
+        '@/server-actions/gastos-anuales-actions'
+      );
+      const resultado = await marcarPagadoGastoAnual({ id });
+      if (!resultado.ok) {
+        // Sin alert: el error se queda en la sección, debajo del listado.
+        setErrorAnual(resultado.error);
+        return;
+      }
       window.location.reload();
+    } catch {
+      setErrorAnual(gastosAnualesErrores.errorPagar);
     }
   }
 
-  async function eliminarGastoAnualHandler(id: string) {
-    const { eliminarGastoAnual } = await import('@/server-actions/gastos-anuales-actions');
-    if (!confirm(gastoForm.confirmarEliminar)) return;
-    const resultado = await eliminarGastoAnual({ id });
-    if (!resultado.ok) {
-      alert(resultado.error);
-    } else {
+  /**
+   * Confirmación del borrado de un gasto anual. Igual que en los gastos del
+   * mes: sin `window.confirm` ni `alert`, con el error dentro del diálogo y
+   * bloqueado mientras la Server Action está en curso.
+   */
+  async function eliminarGastoAnualHandler() {
+    const apartado = anualAEliminar;
+    if (!apartado || eliminandoAnual) return;
+
+    setEliminandoAnual(true);
+    setErrorEliminacionAnual(null);
+    try {
+      const { eliminarGastoAnual } = await import(
+        '@/server-actions/gastos-anuales-actions'
+      );
+      const resultado = await eliminarGastoAnual({ id: apartado.id });
+      if (!resultado.ok) {
+        setErrorEliminacionAnual(resultado.error);
+        return;
+      }
+      setAnualAEliminar(null);
       window.location.reload();
+    } catch {
+      setErrorEliminacionAnual(gastosAnualesErrores.errorEliminar);
+    } finally {
+      setEliminandoAnual(false);
     }
   }
 
@@ -230,7 +321,7 @@ export function GastosList({
                         <Pencil size={16} />
                       </Link>
                       <button
-                        onClick={() => eliminarGastoHandler(g.id)}
+                        onClick={() => pedirEliminacion(g)}
                         className="text-brand-muted hover:text-financial-negative"
                         aria-label={gastosLiterales.eliminar}
                       >
@@ -261,6 +352,12 @@ export function GastosList({
               {gastosAnualesLiterales.nuevo}
             </Link>
           </div>
+
+          {errorAnual && (
+            <p className="rounded-xl bg-financial-negativeBg p-3 text-center text-sm text-financial-negative">
+              {errorAnual}
+            </p>
+          )}
 
           {gastosAnuales.length === 0 ? (
             <Card>
@@ -320,7 +417,7 @@ export function GastosList({
                         )}
                         {p.puedeEliminar && !p.estaPagadaEsteCiclo && (
                           <button
-                            onClick={() => eliminarGastoAnualHandler(p.id)}
+                            onClick={() => pedirEliminacionAnual(p)}
                             className="text-brand-muted hover:text-financial-negative"
                             aria-label={gastosAnualesLiterales.eliminar}
                           >
@@ -387,6 +484,42 @@ export function GastosList({
       >
         <Plus size={28} />
       </Link>
+
+      <ConfirmDialog
+        abierto={gastoAEliminar !== null}
+        titulo={gastoForm.confirmarEliminar}
+        descripcion={
+          gastoAEliminar
+            ? `${gastoAEliminar.detalle} · ${formatCurrency(gastoAEliminar.importe)}`
+            : undefined
+        }
+        textoCancelar={dialogo.cancelar}
+        textoConfirmar={dialogo.eliminar}
+        cargando={eliminando}
+        error={errorEliminacion}
+        onConfirmar={eliminarGastoHandler}
+        onCancelar={() => setGastoAEliminar(null)}
+      />
+
+      {/* Segunda (y última) ventana de la pantalla: el borrado de un gasto
+          anual. Solo una puede estar abierta a la vez —`pedirEliminacion` y
+          `pedirEliminacionAnual` se cierran mutuamente—, así que no hay dos
+          diálogos superpuestos. */}
+      <ConfirmDialog
+        abierto={anualAEliminar !== null}
+        titulo={gastoForm.confirmarEliminar}
+        descripcion={
+          anualAEliminar
+            ? `${anualAEliminar.detalle} · ${formatCurrency(anualAEliminar.importeTotal)}`
+            : undefined
+        }
+        textoCancelar={dialogo.cancelar}
+        textoConfirmar={dialogo.eliminar}
+        cargando={eliminandoAnual}
+        error={errorEliminacionAnual}
+        onConfirmar={eliminarGastoAnualHandler}
+        onCancelar={() => setAnualAEliminar(null)}
+      />
     </div>
   );
 }

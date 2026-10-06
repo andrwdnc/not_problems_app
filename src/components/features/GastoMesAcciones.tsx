@@ -8,7 +8,8 @@ import { eliminarGasto } from '@/server-actions/gastos-actions';
 import { eliminarGastoIndividual } from '@/server-actions/individual-actions';
 import { rutaGastoDetalle, type VarianteCuenta } from '@/lib/cuenta';
 import { Spinner } from '@/components/ui/Spinner';
-import { gastos } from '@/literals';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { dialogo, gastoForm, gastos, gastosErrores } from '@/literals';
 
 interface GastoMesAccionesProps {
   gastoId: string;
@@ -30,13 +31,24 @@ export function GastoMesAcciones({
 }: GastoMesAccionesProps) {
   const router = useRouter();
   const [eliminando, setEliminando] = useState(false);
+  // El icono no borra al primer clic: abre el diálogo de confirmación propio
+  // (en lugar de `window.confirm`) y solo la confirmación ejecuta la acción.
+  const [dialogoAbierto, setDialogoAbierto] = useState(false);
+  const [errorEliminacion, setErrorEliminacion] = useState<string | null>(null);
 
   if (!puedeEditar && !puedeEliminar) {
     return null;
   }
 
+  function pedirEliminacion() {
+    setErrorEliminacion(null);
+    setDialogoAbierto(true);
+  }
+
   async function eliminar() {
+    if (eliminando) return;
     setEliminando(true);
+    setErrorEliminacion(null);
     try {
       // La variante NO es una condición de permiso: la ventana de edición ya
       // viene resuelta en props. Solo decide qué acción owner-scoped se llama.
@@ -45,10 +57,15 @@ export function GastoMesAcciones({
           ? await eliminarGastoIndividual({ id: gastoId })
           : await eliminarGasto({ id: gastoId });
       if (!resultado.ok) {
-        alert(resultado.error);
+        // La regla de ventana de gracia se aplica en la Server Action: si
+        // rechaza, el error se enseña aquí dentro y el diálogo sigue abierto.
+        setErrorEliminacion(resultado.error);
         return;
       }
+      setDialogoAbierto(false);
       router.refresh();
+    } catch {
+      setErrorEliminacion(gastosErrores.errorEliminar);
     } finally {
       setEliminando(false);
     }
@@ -67,7 +84,7 @@ export function GastoMesAcciones({
       )}
       {puedeEliminar && (
         <button
-          onClick={eliminar}
+          onClick={pedirEliminacion}
           disabled={eliminando}
           className="text-brand-muted hover:text-financial-negative disabled:cursor-not-allowed disabled:opacity-50"
           aria-label={gastos.eliminar}
@@ -80,6 +97,17 @@ export function GastoMesAcciones({
           )}
         </button>
       )}
+
+      <ConfirmDialog
+        abierto={dialogoAbierto}
+        titulo={gastoForm.confirmarEliminar}
+        textoCancelar={dialogo.cancelar}
+        textoConfirmar={dialogo.eliminar}
+        cargando={eliminando}
+        error={errorEliminacion}
+        onConfirmar={eliminar}
+        onCancelar={() => setDialogoAbierto(false)}
+      />
     </div>
   );
 }

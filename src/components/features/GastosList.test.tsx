@@ -1,12 +1,13 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { eliminarGasto } from '@/server-actions/gastos-actions';
 import { eliminarGastoIndividual } from '@/server-actions/individual-actions';
 import { formatCurrency } from '@/lib/formatters/currency';
 import { formatShortDate } from '@/lib/formatters/date';
-import { gastos as gastosLiterales, gastosAnuales as anualesLiterales } from '@/literals';
+import { gastos as gastosLiterales, gastosAnuales as anualesLiterales, gastosAnualesErrores, dialogo, gastosErrores } from '@/literals';
 import { textoExacto } from '@/test/texto';
 import type { GastoListable } from '@/components/features/GastosList';
+import type { GastoAnualVista } from '@/server-actions/vista-gastos-anuales';
 
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ refresh: vi.fn() }),
@@ -17,8 +18,16 @@ vi.mock('@/server-actions/gastos-actions', () => ({ eliminarGasto: vi.fn() }));
 vi.mock('@/server-actions/individual-actions', () => ({
   eliminarGastoIndividual: vi.fn(),
 }));
+vi.mock('@/server-actions/gastos-anuales-actions', () => ({
+  eliminarGastoAnual: vi.fn(),
+  marcarPagadoGastoAnual: vi.fn(),
+}));
 
 import { GastosList } from '@/components/features/GastosList';
+import {
+  eliminarGastoAnual,
+  marcarPagadoGastoAnual,
+} from '@/server-actions/gastos-anuales-actions';
 
 const GASTO: GastoListable = {
   id: 'g1',
@@ -36,6 +45,12 @@ const GASTO: GastoListable = {
  * rutas) y que la fila se ve igual en las dos áreas.
  */
 describe('GastosList', () => {
+  // Cada prueba parte de spies limpios: sin esto, las aserciones "no se ha
+  // llamado todavía" heredan las llamadas del test anterior.
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
   describe('área conjunta (por defecto)', () => {
     it('muestra el autor y enlaza sin prefijo', () => {
       render(
@@ -156,15 +171,74 @@ describe('GastosList', () => {
         data: undefined,
       });
 
+      // El icono solo ABRE el diálogo: nada se borra sin confirmación.
       const { unmount } = render(<GastosList gastos={[GASTO]} />);
-      screen.getByLabelText(gastosLiterales.eliminar).click();
-      expect(eliminarGasto).toHaveBeenCalledWith({ id: 'g1' });
+      fireEvent.click(screen.getByLabelText(gastosLiterales.eliminar));
+      expect(screen.getByRole('dialog')).toBeInTheDocument();
+      expect(eliminarGasto).not.toHaveBeenCalled();
+
+      fireEvent.click(screen.getByText(dialogo.eliminar));
+      await waitFor(() => expect(eliminarGasto).toHaveBeenCalledWith({ id: 'g1' }));
       unmount();
 
       render(<GastosList gastos={[GASTO]} variante="individual" />);
-      screen.getByLabelText(gastosLiterales.eliminar).click();
-      expect(eliminarGastoIndividual).toHaveBeenCalledWith({ id: 'g1' });
+      fireEvent.click(screen.getByLabelText(gastosLiterales.eliminar));
+      fireEvent.click(screen.getByText(dialogo.eliminar));
+      await waitFor(() =>
+        expect(eliminarGastoIndividual).toHaveBeenCalledWith({ id: 'g1' }),
+      );
       expect(eliminarGasto).toHaveBeenCalledTimes(1);
+    });
+
+    it('cancelar cierra el diálogo sin borrar nada', () => {
+      vi.mocked(eliminarGasto).mockResolvedValue({ ok: true, data: undefined });
+      render(<GastosList gastos={[GASTO]} />);
+
+      fireEvent.click(screen.getByLabelText(gastosLiterales.eliminar));
+      fireEvent.click(screen.getByText(dialogo.cancelar));
+
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+      expect(eliminarGasto).not.toHaveBeenCalled();
+    });
+
+    it('muestra el error dentro del diálogo si el borrado se rechaza', async () => {
+      vi.mocked(eliminarGasto).mockResolvedValue({
+        ok: false,
+        error: gastosErrores.gastoNoEliminable,
+      });
+      render(<GastosList gastos={[GASTO]} />);
+
+      fireEvent.click(screen.getByLabelText(gastosLiterales.eliminar));
+      fireEvent.click(screen.getByText(dialogo.eliminar));
+
+      expect(
+        await screen.findByText(gastosErrores.gastoNoEliminable),
+      ).toBeInTheDocument();
+      // Sigue abierto: se puede reintentar o cancelar, no se pierde el contexto.
+      expect(screen.getByRole('dialog')).toBeInTheDocument();
+    });
+
+    it('mientras el borrado está en curso, el botón de confirmar queda bloqueado', async () => {
+      type ResultadoBorrado = Awaited<ReturnType<typeof eliminarGasto>>;
+      let confirmarBorrado: (resultado: ResultadoBorrado) => void = () => {};
+      vi.mocked(eliminarGasto).mockReturnValue(
+        new Promise<ResultadoBorrado>((resolver) => {
+          confirmarBorrado = resolver;
+        }),
+      );
+      render(<GastosList gastos={[GASTO]} />);
+
+      fireEvent.click(screen.getByLabelText(gastosLiterales.eliminar));
+      const botonConfirmar = screen.getByText(dialogo.eliminar);
+      fireEvent.click(botonConfirmar);
+
+      await waitFor(() => expect(botonConfirmar).toBeDisabled());
+      expect(botonConfirmar).toHaveAttribute('aria-busy', 'true');
+
+      confirmarBorrado({ ok: true, data: undefined });
+      await waitFor(() =>
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument(),
+      );
     });
 
     it('muestra el importe con el formateador compartido', () => {
@@ -175,6 +249,103 @@ describe('GastosList', () => {
       expect(
         screen.getAllByText(textoExacto(formatCurrency(85000))).length,
       ).toBeGreaterThan(0);
+    });
+  });
+
+  describe('gastos anuales (confirmación sin window.confirm ni alert)', () => {
+    const APARTADO: GastoAnualVista = {
+      id: 'a1',
+      detalle: 'Seguro hogar',
+      importeTotal: 24000,
+      cuotaMes: 2000,
+      totalDevengado: 4000,
+      posicion: 2,
+      numMeses: 12,
+      puedeEditar: true,
+      puedeEliminar: true,
+      mesPago: 7,
+      anioCiclo: 2026,
+      fechaUltimoPago: null,
+      estaPagadaEsteCiclo: false,
+    };
+
+    /** Sin gastos del mes: el único botón «Eliminar» es el del gasto anual. */
+    function pintarAnuales() {
+      return render(<GastosList gastos={[]} gastosAnuales={[APARTADO]} />);
+    }
+
+    it('abre el diálogo de la app sin window.confirm y sin borrar nada', () => {
+      const confirmSpy = vi.spyOn(window, 'confirm');
+      vi.mocked(eliminarGastoAnual).mockResolvedValue({
+        ok: true,
+        data: undefined,
+      });
+
+      pintarAnuales();
+      fireEvent.click(
+        screen.getByRole('button', { name: anualesLiterales.eliminar }),
+      );
+
+      expect(screen.getByRole('dialog')).toBeInTheDocument();
+      expect(confirmSpy).not.toHaveBeenCalled();
+      expect(eliminarGastoAnual).not.toHaveBeenCalled();
+      confirmSpy.mockRestore();
+    });
+
+    it('cancelar cierra el diálogo del gasto anual sin borrar nada', () => {
+      vi.mocked(eliminarGastoAnual).mockResolvedValue({
+        ok: true,
+        data: undefined,
+      });
+
+      pintarAnuales();
+      fireEvent.click(
+        screen.getByRole('button', { name: anualesLiterales.eliminar }),
+      );
+      fireEvent.click(screen.getByText(dialogo.cancelar));
+
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+      expect(eliminarGastoAnual).not.toHaveBeenCalled();
+    });
+
+    it('muestra el error dentro del diálogo si el borrado anual falla', async () => {
+      vi.mocked(eliminarGastoAnual).mockResolvedValue({
+        ok: false,
+        error: gastosAnualesErrores.gastoAnualNoEncontrada,
+      });
+
+      pintarAnuales();
+      fireEvent.click(
+        screen.getByRole('button', { name: anualesLiterales.eliminar }),
+      );
+      fireEvent.click(screen.getByText(dialogo.eliminar));
+
+      expect(
+        await screen.findByText(gastosAnualesErrores.gastoAnualNoEncontrada),
+      ).toBeInTheDocument();
+      // Sigue abierto: se puede reintentar o cancelar.
+      expect(screen.getByRole('dialog')).toBeInTheDocument();
+      expect(eliminarGastoAnual).toHaveBeenCalledWith({ id: 'a1' });
+    });
+
+    it('el error de "marcar como pagado" se pinta en la sección, sin alert', async () => {
+      const alertSpy = vi.spyOn(window, 'alert');
+      vi.mocked(marcarPagadoGastoAnual).mockResolvedValue({
+        ok: false,
+        error: gastosAnualesErrores.gastoAnualYaPagado,
+      });
+
+      pintarAnuales();
+      fireEvent.click(
+        screen.getByRole('button', { name: anualesLiterales.pagar }),
+      );
+
+      expect(
+        await screen.findByText(gastosAnualesErrores.gastoAnualYaPagado),
+      ).toBeInTheDocument();
+      expect(alertSpy).not.toHaveBeenCalled();
+      expect(marcarPagadoGastoAnual).toHaveBeenCalledWith({ id: 'a1' });
+      alertSpy.mockRestore();
     });
   });
 });
