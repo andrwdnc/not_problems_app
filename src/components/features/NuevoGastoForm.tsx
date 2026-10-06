@@ -35,6 +35,10 @@ export function NuevoGastoForm({ mesId, variante = 'conjunta' }: GastoFormProps)
   const [enviando, setEnviando] = useState(false);
 
   async function guardar(formData: FormData) {
+    // Sin este freno, un segundo clic (o Enter) mientras la petición está en
+    // vuelo mandaría el gasto dos veces: el botón se deshabilita en el render
+    // siguiente, pero este guard cubre la ventana anterior.
+    if (enviando) return;
     setEnviando(true);
     setError(null);
     const campos = {

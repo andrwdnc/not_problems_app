@@ -157,6 +157,9 @@ export function AportarForm({
 
   async function guardarSueldo(usuarioId: string, formData: FormData) {
     const sueldo = formData.get('sueldo') as string;
+    // Freno de doble envío: solo si ESTE formulario ya está en vuelo. Los
+    // demás (porcentaje, presupuesto) siguen siendo utilizables a propósito.
+    if (enviando === `sueldo:${usuarioId}`) return;
     setMensaje(null);
     setEnviando(`sueldo:${usuarioId}`);
     try {
@@ -186,6 +189,7 @@ export function AportarForm({
 
   async function guardarPorcentaje(formData: FormData) {
     const porcentaje = formData.get('porcentaje') as string;
+    if (enviando === 'porcentaje') return;
     setMensaje(null);
     setEnviando('porcentaje');
     try {
@@ -223,6 +227,7 @@ export function AportarForm({
 
   async function guardarPresupuesto(formData: FormData) {
     const presupuesto = formData.get('presupuesto') as string;
+    if (enviando === 'presupuesto') return;
     setMensaje(null);
     setEnviando('presupuesto');
     try {
