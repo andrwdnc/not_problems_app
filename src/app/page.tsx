@@ -30,17 +30,21 @@ export default async function ChooserPage() {
           <LogoutButton />
         </header>
 
-        <main className="flex flex-1 flex-col justify-center gap-4">
-          <div className="mb-2 text-center">
+        {/* Centrado real en los dos ejes: `justify-center` (vertical) ya
+            existía; `items-center` pone el bloque en el eje horizontal y los
+            hijos llevan `w-full` para que sigan ocupando la columna de
+            `max-w-md` en lugar de encogerse a su contenido. */}
+        <main className="flex flex-1 flex-col items-center justify-center gap-4">
+          <div className="mb-2 w-full text-center">
             <h1 className="text-2xl font-bold text-brand-navy">{app.nombre}</h1>
             <p className="mt-1 text-sm text-brand-muted">{chooser.subtitulo}</p>
           </div>
 
-          <p className="text-center text-base font-semibold text-brand-navy">
+          <p className="w-full text-center text-base font-semibold text-brand-navy">
             {chooser.titulo}
           </p>
 
-          <Link href="/individual/inicio" className="block">
+          <Link href="/individual/inicio" className="block w-full">
             <Card className="flex items-center gap-4 transition-colors hover:border-brand-primary/40">
               <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-brand-pale text-brand-navy">
                 <UserRound size={24} />
@@ -55,7 +59,7 @@ export default async function ChooserPage() {
             </Card>
           </Link>
 
-          <Link href="/inicio" className="block">
+          <Link href="/inicio" className="block w-full">
             <Card className="flex items-center gap-4 transition-colors hover:border-brand-primary/40">
               <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-brand-navy text-white">
                 <Users size={24} />
