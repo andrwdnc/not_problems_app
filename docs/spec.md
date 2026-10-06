@@ -92,7 +92,7 @@ El total de la cuenta conjunta del mes = suma de `importe_aportado` de ambos usu
 |---|---|---|
 | id | uuid | Identificador único |
 | mes_id | FK → meses | Mes al que afecta el gasto (según su fecha, no según cuándo se registró) |
-| categoria | enum/text | Vivienda · Suministros · Alimentación · Ocio · Transporte · Salud · Otros |
+| categoria | enum/text | Ocio · Alimentación · Vivienda · Transporte · Viajes · Salud · Otros |
 | detalle | text | Campo libre específico (ej. "cerveza Sully") |
 | importe | bigint (céntimos) | Importe del gasto |
 | fecha_gasto | date | Fecha del gasto; por defecto la actual, editable al crear |
@@ -138,7 +138,8 @@ Auditoría completa. Toda acción relevante genera una entrada aquí.
 - Toda acción — fijar un sueldo, fijar el porcentaje del mes, crear/editar/eliminar un gasto, apertura automática de mes — genera una entrada en `historico_movimientos` con quién, cuándo, valor anterior y valor nuevo.
 
 ### 4.5 Categorías de gasto
-- Vivienda, Suministros, Alimentación, Ocio, Transporte, Salud, Otros.
+- Ocio, Alimentación, Vivienda, Transporte, Viajes, Salud, Otros.
+- `Suministros` fue sustituida por `Viajes`: la migración `db:migrate:categorias-viajes` reasignó los gastos existentes y **eliminó** el valor del enum `categoria_enum` (Postgres no admite borrar valores, así que el tipo se recreó). El histórico de auditoría conserva el valor con el que se registró cada movimiento.
 - Cada gasto lleva además un campo de texto libre para el detalle específico dentro de la categoría.
 
 ## 5. Sistema de diseño

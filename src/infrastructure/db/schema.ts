@@ -1,10 +1,10 @@
 import { pgEnum, pgTable, uuid, text, integer, numeric, timestamp, date, boolean, jsonb, uniqueIndex, bigint, index } from 'drizzle-orm/pg-core';
 export const categoriaEnum = pgEnum('categoria_enum', [
-  'Vivienda',
-  'Suministros',
-  'Alimentacion',
   'Ocio',
+  'Alimentacion',
+  'Vivienda',
   'Transporte',
+  'Viajes',
   'Salud',
   'Otros',
 ]);

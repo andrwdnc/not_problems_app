@@ -8,12 +8,12 @@ import {
   Trash2,
   Pencil,
   Home,
-  Lightbulb,
   Apple,
   PartyPopper,
   Car,
   HeartPulse,
   Package,
+  Plane,
   CreditCard,
   type LucideIcon,
 } from 'lucide-react';
@@ -83,11 +83,11 @@ interface GastosListProps {
 }
 
 const ICONOS: Record<Categoria, LucideIcon> = {
-  Vivienda: Home,
-  Suministros: Lightbulb,
-  Alimentacion: Apple,
   Ocio: PartyPopper,
+  Alimentacion: Apple,
+  Vivienda: Home,
   Transporte: Car,
+  Viajes: Plane,
   Salud: HeartPulse,
   Otros: Package,
 };

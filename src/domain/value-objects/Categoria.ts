@@ -1,9 +1,15 @@
+/**
+ * Categorías de gasto (única fuente de verdad de la interfaz y de la validación).
+ *
+ * El orden es el del negocio y es el mismo que el del enum `categoria_enum`
+ * de Postgres (la migración `db:migrate:categorias-viajes` lo recrea así).
+ */
 export const CATEGORIAS = [
-  'Vivienda',
-  'Suministros',
-  'Alimentacion',
   'Ocio',
+  'Alimentacion',
+  'Vivienda',
   'Transporte',
+  'Viajes',
   'Salud',
   'Otros',
 ] as const;

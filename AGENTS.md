@@ -216,7 +216,7 @@ Al definir o consultar con Drizzle (schema real en `src/infrastructure/db/schema
 import { pgEnum, pgTable, uuid, text, integer, numeric, timestamp, date, boolean, jsonb, uniqueIndex, bigint, index } from 'drizzle-orm/pg-core';
 
 export const categoriaEnum = pgEnum('categoria_enum', [
-  'Vivienda', 'Suministros', 'Alimentacion', 'Ocio', 'Transporte', 'Salud', 'Otros',
+  'Ocio', 'Alimentacion', 'Vivienda', 'Transporte', 'Viajes', 'Salud', 'Otros',
 ]);
 
 export const usuarios = pgTable('usuarios', {
@@ -313,6 +313,7 @@ export const historicoMovimientos = pgTable('historico_movimientos', {
 | `npm run db:migrate:gastos-anuales-individuales` | Migrar gastos anuales del área individual (idempotente) |
 | `npm run db:migrate:presupuestos-individuales` | Migrar presupuestos individuales (idempotente) |
 | `npm run db:migrate:auth-seguridad` | Contador de intentos + trigger de máximo 2 usuarios (idempotente) |
+| `npm run db:migrate:categorias-viajes` | `Suministros` → `Viajes` y recrea `categoria_enum` sin `Suministros` (idempotente) |
 
 > Si algún script aún no existe en `package.json`, créalo en lugar de asumir que funciona.
 

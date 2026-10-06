@@ -15,6 +15,7 @@
     "db:migrate:gastos-anuales-individuales": "tsx --env-file=.env.local scripts/migrate-gastos-anuales-individuales.ts",
     "db:migrate:presupuestos-individuales": "tsx --env-file=.env.local scripts/migrate-presupuestos-individuales.ts",
     "db:migrate:auth-seguridad": "tsx --env-file=.env.local scripts/migrate-auth-seguridad.ts",
+    "db:migrate:categorias-viajes": "tsx --env-file=.env.local scripts/migrate-categorias-viajes.ts",
     "db:generate": "drizzle-kit generate",
     "db:push": "drizzle-kit push",
     "db:migrate": "drizzle-kit migrate",
