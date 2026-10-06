@@ -374,7 +374,15 @@ export function GastosList({
 
       <Link
         href={rutaGastosNuevo(variante)}
-        className="fixed bottom-20 right-4 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-brand-primary text-white shadow-lg transition-transform active:scale-95"
+        className="fixed right-4 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-brand-primary text-white shadow-lg transition-transform active:scale-95"
+        style={{
+          // Altura real de la navegación inferior (la publica <BottomNav/>) +
+          // el safe-area del dispositivo + 16px de aire. Sin este cálculo el
+          // botón caía encima de los iconos del menú (`bottom-20` fijo ignoraba
+          // tanto la altura real como la barra de home de iOS).
+          bottom:
+            'calc(var(--bottom-nav-altura) + env(safe-area-inset-bottom) + 16px)',
+        }}
         aria-label={gastosLiterales.nuevoGasto}
       >
         <Plus size={28} />

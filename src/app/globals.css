@@ -29,6 +29,21 @@
   100% { transform: translateX(100%) scaleX(0.35); }
 }
 
+:root {
+  /* Altura de CONTENIDO de la navegación inferior (sin el padding de
+     safe-area), medida en tiempo real por <BottomNav/> con un ResizeObserver y
+     publicada como variable CSS. Es el ancla de todo lo que se posiciona sobre
+     la barra: el FAB de añadir gasto calcula
+     `calc(var(--bottom-nav-altura) + env(safe-area-inset-bottom) + 16px)`.
+
+     El valor de reserva (0px) solo cubre el HTML renderizado en el servidor
+     antes de la hidratación; en cuanto la barra monta, la medida real lo
+     sustituye. No se pone aquí una altura "aproximada" porque sería otro número
+     mágico con el mismo problema de fondo: la altura real depende de la fuente y
+     de la escala de texto del usuario. */
+  --bottom-nav-altura: 0px;
+}
+
 * {
   @apply border-brand-border;
 }
