@@ -60,7 +60,7 @@ export function PantallaFormGasto({
         <Link href={hrefVolver} className="text-brand-muted">
           <ChevronLeft />
         </Link>
-        <h1 className="text-xl font-bold text-brand-navy">{titulo}</h1>
+        <h1 className="min-w-0 flex-1 text-xl font-bold text-brand-navy">{titulo}</h1>
       </div>
 
       <Suspense fallback={<GastoFormSkeleton />}>
