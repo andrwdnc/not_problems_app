@@ -19,7 +19,7 @@ jobs:
     timeout-minutes: 15
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # La versión se fija EXACTA a propósito: `engines.node` es "24.x" y un
       # rango abierto dejaría que CI resuelva a un runtime que Vercel ya retiró.
