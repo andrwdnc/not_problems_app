@@ -17,6 +17,7 @@ import { formatCurrency } from '@/lib/formatters/currency';
 import { formatShortDate } from '@/lib/formatters/date';
 import {
   calcularTotalCuentaConjunta,
+  calcularImporte,
   calcularImporteAportado,
 } from '@/domain/rules/CalculadoraAportacion';
 import { calcularPorcentajeIndividual } from '@/domain/value-objects/Porcentaje';
@@ -280,6 +281,28 @@ export function AportarForm({
       {usuarios.map((usuario) => {
         const aportacion = aportacionPorUsuario.get(usuario.id);
         const fijado = aportacion?.sueldo != null;
+
+        // QUÉ SE PINTA EN "IMPORTE APORTADO".
+        //
+        // `aportacion.importeAportado` es sueldo × % COMPARTIDO: lo que va a la
+        // cuenta común. En la conjunta eso es justo lo que quiere decir la
+        // tarjeta. En la individual no: toda el área se mide contra MI cuota
+        // (sueldo × complemento `100 − compartido`), la tarjeta de porcentaje de
+        // abajo enseña el complemento y el Inicio/histórico pintan `cuota`. Con
+        // el número guardado, la pantalla se contradecía a sí misma: 45 % arriba,
+        // 773,85 € (el 55 % de lo común) abajo.
+        //
+        // Se deriva con las MISMAS reglas puras que el resumen individual
+        // (`calcularPorcentajeIndividual` + `calcularImporte`), así que el
+        // resultado no puede divergir de lo que muestra el resto del área. Sin
+        // porcentaje fijado sigue saliendo "pendiente": no se inventa cifra.
+        const importeAPintar =
+          variante === 'individual'
+            ? calcularImporte(
+                aportacion?.sueldo,
+                calcularPorcentajeIndividual(mes.porcentaje),
+              )
+            : (aportacion?.importeAportado ?? null);
         return (
           <Card key={usuario.id}>
             <div className="mb-3 flex items-center gap-3">
@@ -309,8 +332,8 @@ export function AportarForm({
                 <div>
                   <p className="text-xs text-brand-muted">{aportar.importeAportado}</p>
                   <p className="font-mono text-lg font-semibold text-brand-primary">
-                    {aportacion.importeAportado != null
-                      ? formatCurrency(aportacion.importeAportado)
+                    {importeAPintar != null
+                      ? formatCurrency(importeAPintar)
                       : aportar.pendientePorcentaje}
                   </p>
                 </div>

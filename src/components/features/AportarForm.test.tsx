@@ -204,9 +204,37 @@ describe('AportarForm', () => {
 
       expect(screen.getByText('ana')).toBeInTheDocument();
       expect(screen.queryByText('beto')).not.toBeInTheDocument();
+      // MI cuota: 200.000 × 70 % (complemento del 30 % compartido).
       expect(
-        screen.getByText(textoExacto(formatCurrency(60000))),
+        screen.getByText(textoExacto(formatCurrency(140000))),
       ).toBeInTheDocument();
+    });
+
+    it('pinta el importe con MI porcentaje y no con el compartido', () => {
+      // Regresión: la tarjeta pintaba `aportacion.importeAportado`, que es
+      // sueldo × % COMPARTIDO (lo que se va a la cuenta común). Toda el área
+      // individual se mide contra MI cuota (sueldo × complemento) y la tarjeta
+      // de porcentaje de abajo enseña el complemento, así que con la cifra
+      // guardada la pantalla se contradecía a sí misma: 70 % arriba, importe del
+      // 30 % abajo.
+      render(
+        <AportarForm
+          mes={MES(30)}
+          usuarios={[USUARIOS[0]]}
+          aportaciones={[APORTACION('a1', 'u1', 200000, 60000)]}
+          variante="individual"
+        />,
+      );
+
+      // 200.000 céntimos × 70 % = 140.000, no los 60.000 de lo común.
+      expect(
+        screen.getByText(textoExacto(formatCurrency(140000))),
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByText(textoExacto(formatCurrency(60000))),
+      ).not.toBeInTheDocument();
+      // Las dos tarjetas de la pantalla hablan del mismo reparto.
+      expect(screen.getByText('70%')).toBeInTheDocument();
     });
 
     it('no expone ningún campo de usuario en el formulario de sueldo', () => {
