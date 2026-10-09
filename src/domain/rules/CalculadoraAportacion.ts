@@ -119,22 +119,22 @@ export function calcularTotalesMes(
 }
 
 /**
- * Regla pura: ahorro del mes = aportado − presupuesto de gastos.
+ * Regla pura: ahorro del mes = aportado − (gastado + apartado).
  *
- * Cuando aún no se ha fijado el presupuesto, el ahorro coincide con
- * `aportado − gastado` (continuidad: todo lo no gastado es ahorro). En cuanto
- * existe presupuesto, el ahorro se calcula contra el tope fijado y los gastos
- * no lo descuentan (se consumen del presupuesto).
+ * El ahorro es el dinero real que queda en la cuenta: se descuenta todo lo
+ * comprometido, el gasto real del mes y las cuotas devengadas de los gastos
+ * anuales. El presupuesto fijado NO interviene aquí: solo gobierna el anillo, el
+ * restante y el porcentaje consumido, de modo que pasarse del tope reduce el
+ * ahorro en lugar de dejar la cifra intacta.
  *
  * Cifras en céntimos enteros.
  */
 export function calcularAhorro(
   aportadoCentimos: number,
-  presupuestoCentimos: number | null | undefined,
   gastadoCentimos: number,
+  apartadoCentimos: number = 0,
 ): number {
-  const tope = presupuestoCentimos ?? gastadoCentimos;
-  return aportadoCentimos - tope;
+  return aportadoCentimos - calcularGastadoComprometido(gastadoCentimos, apartadoCentimos);
 }
 
 /**

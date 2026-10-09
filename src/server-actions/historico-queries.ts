@@ -19,7 +19,7 @@ export interface MesHistorico {
   apartado: number;
   /** Presupuesto de gastos en céntimos; null si nunca se fijó. */
   presupuesto: number | null;
-  /** Ahorro = aportado − presupuesto; sin presupuesto, aportado − gastado. */
+  /** Ahorro real = aportado − (gastado + apartado). */
   ahorro: number; // positivo = ahorro, negativo = déficit
   permisos: PermisosEdicion;
 }
@@ -81,7 +81,7 @@ export async function obtenerHistorico(): Promise<MesHistorico[]> {
     const aportado = aportadoPorMes.get(mes.id) ?? 0;
     const gastado = gastadoPorMes.get(mes.id) ?? 0;
     const apartado = apartadoPorMes.get(mes.id) ?? 0;
-    const ahorro = calcularAhorro(aportado, mes.presupuesto, gastado);
+    const ahorro = calcularAhorro(aportado, gastado, apartado);
 
     return {
       mes: { id: mes.id, anio: mes.anio, mes: mes.mes },

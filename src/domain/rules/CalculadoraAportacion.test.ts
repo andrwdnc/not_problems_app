@@ -110,20 +110,22 @@ describe('CalculadoraAportacion', () => {
   });
 
   describe('calcularAhorro', () => {
-    it('con presupuesto fijado: ahorro = aportado - presupuesto', () => {
-      expect(calcularAhorro(300000, 20000, 0)).toBe(280000);
+    it('descuenta el gasto real del mes', () => {
+      expect(calcularAhorro(300000, 18000)).toBe(282000);
     });
 
-    it('el gasto no descuenta del ahorro cuando hay presupuesto', () => {
-      expect(calcularAhorro(300000, 20000, 18000)).toBe(280000);
+    it('descuenta el gasto real aunque supere el presupuesto', () => {
+      // El presupuesto ya no interviene en el ahorro: si se gasta de más, el
+      // ahorro baja. Antes la cifra quedaba intacta frente al exceso.
+      expect(calcularAhorro(300000, 25000)).toBe(275000);
     });
 
-    it('sin presupuesto: ahorro = aportado - gastado (continuidad)', () => {
-      expect(calcularAhorro(300000, null, 18000)).toBe(282000);
+    it('descuenta también el apartado de gastos anuales', () => {
+      expect(calcularAhorro(300000, 18000, 3000)).toBe(279000);
     });
 
     it('puede ser negativo si no hay aportado suficiente', () => {
-      expect(calcularAhorro(15000, 20000, 0)).toBe(-5000);
+      expect(calcularAhorro(15000, 20000)).toBe(-5000);
     });
   });
 

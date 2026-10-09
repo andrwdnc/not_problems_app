@@ -90,9 +90,9 @@ describe('calcularResumen', () => {
     expect(resultado.disponible).toBe(1300);
   });
 
-  it('calcula el ahorro contra el presupuesto cuando existe', () => {
+  it('ahorro = aportado - gasto real (el presupuesto no interviene)', () => {
     const resultado = calcularResumen([aportacion(300000)], [gasto(18000)], 20000);
-    expect(resultado.ahorro).toBe(280000);
+    expect(resultado.ahorro).toBe(282000);
     expect(resultado.restantePresupuesto).toBe(2000);
     expect(resultado.porcentajePresupuesto).toBeCloseTo(90);
   });
@@ -108,8 +108,8 @@ describe('calcularResumen', () => {
     const resultado = calcularResumen([aportacion(300000)], [gasto(25000)], 20000);
     expect(resultado.restantePresupuesto).toBe(-5000);
     expect(resultado.porcentajePresupuesto).toBeCloseTo(125);
-    // El ahorro comprometido queda intacto frente al gasto.
-    expect(resultado.ahorro).toBe(280000);
+    // Al superar el presupuesto, el exceso reduce el ahorro (300000 - 25000).
+    expect(resultado.ahorro).toBe(275000);
   });
 
   // --- Tests para apartado (4º parámetro) ---
@@ -156,15 +156,15 @@ describe('calcularResumen', () => {
     expect(resultado.gastado).toBe(2000); // solo gasto real
   });
 
-  it('apartado no afecta a calcularTotalesMes (ahorro, restantePresupuesto, porcentajePresupuesto usan solo gastado)', () => {
+  it('el apartado descuenta del ahorro; el presupuesto se mide solo con el gasto real', () => {
     const resultado = calcularResumen(
       [aportacion(300000)],
       [gasto(25000)],
       20000,
       30000, // apartado grande
     );
-    // ahorro = aportado - presupuesto (usa gastado real, no comprometido)
-    expect(resultado.ahorro).toBe(280000); // 300000 - 20000
+    // ahorro = aportado - (gastado + apartado) = 300000 - 55000
+    expect(resultado.ahorro).toBe(245000);
     // restantePresupuesto = presupuesto - gastado real
     expect(resultado.restantePresupuesto).toBe(-5000); // 20000 - 25000
     // porcentajePresupuesto = gastado real / presupuesto
@@ -186,8 +186,9 @@ describe('calcularResumen', () => {
     expect(resultado.disponible).toBe(-10000);
     // tarjeta "gastado" sigue mostrando 80000
     expect(resultado.gastado).toBe(80000);
-    // ahorro, restantePresupuesto, porcentajePresupuesto usan solo gastado real
-    expect(resultado.ahorro).toBe(0); // 100000 - 100000
+    // ahorro = aportado - (gastado + apartado) = 100000 - 110000 = -10000
+    expect(resultado.ahorro).toBe(-10000);
+    // restantePresupuesto y porcentajePresupuesto usan solo gastado real
     expect(resultado.restantePresupuesto).toBe(20000); // 100000 - 80000
     expect(resultado.porcentajePresupuesto).toBeCloseTo(80); // 80000 / 100000 * 100
   });
