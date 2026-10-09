@@ -41,7 +41,7 @@ export interface InicioResumenVista {
   anillo: {
     /** Porcentaje 0-100 ya redondeado. */
     porcentaje: number;
-    /** Texto dentro del anillo: "% de tu cuota", "% gastado", "% presupuesto". */
+    /** Texto dentro del anillo: "% presupuesto" o "% gastado" sin presupuesto. */
     etiqueta: string;
     /**
      * Texto alternativo al superar el 100 %. Si se omite, `AnilloProgreso` usa su
@@ -49,7 +49,10 @@ export interface InicioResumenVista {
      */
     etiquetaSuperada?: string;
   };
-  /** Cifra destacada bajo el anillo: el presupuesto en la conjunta, mi cuota en la individual. */
+  /**
+   * Cifra destacada bajo el anillo: el PRESUPUESTO del mes. Es el mismo tipo de
+   * dato en las dos cuentas; cada una enseña el suyo (el compartido o el propio).
+   */
   cifraAnillo: {
     etiqueta: string;
     /** Importe en céntimos; `null` = aún no fijado. */
