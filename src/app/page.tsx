@@ -21,7 +21,9 @@ export default async function ChooserPage() {
   }
 
   return (
-    <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col px-4 py-6">
+    // `min-h-svh`: centra en el viewport visible al cargar (no en `100dvh`, que
+    // en móvil puede medir más que el hueco real y dejar el bloque bajo).
+    <div className="mx-auto flex min-h-svh w-full max-w-md flex-col px-4 py-6">
       <NavigationShell>
         <header className="flex items-center justify-between">
           <span className="min-w-0 truncate text-sm font-semibold text-brand-navy">
