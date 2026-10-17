@@ -4,6 +4,7 @@ import {
   mesRepository,
   aportacionRepository,
   gastoIndividualRepository,
+  presupuestoIndividualRepository,
   gastoAnualIndividualRepository,
 } from '@/server-actions/repositories';
 import { derivarResumenIndividual } from '@/server-actions/individual-queries';
@@ -44,14 +45,21 @@ export default async function HistoricoIndividualDetallePage({
     notFound();
   }
 
-  const [aportacion, gastos, gastosAnuales] = await Promise.all([
+  const [aportacion, gastos, presupuesto, gastosAnuales] = await Promise.all([
     aportacionRepository.findByMesAndUsuario(mes.id, user.id),
     gastoIndividualRepository.findByMes(user.id, mes.id),
+    presupuestoIndividualRepository.findByMes(user.id, mes.id),
     gastoAnualIndividualRepository.findAll(user.id),
   ]);
 
   const permisos = ventanaDeMes(new Date(), mes.anio, mes.mes);
-  const resumenMes = derivarResumenIndividual(mes, aportacion, gastos, null, gastosAnuales);
+  const resumenMes = derivarResumenIndividual(
+    mes,
+    aportacion,
+    gastos,
+    presupuesto?.presupuesto ?? null,
+    gastosAnuales,
+  );
 
   const vista = derivarDetalleMesVista({
     cifras: cifrasDeResumenIndividual(resumenMes),
