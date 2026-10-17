@@ -85,13 +85,14 @@ const PRESUPUESTO_INDIVIDUAL = (
  * individual) y que todo lo demás —porcentaje, inmutabilidad, marcadores, campos
  * de formulario— se comporte igual sin duplicar código.
  *
- * COBERTURA LIMITADA (deliberada): los formularios usan `<form action={fn}>`, una
- * API de React 19 que Next resuelve con su propio build canary de react-dom. El
- * `react-dom@18` que usa el runner de tests descarta ese prop con un warning, así
- * que no se puede disparar el `submit` desde el DOM. En consecuencia, aquí se
- * afirma lo que sí es observable (estructura, campos, estados, inmutabilidad) y
- * NO la invocación de las Server Actions: esa lógica se comprueba en
- * `server-actions/*.test.ts`, que es donde vive.
+ * COBERTURA LIMITADA (deliberada): aquí se afirma lo observable (estructura,
+ * campos, estados, inmutabilidad) y NO la invocación de las Server Actions: esa
+ * lógica se comprueba en `server-actions/*.test.ts`, que es donde vive.
+ *
+ * Los formularios usan `onSubmit` (no `action={fn}`, ver el comentario del
+ * componente): React ejecuta las Actions de formulario dentro de una transition,
+ * y los `setState` de dentro —como el que enciende el spinner— no se confirman
+ * hasta que esta termina, así que el indicador de carga no se llegaba a ver.
  */
 describe('AportarForm', () => {
   describe('área conjunta: 2 sueldos', () => {

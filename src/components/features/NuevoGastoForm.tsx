@@ -34,6 +34,20 @@ export function NuevoGastoForm({ mesId, variante = 'conjunta' }: GastoFormProps)
   const [error, setError] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
 
+  // POR QUÉ `onSubmit` Y NO `action={guardar}`.
+  //
+  // React ejecuta la función de `action` dentro de una transition ("Action"), y
+  // los `setState` que ocurren dentro de una transition NO se confirman hasta
+  // que esta termina. Con `action={guardar}`, el `setEnviando(true)` que pinta
+  // el spinner solo se pintaba al volver de la Server Action —cuando ya se había
+  // puesto a `false`—, así que el botón parecía no responder. Un manejador de
+  // evento normal confirma la actualización de inmediato, y el spinner se ve
+  // durante toda la llamada.
+  function handleSubmit(evento: React.FormEvent<HTMLFormElement>) {
+    evento.preventDefault();
+    void guardar(new FormData(evento.currentTarget));
+  }
+
   async function guardar(formData: FormData) {
     // Sin este freno, un segundo clic (o Enter) mientras la petición está en
     // vuelo mandaría el gasto dos veces: el botón se deshabilita en el render
@@ -63,7 +77,7 @@ export function NuevoGastoForm({ mesId, variante = 'conjunta' }: GastoFormProps)
   }
 
   return (
-    <form action={guardar} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-4">
       <div className="rounded-3xl bg-brand-navy p-6 text-center">
         <p className="text-sm text-brand-sky">{gastoForm.importe}</p>
         <input

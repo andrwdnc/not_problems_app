@@ -94,6 +94,11 @@ export function AportarForm({
   // Se guarda la clave y no un booleano porque son tres formularios
   // independientes: así solo se atenúa el que se está guardando y los otros
   // siguen utilizables.
+  //
+  // Los tres formularios usan `onSubmit` (no `action={fn}`): React ejecuta las
+  // Actions de formulario dentro de una transition y los `setState` de dentro no
+  // se confirman hasta que esta termina, así que el spinner de carga nunca se
+  // veía. Un manejador de evento normal lo pinta de inmediato.
   const [enviando, setEnviando] = useState<string | null>(null);
 
   // Estado local síncrono con el servidor: tras una mutación confirmada se
@@ -339,7 +344,15 @@ export function AportarForm({
                 </div>
               </div>
             ) : (
-              <form action={(fd) => guardarSueldo(usuario.id, fd)}>
+              <form
+                onSubmit={(evento) => {
+                  evento.preventDefault();
+                  void guardarSueldo(
+                    usuario.id,
+                    new FormData(evento.currentTarget),
+                  );
+                }}
+              >
                 <Input
                   label={aportar.sueldoIntegro}
                   name="sueldo"
@@ -376,7 +389,12 @@ export function AportarForm({
               : `${mes.porcentaje}%`}
           </p>
         ) : (
-          <form action={guardarPorcentaje}>
+          <form
+            onSubmit={(evento) => {
+              evento.preventDefault();
+              void guardarPorcentaje(new FormData(evento.currentTarget));
+            }}
+          >
             <Input
               label={aportar.porcentajeUnico}
               name="porcentaje"
@@ -434,7 +452,12 @@ export function AportarForm({
             })()}
           </>
         ) : (
-          <form action={guardarPresupuesto}>
+          <form
+            onSubmit={(evento) => {
+              evento.preventDefault();
+              void guardarPresupuesto(new FormData(evento.currentTarget));
+            }}
+          >
             <Input
               label={aportar.presupuestoUnicoMes}
               name="presupuesto"
