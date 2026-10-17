@@ -11,7 +11,7 @@ export default function Error({
   reset: () => void;
 }) {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-brand-bg p-6">
+    <div className="flex min-h-svh items-center justify-center bg-brand-bg p-6">
       <Card className="w-full max-w-sm text-center">
         <h1 className="text-2xl font-bold text-brand-navy">
           {errores.errorTitulo}

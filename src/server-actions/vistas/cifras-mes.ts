@@ -56,7 +56,7 @@ export interface ResumenMesLike {
   presupuesto: number | null;
   /** No existe cuota por persona en la conjunta: la aportación ES la cuota. */
   apartado: number;
-  /** `ahorro` = aportado - tope, o aportado - gastado si no hay tope. */
+  /** `ahorro` = aportado − (gastado + apartado): el dinero real que queda. */
   ahorro: number;
   gastado: number;
   numeroGastos: number;

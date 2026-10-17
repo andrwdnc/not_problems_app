@@ -43,7 +43,7 @@ export default async function HistoricoDetallePage({
       aportado,
       presupuesto: mes.presupuesto,
       apartado,
-      ahorro: calcularAhorro(aportado, mes.presupuesto, gastado),
+      ahorro: calcularAhorro(aportado, gastado, apartado),
       gastado,
       numeroGastos: gastos.length,
     }),

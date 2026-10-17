@@ -55,7 +55,17 @@ export function EditarGastoForm({ gasto, variante = 'conjunta' }: EditarGastoFor
   const [dialogoAbierto, setDialogoAbierto] = useState(false);
   const [errorEliminacion, setErrorEliminacion] = useState<string | null>(null);
 
+  // `onSubmit` en vez de `action={guardar}`: React ejecuta las Actions de
+  // formulario dentro de una transition y los `setState` de dentro no se
+  // confirman hasta que termina, así que el spinner de "Guardando…" nunca se
+  // veía. Un manejador de evento normal lo pinta al instante.
+  function handleSubmit(evento: React.FormEvent<HTMLFormElement>) {
+    evento.preventDefault();
+    void guardar(new FormData(evento.currentTarget));
+  }
+
   async function guardar(formData: FormData) {
+    if (enviando) return;
     setEnviando(true);
     setError(null);
     const campos = {
@@ -106,7 +116,7 @@ export function EditarGastoForm({ gasto, variante = 'conjunta' }: EditarGastoFor
   }
 
   return (
-    <form action={guardar} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-4">
       <div className="rounded-3xl bg-brand-navy p-6 text-center">
         <p className="text-sm text-brand-sky">{gastoForm.importe}</p>
         <input
@@ -173,7 +183,7 @@ export function EditarGastoForm({ gasto, variante = 'conjunta' }: EditarGastoFor
         </p>
       )}
 
-      <Button type="submit" fullWidth disabled={enviando}>
+      <Button type="submit" fullWidth loading={enviando} disabled={enviando}>
         {enviando ? gastoForm.guardando : gastoForm.guardarCambios}
       </Button>
       <Button

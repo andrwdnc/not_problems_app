@@ -122,8 +122,9 @@ describe('paridad entre las dos áreas', () => {
 
   it('coinciden en todos los campos que significan lo mismo en las dos áreas', () => {
     // `saldo` queda fuera a propósito: "ahorro" (conjunta) y "disponible"
-    // (individual) tienen reglas distintas por diseño. El resto no puede
-    // depender de qué pantalla estés mirando.
+    // (individual) usan la misma resta, pero sobre bases distintas (la
+    // aportación del mes vs. mi cuota). El resto no puede depender de qué
+    // pantalla estés mirando.
     const conjunta = cifrasDeResumenMes(resumenMes());
     const individual = cifrasDeResumenIndividual(resumenIndividual());
 

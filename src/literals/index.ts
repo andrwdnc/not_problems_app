@@ -249,15 +249,11 @@ export const individual = {
    * `/individual/aportar`, que es donde se introduce.
    */
   miAportacion: 'Mi aportación',
-  miCuota: 'Mi cuota',
   miPresupuesto: 'Mi presupuesto',
-  deTuCuota: 'de tu cuota',
-  cuotaSuperada: 'cuota superada',
   sinMesAbierto: 'No hay un mes abierto todavía.',
   sinDatos:
     'Todavía no hay datos para este mes. Registra tu sueldo o un gasto individual para empezar.',
   sinGastosMes: 'Aún no hay gastos individuales este mes.',
-  teHasPasado: (monto: string) => `Has gastado ${monto} más de tu cuota.`,
 };
 
 export const aportacionErrores = {

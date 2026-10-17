@@ -28,7 +28,7 @@ export interface ResumenMes {
   porcentajeGastado: number;
   /** Presupuesto de gastos del mes en céntimos; null hasta que se fija. */
   presupuesto: number | null;
-  /** Ahorro = aportado − presupuesto; sin presupuesto, aportado − gastado. */
+  /** Ahorro real = aportado − (gastado + apartado). No usa el presupuesto. */
   ahorro: number;
   /** Presupuesto restante (presupuesto − gastado); null si no hay tope. */
   restantePresupuesto: number | null;
@@ -42,13 +42,13 @@ export interface ResumenMes {
  * sin lanzar dos veces la misma query).
  *
  * El 4º parámetro `apartadoCentimos` es el importe apartado devengado
- * este mes. Se usa SOLO para:
+ * este mes. Se usa para:
  * - `gastadoComprometido` (gastado + apartado)
  * - `porcentajeGastado` (sobre aportado)
- * - `disponible` (aportado - gastadoComprometido)
+ * - `disponible` y `ahorro` (aportado - gastadoComprometido)
  *
- * NO afecta a: `gastado` (tarjeta), `calcularTotalesMes`, `ahorro`,
- * `restantePresupuesto`, `porcentajePresupuesto` (todos usan solo `gastado`).
+ * NO afecta a: `gastado` (tarjeta), `calcularTotalesMes`, `restantePresupuesto`
+ * ni `porcentajePresupuesto` (usan solo `gastado`).
  */
 export function calcularResumen(
   aportaciones: Aportacion[],
@@ -74,7 +74,7 @@ export function calcularResumen(
     numeroGastos,
     porcentajeGastado,
     presupuesto,
-    ahorro: calcularAhorro(aportado, presupuesto, gastado),
+    ahorro: calcularAhorro(aportado, gastado, apartadoCentimos),
     restantePresupuesto: calcularRestantePresupuesto(presupuesto, gastado),
     porcentajePresupuesto: calcularPorcentajePresupuestoConsumido(
       gastado,

@@ -36,17 +36,20 @@ async function resolverResumen(): Promise<InicioResumenVista | null> {
   const resumen = await obtenerResumenIndividual(user.id);
   const hayMes = resumen.mesId !== '';
 
-  // Igual que en la cuenta conjunta, el aviso depende de la referencia que
-  // manda: si hay presupuesto, del tope; si no, de la cuota.
-  const sobreCuota = resumen.disponible != null && resumen.disponible < 0;
+  // Mismo TIPO de información que la cuenta conjunta: el anillo, la cifra que
+  // lleva debajo y el aviso giran siempre en torno al PRESUPUESTO del mes, no a
+  // la cuota. Cada cuenta enseña sus propios números ("Mi presupuesto" aquí, el
+  // compartido en la conjunta), pero lo que se informa es lo mismo. Antes, sin
+  // presupuesto propio, la individual saltaba a "Mi cuota" y rompía la paridad.
   const sobrePresupuesto =
     resumen.restantePresupuesto != null && resumen.restantePresupuesto < 0;
   const hayPresupuesto = resumen.presupuesto != null;
 
-  // Sin presupuesto el anillo mide lo COMPROMETIDO (gasto + apartado) sobre mi
-  // cuota, igual que en la conjunta mide `gastadoComprometido / aportado`: si un
-  // gasto anual no bajara la barra en una de las dos cuentas, la paridad se
-  // rompería en la cifra que el usuario usa para decidir.
+  // Sin presupuesto (aún sin fijar) el anillo mide lo COMPROMETIDO (gasto +
+  // apartado) sobre mi cuota, igual que en la conjunta mide
+  // `gastadoComprometido / aportado`: si un gasto anual no bajara la barra en una
+  // de las dos cuentas, la paridad se rompería en la cifra que el usuario usa
+  // para decidir.
   const porcentajeSobreCuota =
     resumen.cuota != null && resumen.cuota > 0
       ? Math.round((resumen.gastadoComprometido / resumen.cuota) * 100)
@@ -64,16 +67,11 @@ async function resolverResumen(): Promise<InicioResumenVista | null> {
         : porcentajeSobreCuota,
       etiqueta: hayPresupuesto
         ? literalesResumen.presupuestoRing
-        : individual.deTuCuota,
-      etiquetaSuperada: hayPresupuesto
-        ? literalesResumen.superado
-        : individual.cuotaSuperada,
+        : literalesResumen.gastadoRing,
     },
     cifraAnillo: {
-      etiqueta: hayPresupuesto
-        ? individual.miPresupuesto
-        : individual.miCuota,
-      valor: hayPresupuesto ? resumen.presupuesto : resumen.cuota,
+      etiqueta: individual.miPresupuesto,
+      valor: resumen.presupuesto,
     },
     tarjetas: [
       {
@@ -99,9 +97,7 @@ async function resolverResumen(): Promise<InicioResumenVista | null> {
       ? inicio.teHasPasadoPresupuesto(
           formatCurrency(-(resumen.restantePresupuesto as number)),
         )
-      : sobreCuota
-        ? individual.teHasPasado(formatCurrency(-(resumen.disponible as number)))
-        : undefined,
+      : undefined,
     // El contador "· N gastos" también es paridad: la conjunta lo muestra bajo la
     // cifra del anillo y el área individual no lo tenía.
     notaCifraAnillo: hayMes

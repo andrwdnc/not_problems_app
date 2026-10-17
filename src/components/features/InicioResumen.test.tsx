@@ -23,9 +23,9 @@ const bandaAviso = (container: HTMLElement) =>
  * concreta: la prueba de que sirve para las dos es que la misma vista se pueda
  * pintar sin que el componente sepa de dónde viene.
  *
- * COBERTURA LIMITADA (deliberada): igual que en `AportarForm`, los formularios con
- * `<form action={fn}>` no se pueden disparar desde el DOM en este runner (React 19
- * sobre react-dom 18). Aquí no hay formularios, así que no aplica.
+ * COBERTURA LIMITADA (deliberada): igual que en `AportarForm`, aquí no se
+ * disparan envíos de formulario; se afirma la estructura y el contenido de la
+ * vista. Aquí no hay formularios, así que no aplica.
  */
 
 const VISTA_COMPLETA: InicioResumenVista = {
