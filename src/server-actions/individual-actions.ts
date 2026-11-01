@@ -18,6 +18,7 @@ import {
   presupuestoIndividualRepository,
 } from './repositories';
 import { auditarMovimiento } from '@/infrastructure/audit/auditarMovimiento';
+import { calcularPorcentajeCompartido } from '@/domain/value-objects/Porcentaje';
 import { ventanaEdicionGastos } from '@/domain/rules/VentanaEdicionGastos';
 import { getCurrentUserId } from '@/server/auth';
 import type {
@@ -336,14 +337,22 @@ export async function fijarSueldoIndividual(
 }
 
 /**
- * Fija el porcentaje único y compartido del mes desde el área individual.
+ * Fija el porcentaje del mes DESDE EL ÁREA INDIVIDUAL.
  *
- * El área individual ya no manipula un porcentaje propio: escribe directamente
- * `meses.porcentaje` a través del MISMO core que la cuenta conjunta, con la
- * misma validación y las mismas consecuencias (inmutabilidad, recálculo reactivo
- * de `importe_aportado` para todas las aportaciones del mes y auditoría). Por
- * eso la paridad es real y no solo visual: las dos áreas comparten una única
- * fuente de verdad.
+ * ÚNICO PUNTO EN EL QUE EL INPUT INDIVIDUAL SE TRADUCE (MP-1 revisada). Lo que
+ * se teclea en `/individual/aportar` es MI porcentaje —el de mi parte del
+ * sueldo—, pero `meses.porcentaje` almacena el compartido. La traducción es
+ * `compartido = 100 − individuo` y ocurre UNA sola vez, aquí, vía la función
+ * pura `calcularPorcentajeCompartido`; el cliente manda el valor tal cual lo
+ * escribió y nunca lo invierte él. Tras fijar, la lectura habitual re-deriva el
+ * complemento solo para MOSTRAR (la tarjeta individual), con lo que la
+ * ida y la vuelta devuelven el número tecleado:
+ *
+ *   tecleo 45  ->  se almacena 55  ->  la individual muestra 45 (100 − 55)
+ *
+ * Se escribe a través del MISMO core que la cuenta conjunta, con las mismas
+ * consecuencias (inmutabilidad, recálculo reactivo de `importe_aportado` para
+ * todas las aportaciones del mes y auditoría).
  */
 export async function fijarPorcentajeIndividual(
   input: unknown,
@@ -360,7 +369,14 @@ export async function fijarPorcentajeIndividual(
 
   const { mesId, porcentaje } = parsed.data;
 
-  const resultado = await fijarPorcentajeCore(usuarioId, mesId, porcentaje);
+  // El esquema ya garantizó el rango [10, 90]; el `null` solo puede llegar si
+  // ese rango cambiara sin actualizar este punto. Defensa explícita.
+  const compartido = calcularPorcentajeCompartido(porcentaje);
+  if (compartido == null) {
+    return { ok: false, error: aportacionErrores.porcentajeMinimo };
+  }
+
+  const resultado = await fijarPorcentajeCore(usuarioId, mesId, compartido);
 
   if (resultado.ok) {
     revalidarAmbasAreas();

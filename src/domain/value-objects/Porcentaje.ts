@@ -3,9 +3,20 @@ export interface PorcentajeValue {
   esValido: boolean;
 }
 
+/**
+ * Límites del reparto acordados (decisión de producto 2026-11): NINGUNA de las
+ * dos cuentas puede quedarse con menos de un 10 % del sueldo del mes. Como
+ * compartido + individual = 100, eso acota el valor de ambas a [10, 90].
+ */
+export const PORCENTAJE_MINIMO = 10;
+export const PORCENTAJE_MAXIMO = 90;
+
 export function validarPorcentaje(valor: number): PorcentajeValue {
   const esNumero = typeof valor === 'number' && Number.isFinite(valor);
-  const enRango = esNumero && valor > 0 && valor <= 100;
+  const enRango =
+    esNumero &&
+    valor >= PORCENTAJE_MINIMO &&
+    valor <= PORCENTAJE_MAXIMO;
   return {
     valor,
     esValido: enRango,
@@ -46,11 +57,10 @@ function redondearDosDecimales(valor: number): number {
  * que los adaptadores necesitan para distinguir "todavía no lo has puesto" de
  * "tu parte es cero".
  *
- * Nota de rango: `validarPorcentaje` excluye el 0 %, así que la parte individual
- * no puede llegar al 100 %. Es una restricción que viene del lado conjunto (no
- * tiene sentido acordar que nada va a la cuenta común) y se mantiene aquí a
- * propósito; admitirlo sería una decisión de producto, no una consecuencia de
- * esta regla.
+ * Nota de rango: `validarPorcentaje` acota el valor a [10, 90], así que el
+ * complemento de un porcentaje válido también cae SIEMPRE en [10, 90] (ninguna
+ * de las dos cuentas baja del 10 % acordado). Por eso quien calcula la cuota a
+ * partir del complemento no puede revalidar el rango: ya está cubierto.
  */
 export function calcularPorcentajeIndividual(
   porcentajeCompartido: number | null | undefined,
@@ -65,4 +75,31 @@ export function calcularPorcentajeIndividual(
   }
 
   return redondearDosDecimales(100 - porcentajeCompartido);
+}
+
+/**
+ * PUNTO ÚNICO DE INVERSIÓN EN LA ENTRADA (lado tecleado en la cuenta
+ * individual).
+ *
+ * El formulario de `/individual/aportar` pide MI porcentaje, pero la columna
+ * `meses.porcentaje` almacena el compartido: esta función hace esa traducción
+ * UNA sola vez, en el servidor, con la misma regla de complemento y redondeo
+ * que la función de arriba (que vive en el lado de lectura).
+ *
+ *   Tecleo 45 % en la individual  ->  se almacena 55 % (compartido)
+ *   Tecleo 60 % en la individual  ->  se almacena 40 % (compartido)
+ *
+ * Devuelve `null` en la misma situación que su gemela de lectura para que la
+ * Server Action tenga qué traducir a error de rango (en la práctica inalcanzable:
+ * el esquema Zod ya garantiza el rango [10, 90] antes de llamar aquí).
+ */
+export function calcularPorcentajeCompartido(
+  porcentajeIndividual: number,
+): number | null {
+  const { esValido } = validarPorcentaje(porcentajeIndividual);
+  if (!esValido) {
+    return null;
+  }
+
+  return redondearDosDecimales(100 - porcentajeIndividual);
 }

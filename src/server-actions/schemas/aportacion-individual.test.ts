@@ -49,9 +49,10 @@ describe('sueldoIndividualSchema', () => {
   });
 });
 
-// El área individual fija el mismo porcentaje único y compartido del mes que la
-// cuenta conjunta, así que el rango válido es idéntico: 0 < porcentaje <= 100.
-describe('porcentajeIndividualSchema (paridad con el conjunto: 0 < % <= 100)', () => {
+// El porcentaje que se teclea en la individual es MI parte del sueldo (el
+// servidor lo traduce al compartido), así que el rango acordado es el mismo que
+// la conjunta pide a su propio campo: 10 <= porcentaje <= 90.
+describe('porcentajeIndividualSchema (rango acordado: 10 <= % <= 90)', () => {
   const mesId = '123e4567-e89b-12d3-a456-426614174000';
 
   it('acepta el 30 %', () => {
@@ -65,13 +66,13 @@ describe('porcentajeIndividualSchema (paridad con el conjunto: 0 < % <= 100)', (
     }
   });
 
-  it('acepta los límites 1 % y 100 %', () => {
-    const uno = porcentajeIndividualSchema.safeParse({ mesId, porcentaje: '1' });
-    const cien = porcentajeIndividualSchema.safeParse({ mesId, porcentaje: '100' });
-    expect(uno.success).toBe(true);
-    expect(cien.success).toBe(true);
-    if (uno.success) {
-      expect(uno.data.porcentaje).toBe(1);
+  it('acepta los límites 10 % y 90 %', () => {
+    const minimo = porcentajeIndividualSchema.safeParse({ mesId, porcentaje: '10' });
+    const maximo = porcentajeIndividualSchema.safeParse({ mesId, porcentaje: '90' });
+    expect(minimo.success).toBe(true);
+    expect(maximo.success).toBe(true);
+    if (minimo.success) {
+      expect(minimo.data.porcentaje).toBe(10);
     }
   });
 
@@ -86,25 +87,25 @@ describe('porcentajeIndividualSchema (paridad con el conjunto: 0 < % <= 100)', (
     }
   });
 
-  it('rechaza el 0 % con el mismo mensaje que la cuenta conjunta', () => {
+  it('rechaza por debajo del mínimo con el mismo mensaje que la cuenta conjunta', () => {
     const resultado = porcentajeIndividualSchema.safeParse({
       mesId,
-      porcentaje: '0',
+      porcentaje: '9,99',
     });
     expect(resultado.success).toBe(false);
     if (!resultado.success) {
       expect(
         resultado.error.issues.some(
-          (i) => i.message === aportacionErrores.porcentajePositivo,
+          (i) => i.message === aportacionErrores.porcentajeMinimo,
         ),
       ).toBe(true);
     }
   });
 
-  it('rechaza más de 100 % con el mismo mensaje que la cuenta conjunta', () => {
+  it('rechaza por encima del máximo con el mismo mensaje que la cuenta conjunta', () => {
     const resultado = porcentajeIndividualSchema.safeParse({
       mesId,
-      porcentaje: '100,5',
+      porcentaje: '90,5',
     });
     expect(resultado.success).toBe(false);
     if (!resultado.success) {

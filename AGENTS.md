@@ -116,6 +116,8 @@ El Agente de IA debe velar por que estas reglas se cumplan al 100%:
 1. **Porcentaje Único y Compartido:**
    - `meses.porcentaje` es un valor **único para todo el mes** que aplica por igual a los dos usuarios.
    - **PROHIBIDO** crear campos de porcentaje por usuario o tarjetas con porcentajes distintos.
+   - **Rango acordado [10, 90]:** ninguna de las dos cuentas puede quedarse con menos del 10 % del sueldo del mes (como compartido + individual = 100, el máximo de cualquier lado es el 90 %). Lo fija `validarPorcentaje` (`src/domain/value-objects/Porcentaje.ts`).
+   - **Traducción del input individual (punto único):** el formulario `/individual/aportar` pide **MI porcentaje**, pero la columna almacena el compartido. La inversión `compartido = 100 − individuo` ocurre **una sola vez, en el servidor** (`fijarPorcentajeIndividual`, vía `calcularPorcentajeCompartido`); el cliente manda el valor tal cual. La lectura re-deriva el complemento solo para mostrar. Teclear 45 en la individual → almacena 55 → la individual muestra 45 y la conjunta 55.
 
 2. **Inmutabilidad de Sueldos, Porcentaje y Presupuesto:**
    - Una vez fijado y guardado un `sueldo`, el `porcentaje` del mes o el `presupuesto` de gastos, no se pueden editar ni borrar (marca visual 🔒).

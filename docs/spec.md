@@ -120,6 +120,8 @@ Auditoría completa. Toda acción relevante genera una entrada aquí.
 ### 4.1 Sueldos y aportación
 - Cada usuario introduce su sueldo íntegro una vez al mes. Inmutable tras guardar.
 - El porcentaje de aportación es **único para el mes y compartido por los dos usuarios** — no hay un % distinto por persona. Puede fijarlo cualquiera de los dos. Inmutable tras guardar.
+- El reparto está acotado: **ninguna cuenta puede quedarse por debajo del 10 %**. Como compartido + individual = 100, el rango válido del porcentaje es [10, 90].
+- En `/aportar` se teclea el % de lo común; en `/individual/aportar` se teclea **el % propio de uno (mi parte)** y el servidor almacena su complemento (`100 − v`) en la misma columna. La pantalla individual muestra siempre el complemento de lo almacenado, con lo que lo tecleado en cada pantalla es lo que ve esa pantalla y ambas suman 100.
 - `importe_aportado` se calcula y persiste en cuanto están disponibles tanto el sueldo del usuario como el porcentaje del mes — sea cual sea el orden en que se guarden ambos datos (si el sueldo se guarda antes que el porcentaje, el cálculo se dispara al fijar el porcentaje, y viceversa).
 - Total de la cuenta conjunta del mes = suma de `importe_aportado` de los dos usuarios. No hay cálculos adicionales.
 
@@ -194,7 +196,7 @@ Pantalla de apertura de la app, la más visitada.
 
 - Una tarjeta por usuario con su inicial/avatar.
 - Campo de sueldo, editable solo hasta guardar; al guardar, insignia "🔒 Fijo" y el campo pasa a solo lectura.
-- El porcentaje es un **único selector compartido para el mes** (no uno por tarjeta de usuario — corregir respecto al mockup, que mostraba un % independiente por persona). Al fijarlo, queda igual de inmutable y visible en ambas tarjetas.
+- El porcentaje es un **único selector compartido para el mes** (no uno por tarjeta de usuario — corregir respecto al mockup, que mostraba un % independiente por persona). Al fijarlo, queda igual de inmutable y visible en ambas tarjetas. El valor tecleado es el % de la cuenta común, con rango [10, 90].
 - Cada tarjeta muestra el `importe_aportado` resultante de ese usuario (sueldo × porcentaje del mes).
 - Tarjeta inferior de "Total cuenta conjunta" en azul marino, suma de ambos `importe_aportado`.
 - Tarjeta de **"Presupuesto de gastos"** del mes: tope compartido fijable por cualquiera de los dos, inmutable tras guardar (como el porcentaje y los sueldos).

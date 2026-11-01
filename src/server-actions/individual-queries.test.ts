@@ -86,20 +86,19 @@ describe('derivarResumenIndividual (IA-2)', () => {
     expect(resumen.gastado).toBe(15000); // el gasto sí se muestra
   });
 
-  it('con el 100 % a lo común no queda nada para el gasto individual, y se puede quedar en negativo', () => {
-    // El complemento del 100 % es 0. `validarPorcentaje` rechaza el 0 escrito a
-    // mano, así que si la regla revalidase el rango esto saldría null y la
-    // pantalla diría "sin datos" en vez de "te has pasado por 150 €".
+  it('con el 90 % a lo común (mínimo individual), la parte mía es el 10 % acordado', () => {
+    // El límite acotado del reparto: el mínimo que la cuenta individual puede
+    // quedarse es el 10 %, que solo se alcanza cuando lo común se lleva el 90 %.
     const resumen = derivarResumenIndividual(
-      mes(2026, 9, 100),
+      mes(2026, 9, 90),
       aportacion(200000),
       [gasto(15000)],
     );
 
-    expect(resumen.porcentajeCompartido).toBe(100);
-    expect(resumen.porcentajeIndividual).toBe(0);
-    expect(resumen.cuota).toBe(0);
-    expect(resumen.disponible).toBe(-15000);
+    expect(resumen.porcentajeCompartido).toBe(90);
+    expect(resumen.porcentajeIndividual).toBe(10);
+    expect(resumen.cuota).toBe(20000);
+    expect(resumen.disponible).toBe(5000);
   });
 
   it('sin mes devuelve un resumen vacío sin lanzar', () => {

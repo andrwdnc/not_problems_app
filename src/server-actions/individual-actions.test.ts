@@ -95,39 +95,63 @@ describe('fijarPorcentajeIndividual (IA-4, MP-1, MP-2)', () => {
     expect(porcentajeCoreMock).not.toHaveBeenCalled();
   });
 
-  it('persiste el porcentaje tal cual vía el core compartido, sin invertirlo', async () => {
+  it('invierte UNA sola vez en el servidor: lo tecleado es MI %, se almacena el compartido', async () => {
     getCurrentUserIdMock.mockResolvedValue('u1');
-    porcentajeCoreMock.mockResolvedValue({ ok: true, data: { id: mesId, porcentaje: 30 } });
+    porcentajeCoreMock.mockResolvedValue({ ok: true, data: { id: mesId, porcentaje: 70 } });
 
+    // Tecleo 30 en la individual (mi parte): se almacena 70 compartido.
     const resultado = await fijarPorcentajeIndividual({ mesId, porcentaje: '30' });
 
     expect(resultado.ok).toBe(true);
-    // Paridad de dominio: el área individual escribe el MISMO
-    // `meses.porcentaje` que la conjunta, sin complemento 100-X ni traducción.
-    expect(porcentajeCoreMock).toHaveBeenCalledWith('u1', mesId, 30);
+    // Traducción en el punto de entrada del SERVIDOR, nunca en el cliente y
+    // nunca dos veces: el número que llega al core ya es el compartido.
+    expect(porcentajeCoreMock).toHaveBeenCalledWith('u1', mesId, 70);
+    expect(resultado).toEqual({ ok: true, data: { id: mesId, porcentaje: 70 } });
     // Revalida el área individual y la conjunta (ambas leen % e importe_aportado).
     expect(revalidatePathMock).toHaveBeenCalledWith('/individual/aportar');
     expect(revalidatePathMock).toHaveBeenCalledWith('/aportar');
   });
 
-  it('acepta el 100 % (mismo rango que la cuenta conjunta)', async () => {
+  it('invierte en los dos sentidos del reparto: 60 tecleado -> 40 compartido', async () => {
     getCurrentUserIdMock.mockResolvedValue('u1');
-    porcentajeCoreMock.mockResolvedValue({ ok: true, data: { id: mesId, porcentaje: 100 } });
+    porcentajeCoreMock.mockResolvedValue({ ok: true, data: { id: mesId, porcentaje: 40 } });
 
-    const resultado = await fijarPorcentajeIndividual({ mesId, porcentaje: '100' });
+    const resultado = await fijarPorcentajeIndividual({ mesId, porcentaje: '60' });
 
     expect(resultado.ok).toBe(true);
-    expect(porcentajeCoreMock).toHaveBeenCalledWith('u1', mesId, 100);
+    expect(porcentajeCoreMock).toHaveBeenCalledWith('u1', mesId, 40);
   });
 
-  it('X=0 es rechazado por el esquema sin llamar al core', async () => {
+  it('acepta los límites del rango acordado: 10 tecleado -> 90 compartido', async () => {
+    getCurrentUserIdMock.mockResolvedValue('u1');
+    porcentajeCoreMock.mockResolvedValue({ ok: true, data: { id: mesId, porcentaje: 90 } });
+
+    const resultado = await fijarPorcentajeIndividual({ mesId, porcentaje: '10' });
+
+    expect(resultado.ok).toBe(true);
+    expect(porcentajeCoreMock).toHaveBeenCalledWith('u1', mesId, 90);
+  });
+
+  it('X=0 es rechazado por el esquema con el literal del mínimo sin llamar al core', async () => {
     getCurrentUserIdMock.mockResolvedValue('u1');
 
     const resultado = await fijarPorcentajeIndividual({ mesId, porcentaje: '0' });
 
     expect(resultado.ok).toBe(false);
     if (!resultado.ok) {
-      expect(resultado.error).toContain(aportacionErrores.porcentajePositivo);
+      expect(resultado.error).toContain(aportacionErrores.porcentajeMinimo);
+    }
+    expect(porcentajeCoreMock).not.toHaveBeenCalled();
+  });
+
+  it('rechaza el 100 tecleado (dejaría la cuenta común sin nada del reparto)', async () => {
+    getCurrentUserIdMock.mockResolvedValue('u1');
+
+    const resultado = await fijarPorcentajeIndividual({ mesId, porcentaje: '100' });
+
+    expect(resultado.ok).toBe(false);
+    if (!resultado.ok) {
+      expect(resultado.error).toContain(aportacionErrores.porcentajeMaximo);
     }
     expect(porcentajeCoreMock).not.toHaveBeenCalled();
   });

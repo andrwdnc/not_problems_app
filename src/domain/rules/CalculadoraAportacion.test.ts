@@ -35,12 +35,19 @@ describe('CalculadoraAportacion', () => {
       expect(calcularImporteAportado(2000, 0)).toBeNull();
     });
 
-    it('devuelve null si el porcentaje supera 100', () => {
+    it('devuelve nulo si el porcentaje supera 100', () => {
       expect(calcularImporteAportado(2000, 150)).toBeNull();
     });
 
-    it('devuelve el importe exacto cuando el porcentaje es 100', () => {
-      expect(calcularImporteAportado(2000, 100)).toBe(2000);
+    it('devuelve nulo con porcentajes fuera del rango acordado [10, 90]', () => {
+      // Ninguna cuenta puede quedarse por debajo del 10 %, de modo que el 100
+      // % a lo común (y el 0) ya no son repartos admitidos.
+      expect(calcularImporteAportado(2000, 100)).toBeNull();
+      expect(calcularImporteAportado(2000, 5)).toBeNull();
+    });
+
+    it('devuelve el importe exacto en el límite del 90 %', () => {
+      expect(calcularImporteAportado(2000, 90)).toBe(1800);
     });
   });
 
