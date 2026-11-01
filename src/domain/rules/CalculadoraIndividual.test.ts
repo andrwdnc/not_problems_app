@@ -104,13 +104,12 @@ describe('CalculadoraIndividual', () => {
       ).toBe(123340);
     });
 
-    it('con el 100 % a lo común no queda nada para el gasto individual, y se puede quedar en negativo', () => {
-      // El complemento es 0, que `validarPorcentaje` rechaza como porcentaje
-      // escrito a mano. Si la regla revalidase el rango, esto devolvería null y
-      // la pantalla diría "sin datos" en vez de "te has pasado". Con 100 % a lo
-      // común y 50 € de gasto personal, el disponible es -50 €.
-      expect(calcularDisponibleIndividual(200000, 100, [])).toBe(0);
-      expect(calcularDisponibleIndividual(200000, 100, [{ importe: 5000 }])).toBe(-5000);
+    it('en el límite del 90 % a lo común la parte mía es el 10 %, y puede quedar en negativo', () => {
+      // El reparto acordado no deja que ninguna cuenta baje del 10 %, así que
+      // el extremo inferior individual es 100 − 90 = 10 %. Con 2.000 € de
+      // sueldo y 500 € de gasto personal, el disponible es −300 €.
+      expect(calcularDisponibleIndividual(200000, 90, [])).toBe(20000);
+      expect(calcularDisponibleIndividual(200000, 90, [{ importe: 50000 }])).toBe(-30000);
     });
 
     it('deriva la cuota de la MISMA regla pura de importe que la cuenta conjunta', () => {

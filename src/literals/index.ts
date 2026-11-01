@@ -196,6 +196,14 @@ export const aportar = {
   pendiente: 'Pendiente',
   porcentajeAportacion: 'Porcentaje de aportación',
   porcentajeUnico: 'Porcentaje único del mes',
+  /** Campo del formulario de `/individual/aportar`: se pide MI porcentaje. */
+  porcentajeMiCuenta: 'Mi porcentaje',
+  /**
+   * Aviso en vivo del formulario de `/individual/aportar`: mientras se escribe
+   * se muestra qué porcentaje efectivo quedará para la cuenta común.
+   */
+  porcentajeConjuntaPreview: (porcentaje: string) =>
+    `La cuenta conjunta quedará en ${porcentaje}%`,
   fijarPorcentaje: 'Fijar porcentaje',
   errorFijarPorcentaje: 'Error al fijar el porcentaje. Inténtalo de nuevo.',
   presupuestoGastos: 'Presupuesto de gastos',
@@ -213,8 +221,9 @@ export const aportar = {
 /**
  * Errores de validación de los formularios de la cuenta individual. Los
  * esquemas de servidor (T14) rechazan cualquier campo foráneo (usuarioId,
- * mesId). El porcentaje usa las mismas reglas de rango que la cuenta conjunta,
- * porque las dos áreas fijan el mismo valor único y compartido del mes.
+ * mesId). El porcentaje comparte el rango acordado [10, 90] con la cuenta
+ * conjunta, aunque su significado es el lado del reparto de quien escribe: MI
+ * parte (el servidor guarda su complemento, ver `fijarPorcentajeIndividual`).
  */
 export const individualErrores = {
   campoNoPermitido: 'Campos no permitidos en esta operación',
@@ -258,8 +267,9 @@ export const individual = {
 
 export const aportacionErrores = {
   sueldoPositivo: 'El sueldo debe ser mayor que 0',
-  porcentajePositivo: 'El porcentaje debe ser mayor que 0',
-  porcentajeMaximo: 'El porcentaje no puede superar 100',
+  /** Límite acordado: ninguna de las dos cuentas baja del 10 %. */
+  porcentajeMinimo: 'El porcentaje de cada cuenta debe ser al menos el 10',
+  porcentajeMaximo: 'El porcentaje de cada cuenta no puede superar el 90',
   presupuestoPositivo: 'El presupuesto debe ser mayor que 0',
   sueldoYaFijado: 'El sueldo ya está fijado y no se puede modificar.',
   porcentajeYaFijado:

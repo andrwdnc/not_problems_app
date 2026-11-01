@@ -34,14 +34,15 @@ export const sueldoSchema = z.object({
 });
 
 // El porcentaje se escribe con coma o punto ("12,5"), válido tanto de teclado
-// decimal español como de teclado numérico.
+// decimal español como de teclado numérico. Rango acordado [10, 90]: ninguna de
+// las dos cuentas (común o individual, suman 100) baja del 10 %.
 const porcentajeDecimal = z.string().transform(numeroDecimalDesdeCadena);
 
 export const porcentajeSchema = z.object({
   mesId: z.string().uuid(),
   porcentaje: porcentajeDecimal
-    .refine((v) => v > 0, aportacionErrores.porcentajePositivo)
-    .refine((v) => v <= 100, aportacionErrores.porcentajeMaximo),
+    .refine((v) => v >= 10, aportacionErrores.porcentajeMinimo)
+    .refine((v) => v <= 90, aportacionErrores.porcentajeMaximo),
 });
 
 // El presupuesto de gastos se escribe en euros ("200") igual que el sueldo y se

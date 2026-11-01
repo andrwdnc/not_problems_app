@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { formatCurrency } from '@/lib/formatters/currency';
 import { formatShortDate } from '@/lib/formatters/date';
@@ -80,10 +80,10 @@ const PRESUPUESTO_INDIVIDUAL = (
 
 /**
  * `AportarForm` es el MISMO componente para las dos áreas de cuenta. El
- * contrato que fijan estos tests es justo el que pedía el área individual: que
- * la única diferencia sea el número de sueldos (2 en la conjunta, 1 en la
- * individual) y que todo lo demás —porcentaje, inmutabilidad, marcadores, campos
- * de formulario— se comporte igual sin duplicar código.
+ * contrato que fijan estos tests: en la conjunta se teclea el % de lo común y
+ * en la individual MI % (el servidor lo traduce con el complemento), y todo lo
+ * demás —inmutabilidad, marcadores, campos de formulario, presupuesto— se
+ * comporta igual sin duplicar código.
  *
  * COBERTURA LIMITADA (deliberada): aquí se afirma lo observable (estructura,
  * campos, estados, inmutabilidad) y NO la invocación de las Server Actions: esa
@@ -332,7 +332,7 @@ describe('AportarForm', () => {
       ).toBeInTheDocument();
     });
 
-    it('muestra el mismo rótulo de porcentaje que la conjunta', () => {
+    it('pide MI porcentaje con un rótulo propio, y no el de la conjunta', () => {
       render(
         <AportarForm
           mes={MES(null)}
@@ -342,12 +342,20 @@ describe('AportarForm', () => {
         />,
       );
 
+      // Lo que se teclea aquí es el porcentaje de MI parte (el servidor lo
+      // traduce al compartido), así que ni el título de la tarjeta ni el label
+      // hablan del "porcentaje único del mes" de la cuenta común.
       expect(
-        screen.getByText(aportarLiterales.porcentajeAportacion),
+        screen.getByRole('heading', {
+          name: aportarLiterales.porcentajeMiCuenta,
+        }),
       ).toBeInTheDocument();
       expect(
-        screen.getByLabelText(aportarLiterales.porcentajeUnico),
+        screen.getByLabelText(aportarLiterales.porcentajeMiCuenta),
       ).toBeInTheDocument();
+      expect(
+        screen.queryByLabelText(aportarLiterales.porcentajeUnico),
+      ).not.toBeInTheDocument();
     });
 
     it('declara el mismo campo de porcentaje que la conjunta', () => {
@@ -360,12 +368,47 @@ describe('AportarForm', () => {
         />,
       );
 
-      // El input del porcentaje es literalmente el mismo en las dos áreas: sin
-      // `usuarioId` y con el mismo `name`, porque el valor es único por mes.
-      const campo = screen.getByLabelText(aportarLiterales.porcentajeUnico);
+      // Rótulo distinto (mi porcentaje), pero mismo campo de formulario: se
+      // manda "porcentaje" sin usuarioId y el servidor decide qué almacena.
+      const campo = screen.getByLabelText(aportarLiterales.porcentajeMiCuenta);
       expect(campo).toHaveAttribute('name', 'porcentaje');
       expect(campo).toHaveAttribute('required');
       expect(campo).toHaveAttribute('inputmode', 'decimal');
+    });
+
+    it('previsualiza en vivo el porcentaje que quedará para la cuenta común', () => {
+      render(
+        <AportarForm
+          mes={MES(null)}
+          usuarios={[USUARIOS[0]]}
+          aportaciones={[]}
+          variante="individual"
+        />,
+      );
+
+      const campo = screen.getByLabelText(aportarLiterales.porcentajeMiCuenta);
+      // Al escribir 45 (mi porcentaje), lo común queda en el complemento: 55.
+      fireEvent.change(campo, { target: { value: '45' } });
+
+      expect(
+        screen.getByText(aportarLiterales.porcentajeConjuntaPreview('55')),
+      ).toBeInTheDocument();
+
+      // Una cifra invalida del reparto no previsualiza nada: no se adelanta un
+      // complemento de un valor que el servidor va a rechazar.
+      fireEvent.change(campo, { target: { value: '4' } });
+      expect(
+        screen.queryByText(aportarLiterales.porcentajeConjuntaPreview('96')),
+      ).not.toBeInTheDocument();
+      // Con un reparto acordado válido el aviso reaparece.
+      fireEvent.change(campo, { target: { value: '9,5' } });
+      expect(
+        screen.queryByText(aportarLiterales.porcentajeConjuntaPreview('90,5')),
+      ).not.toBeInTheDocument();
+      fireEvent.change(campo, { target: { value: '12,5' } });
+      expect(
+        screen.getByText(aportarLiterales.porcentajeConjuntaPreview('87,5')),
+      ).toBeInTheDocument();
     });
   });
 

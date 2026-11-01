@@ -19,8 +19,9 @@ import { individualErrores } from '@/literals';
  *
  * - El sueldo se construye sobre `sueldoCampos`, sin `usuarioId`: el dueño sale
  *   de la sesión (IA-4), así que ni siquiera llega a validarse.
- * - El porcentaje y el presupuesto son idénticos a los de la conjunta (el
- *   porcentaje es único y compartido por el mes, §5.1).
+ * - El porcentaje y el presupuesto comparten el rango del §5.1 [10, 90]: el
+ *   porcentaje es único y compartido por el mes, y aquí se teclea la parte MI
+ *   (el servidor la traduce al compartido, punto único de inversión).
  * - Los tres llevan `.strict()`: si el cliente manda `usuarioId` —o cualquier
  *   otro campo foráneo— el parseo falla en vez de ignorarlo en silencio.
  *

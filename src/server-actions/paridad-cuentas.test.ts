@@ -93,7 +93,9 @@ describe('reparto del sueldo entre las dos cuentas', () => {
     // Un solo valor no demuestra una regla. Se recorre el rango entero porque
     // el 50 % es el único punto donde la suma no distinguiría entre las dos
     // implementaciones.
-    for (let porcentaje = 1; porcentaje <= 100; porcentaje++) {
+    // El rango acordado [10, 90] es el que pueden teclear las dos cuentas (mínimo
+    // del 10 % por cuenta), así que el barrido cubre exactamente esos límites.
+    for (let porcentaje = 10; porcentaje <= 90; porcentaje++) {
       const sueldo = 200000;
       const { mes, aportacion, gastos } = escenario(sueldo, porcentaje, []);
 
