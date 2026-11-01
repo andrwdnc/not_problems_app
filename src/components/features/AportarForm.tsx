@@ -20,10 +20,11 @@ import {
   calcularImporte,
   calcularImporteAportado,
 } from '@/domain/rules/CalculadoraAportacion';
-import { calcularPorcentajeIndividual } from '@/domain/value-objects/Porcentaje';
+import { calcularPorcentajeCompartido, calcularPorcentajeIndividual } from '@/domain/value-objects/Porcentaje';
 import type { Aportacion, Mes, PresupuestoIndividual, Usuario } from '@/domain/entities';
 import type { VarianteCuenta } from '@/lib/cuenta';
 import { aportar, formatos } from '@/literals';
+import { numeroDecimalDesdeCadena } from '@/domain/value-objects/ImporteMoneda';
 
 /**
  * Presupuesto vigente de un mes, NORMALIZADO a una única forma.
@@ -89,6 +90,22 @@ export function AportarForm({
   const [mensaje, setMensaje] = useState<string | null>(null);
   const [porcentajeValor, setPorcentajeValor] = useState('');
   const [presupuestoValor, setPresupuestoValor] = useState('');
+
+  /**
+   * Aviso en vivo de la cuenta individual: el número que se teclea es MI
+   * porcentaje, así que se muestra qué porcentaje efectivo quedará para la
+   * cuenta común (el complemento que se va a almacenar). Solo en esta variante
+   * y solo con una cifra parseable: una mitad de escritura ("4") no avisa para
+   * no parpadear por cada carácter.
+   */
+  const porcentajeConjuntaPrevisto = useMemo<string | null>(() => {
+    if (variante !== 'individual') return null;
+    const numero = numeroDecimalDesdeCadena(porcentajeValor);
+    const compartido = calcularPorcentajeCompartido(numero);
+    return compartido == null
+      ? null
+      : String(compartido).replace('.', ',');
+  }, [variante, porcentajeValor]);
 
   // Clave del formulario en vuelo (`sueldo:<id>` | `porcentaje` | `presupuesto`).
   // Se guarda la clave y no un booleano porque son tres formularios
@@ -199,8 +216,10 @@ export function AportarForm({
     setMensaje(null);
     setEnviando('porcentaje');
     try {
-      // Ambas áreas fijan el MISMO porcentaje único y compartido del mes; solo
-      // cambia quién lo pide y a qué rutas hay que revalidar.
+      // Ambas áreas fijan el MISMO porcentaje compartido del mes, PERO cada una
+      // teclea su lado: la conjunta manda el % de lo común tal cual y la
+      // individual manda MI %, que el SERVIDOR traduce (100 − v) antes de
+      // almacenar. Aquí nadie invierte nada: solo cambia a qué acción se pide.
       const resultado =
         variante === 'individual'
           ? await fijarPorcentajeIndividual({ mesId: mes.id, porcentaje })
@@ -379,7 +398,9 @@ export function AportarForm({
 
       <Card className="border-brand-primary/30 bg-brand-pale/40">
         <h3 className="mb-2 flex items-center gap-2 text-sm font-semibold text-brand-navy">
-          {aportar.porcentajeAportacion}
+          {variante === 'individual'
+            ? aportar.porcentajeMiCuenta
+            : aportar.porcentajeAportacion}
           {mes.porcentaje != null && <Lock size={14} className="text-brand-muted" />}
         </h3>
         {mes.porcentaje != null ? (
@@ -396,7 +417,14 @@ export function AportarForm({
             }}
           >
             <Input
-              label={aportar.porcentajeUnico}
+              // En la conjunta se pide el % de lo común; en la individual se
+              // pide MI % (el servidor lo traduce al compartido, ver
+              // `fijarPorcentajeIndividual`).
+              label={
+                variante === 'individual'
+                  ? aportar.porcentajeMiCuenta
+                  : aportar.porcentajeUnico
+              }
               name="porcentaje"
               type="text"
               inputMode="decimal"
@@ -407,6 +435,11 @@ export function AportarForm({
               placeholder="50"
               required
             />
+            {porcentajeConjuntaPrevisto != null && (
+              <p className="mt-2 text-center text-xs text-brand-muted">
+                {aportar.porcentajeConjuntaPreview(porcentajeConjuntaPrevisto)}
+              </p>
+            )}
             <Button
               type="submit"
               fullWidth
