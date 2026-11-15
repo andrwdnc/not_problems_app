@@ -29,6 +29,13 @@
   100% { transform: translateX(100%) scaleX(0.35); }
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .animate-navegacion {
+    animation: none;
+    opacity: 0.6;
+  }
+}
+
 :root {
   /* Altura de CONTENIDO de la navegación inferior (sin el padding de
      safe-area), medida en tiempo real por <BottomNav/> con un ResizeObserver y

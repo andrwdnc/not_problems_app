@@ -76,7 +76,7 @@ export function GastoMesAcciones({
       {puedeEditar && (
         <Link
           href={rutaGastoDetalle(variante, gastoId)}
-          className="text-brand-muted hover:text-brand-primary"
+          className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg text-brand-muted hover:text-brand-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary"
           aria-label={gastos.editar}
         >
           <Pencil size={16} />
@@ -86,7 +86,7 @@ export function GastoMesAcciones({
         <button
           onClick={pedirEliminacion}
           disabled={eliminando}
-          className="text-brand-muted hover:text-financial-negative disabled:cursor-not-allowed disabled:opacity-50"
+          className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg text-brand-muted hover:text-financial-negative disabled:cursor-not-allowed disabled:opacity-50"
           aria-label={gastos.eliminar}
           aria-busy={eliminando || undefined}
         >

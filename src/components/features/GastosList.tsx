@@ -130,14 +130,14 @@ export function GastosList({
                     <div className="flex gap-1">
                       <Link
                         href={rutaGastoDetalle(variante, g.id)}
-                        className="text-brand-muted hover:text-brand-primary"
+                        className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg text-brand-muted hover:text-brand-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary"
                         aria-label={gastosLiterales.editar}
                       >
                         <Pencil size={16} />
                       </Link>
                       <button
                         onClick={() => pedirEliminacion(g)}
-                        className="text-brand-muted hover:text-financial-negative"
+                        className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg text-brand-muted hover:text-financial-negative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-financial-negative"
                         aria-label={gastosLiterales.eliminar}
                       >
                         <Trash2 size={16} />

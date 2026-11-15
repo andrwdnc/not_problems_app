@@ -186,7 +186,7 @@ export function GestionPagosPrevistos({ variante, pagos }: Props) {
                 <div className="flex gap-1">
                   <button
                     onClick={() => abrirEditar(p)}
-                    className="text-brand-muted hover:text-brand-primary"
+                    className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg text-brand-muted hover:text-brand-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary"
                     aria-label={L.editar}
                   >
                     <Pencil size={16} />
@@ -196,7 +196,7 @@ export function GestionPagosPrevistos({ variante, pagos }: Props) {
                       setErrorEliminar(null);
                       setAEliminar(p);
                     }}
-                    className="text-brand-muted hover:text-financial-negative"
+                    className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg text-brand-muted hover:text-financial-negative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-financial-negative"
                     aria-label={L.eliminar}
                   >
                     <Trash2 size={16} />

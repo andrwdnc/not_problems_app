@@ -84,7 +84,7 @@ export function BottomNav({ variante }: BottomNavProps) {
               <Link
                 href={href}
                 className={cn(
-                  'flex flex-col items-center gap-1 py-2 text-[11px] font-medium transition-colors',
+                  'flex flex-col items-center gap-1 py-2 text-xs font-medium transition-colors',
                   activo ? 'text-brand-primary' : 'text-brand-muted',
                 )}
               >
