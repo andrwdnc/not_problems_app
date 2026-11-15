@@ -52,7 +52,7 @@ export function PantallaInicio({
   gastos: Promise<DatosUltimosGastos>;
 }) {
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <Suspense fallback={<ResumenInicioSkeleton />}>
         <SeccionResumen resumen={resumen} />
       </Suspense>

@@ -1,21 +1,23 @@
 @import "tailwindcss";
 
 @theme {
-  --color-brand-navy: #0B3D66;
-  --color-brand-primary: #1B6FD1;
-  --color-brand-sky: #6FB1F0;
-  --color-brand-pale: #DCEBFB;
-  --color-brand-bg: #EEF4FA;
+  --color-brand-navy: #0F172A;
+  --color-brand-primary: #2563EB;
+  --color-brand-sky: #60A5FA;
+  --color-brand-pale: #EFF6FF;
+  --color-brand-bg: #F8FAFC;
   --color-brand-surface: #FFFFFF;
-  --color-brand-ink: #12293F;
+  --color-brand-ink: #0F172A;
   --color-brand-muted: #56687A;
-  --color-brand-border: #D7E4F0;
+  --color-brand-border: #E2E8F0;
 
-  --color-financial-positive: #1F9E6D;
-  --color-financial-positiveBg: #E4F5EE;
-  --color-financial-negative: #E2574C;
-  --color-financial-negativeBg: #FCEAE8;
-  --color-financial-amber: #D98E1B;
+  --color-financial-positive: #10B981;
+  --color-financial-positiveBg: #ECFDF5;
+  --color-financial-negative: #EF4444;
+  --color-financial-negativeBg: #FEF2F2;
+  --color-financial-amber: #F59E0B;
+
+  --font-sans: var(--font-inter), system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
 
   /* Barra de progreso indeterminado mientras se resuelve una navegación. */
   --animate-navegacion: navegacion 1.1s ease-in-out infinite;
