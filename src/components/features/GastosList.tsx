@@ -112,7 +112,7 @@ export function GastosList({
                     <p className="truncate text-sm font-medium text-brand-ink">
                       {g.detalle}
                     </p>
-                    <p className="text-[0.55rem] text-brand-muted">
+                    <p className="text-xs text-brand-muted">
                       {autor
                         ? `${g.categoria} · ${autor} · ${formatShortDate(g.fechaGasto)}`
                         : `${g.categoria} · ${formatShortDate(g.fechaGasto)}`}
@@ -124,7 +124,7 @@ export function GastosList({
                     )}
                   </div>
                   <div className="flex flex-col items-end gap-0.5">
-                    <span className="font-mono text-xs font-semibold text-financial-negative">
+                    <span className="font-mono text-sm font-semibold text-financial-negative">
                       {formatCurrency(g.importe)}
                     </span>
                     <div className="flex gap-0.5">
