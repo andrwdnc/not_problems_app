@@ -121,7 +121,7 @@ Auditoría completa. Toda acción relevante genera una entrada aquí.
 - Cada usuario introduce su sueldo íntegro una vez al mes. Inmutable tras guardar.
 - El porcentaje de aportación es **único para el mes y compartido por los dos usuarios** — no hay un % distinto por persona. Puede fijarlo cualquiera de los dos. Inmutable tras guardar.
 - El reparto está acotado: **ninguna cuenta puede quedarse por debajo del 10 %**. Como compartido + individual = 100, el rango válido del porcentaje es [10, 90].
-- En `/aportar` se teclea el % de lo común; en `/individual/aportar` se teclea **el % propio de uno (mi parte)** y el servidor almacena su complemento (`100 − v`) en la misma columna. La pantalla individual muestra siempre el complemento de lo almacenado, con lo que lo tecleado en cada pantalla es lo que ve esa pantalla y ambas suman 100.
+- En `/conjunta/aportar` se teclea el % de lo común; en `/individual/aportar` se teclea **el % propio de uno (mi parte)** y el servidor almacena su complemento (`100 − v`) en la misma columna. La pantalla individual muestra siempre el complemento de lo almacenado, con lo que lo tecleado en cada pantalla es lo que ve esa pantalla y ambas suman 100.
 - `importe_aportado` se calcula y persiste en cuanto están disponibles tanto el sueldo del usuario como el porcentaje del mes — sea cual sea el orden en que se guarden ambos datos (si el sueldo se guarda antes que el porcentaje, el cálculo se dispara al fijar el porcentaje, y viceversa).
 - Total de la cuenta conjunta del mes = suma de `importe_aportado` de los dos usuarios. No hay cálculos adicionales.
 
@@ -229,6 +229,12 @@ Pantalla de apertura de la app, la más visitada.
 - "Ver detalle" lleva al listado de gastos de ese mes, en modo lectura (o con alta permitida si sigue en ventana de gracia).
 
 ## 7. Navegación
+
+Las pantallas de la app se sirven bajo un segmento dinámico `[cuenta]` que es la
+variante de cuenta: `/conjunta/...` para la cuenta común y `/individual/...` para
+el control individual. Cada pantalla existe **una sola vez** y el segmento decide
+sus datos y rótulos; los destinos del nav son, por área, `/{cuenta}/inicio`,
+`/{cuenta}/gastos`, `/{cuenta}/aportar` y `/{cuenta}/historico`.
 
 | Sección | Contenido |
 |---|---|
