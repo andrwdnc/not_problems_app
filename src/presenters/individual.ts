@@ -316,7 +316,7 @@ export const adaptadorIndividual: ContextoCuenta = {
         mes: h.mes.mes,
         href: rutaHistoricoDetalle('individual', h.mes.id),
         estado: h.permisos.estado,
-        esDeficit: h.resumen.disponible != null && h.resumen.disponible < 0,
+        esDeficit: h.resumen.ahorro != null && h.resumen.ahorro < 0,
         columnas: [
           // MI cuota (sueldo x porcentaje), igual que la carta "aportado" de la
           // cuenta conjunta. Va en la misma columna para que las dos áreas se
@@ -344,10 +344,10 @@ export const adaptadorIndividual: ContextoCuenta = {
             // "Déficit", no "Disponible". Pintar en coral una cifra llamada
             // "Disponible" se contradecía a sí misma.
             etiqueta:
-              h.resumen.disponible != null && h.resumen.disponible < 0
+              h.resumen.ahorro != null && h.resumen.ahorro < 0
                 ? literalesResumen.deficit
-                : literalesResumen.disponible,
-            valor: h.resumen.disponible,
+                : literalesResumen.ahorro,
+            valor: h.resumen.ahorro,
             variante: 'saldo',
           },
         ],
@@ -383,7 +383,7 @@ export const adaptadorIndividual: ContextoCuenta = {
         aportacion: individual.miAportacion,
         gastado: literalesResumen.gastado,
         presupuesto: individual.miPresupuesto,
-        saldo: literalesResumen.disponible,
+        saldo: literalesResumen.ahorro,
         deficit: literalesResumen.deficit,
       },
       hrefVolver: rutaHistorico('individual'),
