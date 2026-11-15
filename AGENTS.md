@@ -465,3 +465,23 @@ Cuando el usuario te pida construir o avanzar en la aplicación, sigue esta secu
 6. **Paso 6: Verificación y Testing Manual**
    - Comprobar que no hay errores de TypeScript (`npm run typecheck`), lint limpio y tests en verde.
    - Verificar que los números se muestran en formato `X.XXX,XX €` con fuentes monoespaciadas.
+
+---
+
+## 13. Mejoras Pendientes (deuda de mejora aceptada)
+
+Plan de revisión de arquitectura (noviembre 2026): los puntos 1–3 se ejecutaron
+(docs, deduplicación de `VarianteCuenta`, capas `src/vistas/` y `src/presenters/`).
+Quedan pendientes, en orden de impacto, y se aprueban uno a uno con el usuario:
+
+1. **Tests E2E con Playwright:** 3–4 recorridos felices contra la app real
+   (login → chooser → inicio/gastos/aportar/histórico en las dos áreas:
+   `/conjunta/...` y `/individual/...`). Los 461 tests unitarios no cubren
+   flujos extremo a extremo.
+2. **CI con GitHub Actions:** pipeline que ejecute los gates
+   (`npm run typecheck && npm run lint && npm run test`, y `build`) en cada PR.
+   Hoy son una convención de agente, no una garantía de repositorio.
+3. **Extras que redondean la nota:** auditar a11y de las 9 pantallas; documentar
+   en `docs/security.md` las decisiones aceptadas (dominio anémico idiomático en
+   TS, versión de Next congelada) como decisiones, no omisiones.
+
