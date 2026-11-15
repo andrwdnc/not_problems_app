@@ -67,7 +67,7 @@ export function PantallaDetalleMes({ vista }: { vista: DetalleMesVista }) {
         <Link href={vista.hrefVolver} className="text-brand-muted">
           <ChevronLeft />
         </Link>
-        <h1 className="text-xl font-bold text-brand-navy">{vista.titulo}</h1>
+        <h1 className="text-2xl font-bold tracking-tight text-brand-navy">{vista.titulo}</h1>
       </div>
 
       <div className="-mx-4 flex gap-3 overflow-x-auto px-4 pb-1">

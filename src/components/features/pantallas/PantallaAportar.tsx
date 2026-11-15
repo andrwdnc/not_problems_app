@@ -51,7 +51,7 @@ export function PantallaAportar({
 }) {
   return (
     <div className="space-y-5">
-      <h1 className="text-xl font-bold text-brand-navy">{titulo}</h1>
+      <h1 className="text-2xl font-bold tracking-tight text-brand-navy">{titulo}</h1>
       <Suspense fallback={<AportarSectionSkeleton />}>
         <SeccionAportar vista={vista} />
       </Suspense>

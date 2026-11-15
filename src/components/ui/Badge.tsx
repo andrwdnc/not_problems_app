@@ -1,26 +1,27 @@
 import { cn } from '@/lib/utils';
 
-type Tone = 'muted' | 'positive' | 'negative' | 'amber' | 'primary';
+type Tone = 'primary' | 'muted' | 'positive' | 'negative' | 'amber';
 
-interface BadgeProps {
+export function Badge({
+  tone = 'muted',
+  className,
+  children,
+}: {
   tone?: Tone;
   className?: string;
   children: React.ReactNode;
-}
-
-const tones: Record<Tone, string> = {
-  muted: 'bg-brand-pale text-brand-muted',
-  positive: 'bg-financial-positiveBg text-financial-positive',
-  negative: 'bg-financial-negativeBg text-financial-negative',
-  amber: 'bg-amber-50 text-financial-amber',
-  primary: 'bg-brand-primary/10 text-brand-primary',
-};
-
-export function Badge({ tone = 'muted', className, children }: BadgeProps) {
+}) {
+  const tones: Record<Tone, string> = {
+    primary: 'bg-brand-primary/10 text-brand-primary',
+    muted: 'glass text-brand-muted',
+    positive: 'bg-financial-positive/10 text-financial-positive',
+    negative: 'bg-financial-negative/10 text-financial-negative',
+    amber: 'bg-financial-amber/10 text-financial-amber',
+  };
   return (
     <span
       className={cn(
-        'inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold',
+        'inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold backdrop-blur-sm',
         tones[tone],
         className,
       )}

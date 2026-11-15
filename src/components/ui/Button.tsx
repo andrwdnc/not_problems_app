@@ -6,20 +6,13 @@ type Variant = 'primary' | 'ghost' | 'danger';
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: Variant;
   fullWidth?: boolean;
-  /**
-   * Estado de espera. Añade el spinner, bloquea el botón y marca `aria-busy`,
-   * de modo que el usuario ve una señal inmediata tras pulsar.
-   *
-   * El spinner hereda `currentColor`, así que se adapta solo a cada variante sin
-   * que haya que pasarle el color. El botón queda deshabilitado automáticamente:
-   * no hace falta combinarlo con `disabled`, aunque seguir pasándolo es inofensivo.
-   */
   loading?: boolean;
 }
 
 const styles: Record<Variant, string> = {
-  primary: 'bg-brand-primary text-white hover:bg-brand-primary/90',
-  ghost: 'bg-brand-pale text-brand-navy hover:bg-brand-pale/70',
+  primary:
+    'bg-brand-primary text-white hover:bg-brand-primary/90 shadow-lg shadow-brand-primary/25',
+  ghost: 'glass text-brand-navy hover:bg-white/80',
   danger: 'bg-financial-negative text-white hover:bg-financial-negative/90',
 };
 
@@ -35,7 +28,7 @@ export function Button({
   return (
     <button
       className={cn(
-        'inline-flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary focus-visible:ring-offset-2',
+        'inline-flex items-center justify-center gap-2 rounded-2xl px-5 py-3.5 text-sm font-semibold transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary focus-visible:ring-offset-2 hover:-translate-y-0.5 active:translate-y-0',
         styles[variant],
         fullWidth && 'w-full',
         className,

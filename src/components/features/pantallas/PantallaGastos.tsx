@@ -35,7 +35,7 @@ export function PantallaGastos({
 }) {
   return (
     <div className="space-y-6">
-      <h1 className="text-xl font-bold text-brand-navy">{titulo}</h1>
+      <h1 className="text-2xl font-bold tracking-tight text-brand-navy">{titulo}</h1>
       <Suspense fallback={<GastosSectionSkeleton />}>
         <SeccionGastos vista={vista} />
       </Suspense>
