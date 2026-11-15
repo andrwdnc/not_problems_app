@@ -1,40 +1,28 @@
-import { useId } from 'react';
 import { cn } from '@/lib/utils';
 
-interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
-  label?: string;
-}
-
-export function Input({ label, className, id, type, ...props }: InputProps) {
-  // El <label> envuelve al <input>, así que la asociación es implícita y no
-  // depende del id. Aun así se genera uno con useId: hay varias instancias del
-  // mismo campo en una pantalla (un input de sueldo por usuario) y un id
-  // duplicado rompería tanto las pruebas como las herramientas de accesibilidad.
-  const generatedId = useId();
-
+export function Input({
+  label,
+  className,
+  id,
+  ...props
+}: React.InputHTMLAttributes<HTMLInputElement> & { label?: string }) {
   return (
-    <label className="block min-w-0 max-w-full">
-      {label ? (
-        <span className="mb-1 block text-sm font-medium text-brand-muted">
-          {label}
-        </span>
-      ) : null}
+    <div className="space-y-1.5">
+      {label && (
+        id ? (
+          <label htmlFor={id} className="block text-sm font-medium text-brand-muted">{label}</label>
+        ) : (
+          <span className="block text-sm font-medium text-brand-muted">{label}</span>
+        )
+      )}
       <input
-        id={id ?? generatedId}
-        type={type}
+        id={id}
         className={cn(
-          // `min-w-0` + `max-w-full`: el input no puede ensancharse por su ancho
-          // intrínseco (los nativos —fechas, números— traen un `size` propio) ni
-          // empujar a su contenedor fuera de la pantalla.
-          'w-full max-w-full min-w-0 rounded-xl border border-brand-border bg-brand-surface px-4 py-3.5 text-base text-brand-ink outline-none transition-colors placeholder:text-brand-ink/70 focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20',
-          // `type="date"`: sin `appearance-none`, WebKit pinta el campo nativo
-          // con su estructura interna (día/mes/año + botón) y eso desborda el
-          // ancho disponible, sacando la etiqueta de la pantalla.
-          type === 'date' && 'appearance-none',
+          'w-full max-w-full min-w-0 rounded-2xl border border-brand-border/60 bg-white/70 px-4 py-3.5 text-base text-brand-ink outline-none backdrop-blur-sm transition-all duration-200 placeholder:text-brand-ink/40 focus:border-brand-primary focus:bg-white focus:ring-2 focus:ring-brand-primary/20',
           className,
         )}
         {...props}
       />
-    </label>
+    </div>
   );
 }

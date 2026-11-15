@@ -22,20 +22,20 @@ const CSP_BASE = [
   "default-src 'self'",
   "base-uri 'self'",
   "form-action 'self'",
-  // Ningún iframe puede embeber la app (clickjacking).
   "frame-ancestors 'none'",
-  // Sin <object>/<embed>: por defecto solo se permite lo que se declare.
   "object-src 'none'",
-  // Icons de Lucide y el anillo de progreso son SVG en línea, no imágenes.
   "img-src 'self' data: blob:",
   "font-src 'self'",
   "manifest-src 'self'",
   "worker-src 'self' blob:",
 ];
 
+// Dev-only allowance para impeccable live mode. Solo existe en desarrollo.
+const __impeccableLiveDev =
+  process.env.NODE_ENV === "development" ? " http://localhost:8400" : "";
+
 /**
- * CSP de producción. `upgrade-insecure-requests` fuerza HTTPS para cualquier
- * subrecurso que se hubiera colado por HTTP.
+ * CSP de producción.
  */
 const CSP_PRODUCCION = [
   ...CSP_BASE,
@@ -46,14 +46,13 @@ const CSP_PRODUCCION = [
 ].join('; ');
 
 /**
- * CSP de desarrollo. Next necesita `eval` para el Fast Refresh y un WebSocket
- * para el HMR; sin estas dos directivas el dev server no recarga los cambios.
+ * CSP de desarrollo.
  */
 const CSP_DESARROLLO = [
   ...CSP_BASE,
-  "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+  `script-src 'self' 'unsafe-inline' 'unsafe-eval'${__impeccableLiveDev}`,
   "style-src 'self' 'unsafe-inline'",
-  "connect-src 'self' ws: wss:",
+  `connect-src 'self' ws: wss:${__impeccableLiveDev}`,
 ].join('; ');
 
 const esProduccion = process.env.NODE_ENV === 'production';

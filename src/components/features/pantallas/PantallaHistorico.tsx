@@ -43,7 +43,7 @@ export function PantallaHistorico({
 }) {
   return (
     <div className="space-y-4">
-      <h1 className="text-xl font-bold text-brand-navy">{titulo}</h1>
+      <h1 className="text-2xl font-bold tracking-tight text-brand-navy">{titulo}</h1>
 
       <div className="flex items-start gap-2 rounded-xl bg-brand-pale p-3 text-xs text-brand-navy">
         <Info size={16} className="mt-0.5 shrink-0" />

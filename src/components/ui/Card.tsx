@@ -3,14 +3,18 @@ import { cn } from '@/lib/utils';
 export function Card({
   className,
   children,
+  glass = true,
 }: {
   className?: string;
   children: React.ReactNode;
+  glass?: boolean;
 }) {
   return (
     <div
       className={cn(
-        'rounded-2xl bg-brand-surface p-5 border border-brand-border',
+        glass
+          ? 'glass rounded-3xl p-6'
+          : 'rounded-3xl bg-brand-surface p-6 border border-brand-border',
         className,
       )}
     >

@@ -74,7 +74,7 @@ export function BottomNav({ variante }: BottomNavProps) {
   return (
     <nav
       ref={navRef}
-      className="fixed inset-x-0 bottom-0 z-40 border-t border-brand-border bg-brand-surface pb-[env(safe-area-inset-bottom)]"
+      className="fixed inset-x-0 bottom-0 z-40 glass border-t-0 pb-[env(safe-area-inset-bottom)]"
     >
       <ul className="mx-auto flex w-full max-w-md items-stretch justify-around">
         {items.map(({ href, label, icon: Icon }) => {
