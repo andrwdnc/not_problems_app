@@ -1,5 +1,6 @@
-import type { InicioResumenVista } from '@/components/features/vista-inicio';
-import type { DetalleMesVista } from '@/components/features/vista-detalle-mes';
+import type { InicioResumenVista } from '@/vistas/inicio';
+import type { DetalleMesVista } from '@/vistas/detalle-mes';
+import type { VarianteCuenta } from '@/lib/cuenta';
 import type {
   DatosUltimosGastos,
   VistaPantallaAportar,
@@ -7,8 +8,7 @@ import type {
   VistaPantallaFormGastoAnual,
   VistaPantallaGastos,
   VistaPantallaHistorico,
-  VarianteCuenta,
-} from '@/components/features/vista-pantallas';
+} from '@/vistas/pantallas';
 
 /**
  * CONTRATO de contexto de cuenta: el conjunto de vistas que necesitan las

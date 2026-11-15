@@ -7,7 +7,7 @@ import { formatShortDate } from '@/lib/formatters/date';
 import { gastos as gastosLiterales, gastosAnuales as anualesLiterales, gastosAnualesErrores, dialogo, gastosErrores } from '@/literals';
 import { textoExacto } from '@/test/texto';
 import type { GastoListable } from '@/components/features/GastosList';
-import type { GastoAnualVista } from '@/server-actions/vista-gastos-anuales';
+import type { GastoAnualVista } from '@/vistas/gastos-anuales';
 
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ refresh: vi.fn() }),

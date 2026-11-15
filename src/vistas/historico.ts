@@ -2,7 +2,7 @@
  * MODELO DE VISTA de la tarjeta de mes del HISTÓRICO, compartido por las dos
  * áreas de cuenta.
  *
- * Sigue la misma idea que `vista-inicio.ts`: la tarjeta es markup, y el markup no
+ * Sigue la misma idea que `inicio.ts`: la tarjeta es markup, y el markup no
  * debe saber de qué cuenta viene. Cada área construye este objeto con SUS cifras
  * y SU vocabulario y se lo pasa al MISMO componente (`TarjetaMesHistorico`), de
  * modo que la retícula de cuatro columnas, el badge de estado, el color de cada
@@ -32,7 +32,7 @@ export type EstadoVentana = EstadoEdicion;
  * Semántica financiera de una columna, que decide color y si el valor va en
  * absoluto.
  *
- * Los tres primeros casos son los mismos que en `vista-inicio.ts`
+ * Los tres primeros casos son los mismos que en `inicio.ts`
  * (`aportado`/`gastado`/`ahorro`), así que una columna significa lo mismo en
  * cualquier pantalla de la app. `saldo` es el nombre histórico de `ahorro`: aquí
  * además es la ÚNICA columna cuyo valor puede ser negativo y por eso la única que

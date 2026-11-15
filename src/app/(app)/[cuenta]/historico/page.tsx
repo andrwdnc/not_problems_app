@@ -1,4 +1,4 @@
-import { adaptadorDeCuenta } from '@/server-actions/contexto-cuenta';
+import { adaptadorDeCuenta } from '@/presenters';
 import { PantallaHistorico } from '@/components/features/pantallas/PantallaHistorico';
 import { historico as literalesHistorico } from '@/literals';
 

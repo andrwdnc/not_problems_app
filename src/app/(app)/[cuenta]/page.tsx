@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation';
-import { adaptadorDeCuenta } from '@/server-actions/contexto-cuenta';
+import { adaptadorDeCuenta } from '@/presenters';
 import { rutaInicio } from '@/lib/cuenta';
 
 /**

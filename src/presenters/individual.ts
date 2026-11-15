@@ -15,9 +15,9 @@ import {
   mesRepository,
   presupuestoIndividualRepository,
 } from '@/server-actions/repositories';
-import { mapearGastosAnualesAVista } from '@/server-actions/vista-gastos-anuales';
-import { cifrasDeResumenIndividual } from '@/server-actions/vistas/cifras-mes';
-import { derivarDetalleMesVista } from '@/server-actions/vistas/detalle-mes';
+import { mapearGastosAnualesAVista } from '@/vistas/gastos-anuales';
+import { cifrasDeResumenIndividual } from '@/vistas/cifras-mes';
+import { derivarDetalleMesVista } from '@/vistas/detalle-mes';
 import { ventanaDeMes } from '@/domain/rules/VentanaEdicionGastos';
 import { formatShortDate, nombreMes } from '@/lib/formatters/date';
 import { formatCurrency } from '@/lib/formatters/currency';
@@ -33,8 +33,8 @@ import {
 } from '@/literals';
 import type { ContextoCuenta } from './contrato';
 import { avisoCongeladoDe, devengoPrevioDe } from './auxiliares';
-import type { InicioResumenVista } from '@/components/features/vista-inicio';
-import type { DetalleMesVista } from '@/components/features/vista-detalle-mes';
+import type { InicioResumenVista } from '@/vistas/inicio';
+import type { DetalleMesVista } from '@/vistas/detalle-mes';
 import type {
   DatosUltimosGastos,
   VistaPantallaAportar,
@@ -42,7 +42,7 @@ import type {
   VistaPantallaFormGastoAnual,
   VistaPantallaGastos,
   VistaPantallaHistorico,
-} from '@/components/features/vista-pantallas';
+} from '@/vistas/pantallas';
 
 /**
  * Dueño de TODOS los datos de este adaptador: el usuario de la sesión

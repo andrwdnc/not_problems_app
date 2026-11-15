@@ -41,12 +41,29 @@ El proyecto sigue una adaptación de **Clean Architecture** para Next.js App Rou
 src/
 ├── app/                        # Capa de Presentación / Rutas (Next.js App Router)
 │   ├── (auth)/                 # Rutas de autenticación (Login, Signup)
-│   ├── (dashboard)/            # Rutas de la app (Inicio, Gastos, Aportar, Histórico)
+│   ├── (app)/[cuenta]/         # ÁRBOL ÚNICO de la app: 9 rutas × 2 áreas. El segmento
+│   │   │                       #   dinámico `[cuenta]` ES la variante (conjunta |
+│   │   │                       #   individual): /conjunta/inicio, /individual/gastos, …
+│   │   ├── layout.tsx          # Valida el segmento, sesión, cabecera y BottomNav
+│   │   ├── inicio/             # Cada pantalla existe UNA sola vez
+│   │   ├── gastos/             # (+ nuevo, [id], anuales/nueva, anuales/[id])
+│   │   ├── aportar/
+│   │   └── historico/          # (+ [id] detalle de mes)
 │   ├── layout.tsx              # Layout principal con navegación inferior móvil
 │   └── globals.css             # Estilos globales y tokens Tailwind v4 (@theme)
+├── presenters/                 # Presenters de área: contrato `ContextoCuenta` con un
+│   │                           #   método-vista por pantalla y DOS implementaciones
+│   │                           #   (conjunta.ts / individual.ts) seleccionadas por la
+│   │                           #   tabla `ADAPTADORES_CUENTA` (OCP). Las páginas únicas
+│   │                           #   piden su contexto aquí; añadir un área = añadir una fila.
+├── vistas/                     # Modelos de vista (`Vista*`, contratos de presentación)
+│   │                           #   compartidos por pantallas y presenters, y los
+│   │                           #   derivadores puros que los construyen
+│   │                           #   (derivarDetalleMesVista, mapearGastosAnualesAVista…)
 ├── components/                 # Componentes UI
 │   ├── ui/                     # Componentes atómicos/reutilizables (Button, Card, Input, Badge)
 │   ├── features/               # Componentes ligados a casos de uso (p.ej. AnilloProgreso, GastosList)
+│   │   └── pantallas/          # `Pantalla*`: el markup de cada pantalla, UNO para las dos áreas
 │   └── layout/                 # Layouts específicos y Navegación Inferior
 ├── domain/                     # Capa del Dominio (Lógica de Negocio Pura)
 │   ├── entities/               # Tipos e interfaces del dominio (Mes, Usuario, Gasto, Aportacion)
@@ -65,17 +82,25 @@ src/
 │   ├── auth-actions.ts         # Acciones de login/signup/logout (coste constante + rate limit)
 │   ├── limite-intentos.ts      # Rate limiting de auth (Postgres, claves HMAC, degrada a permitir)
 │   ├── meses-actions.ts        # Apertura y generación automática de meses
-│   ├── queries.ts              # Resumen del mes actual
+│   ├── queries.ts              # Resumen del mes actual (conjunta)
+│   ├── individual-queries.ts   # Resúmenes del área individual (owner-first)
 │   ├── historico-queries.ts    # Consultas del histórico de meses
+│   ├── revalidacion.ts         # revalidarPantallas(variante, pantallas): cero rutas hardcodeadas
 │   └── schemas/                # Esquemas de validación Zod (auth, gasto, aportacion)
 ├── server/auth/                # Autenticación de servidor (getCurrentUser, getCurrentUserId)
 ├── literals/                   # Textos centralizados de la interfaz (namespace por área)
-├── middleware.ts               # Protección de rutas (Edge runtime, Web Crypto)
+├── middleware.ts               # Protección de rutas (Edge runtime, Web Crypto): matcher
+│                               #   /conjunta/:path* e /individual/:path*
 └── lib/                        # Utilidades y Helper Functions
     ├── session/                # Sesión propia (cookie HTTP-only firmada HMAC-SHA256)
     ├── formatters/             # Formateadores de moneda (EUR), fechas y porcentajes
+    ├── cuenta.ts               # FUENTE ÚNICA del esquema de URLs por área (segmentos,
+    │                           #   rutas del nav, helpers rutaX(variante), VarianteCuenta)
     └── utils.ts                # Merge de clases Tailwind (cn) y helpers generales
 ```
+
+> **Un árbol de rutas, dos áreas (NAV-1):** las 9 pantallas de la app existen **una sola vez** bajo `src/app/(app)/[cuenta]/`. El segmento dinámico de la URL es la variante de cuenta (`conjunta` | `individual`); el layout lo valida (404 ante cualquier otro valor) y cada página resuelve sus datos con `adaptadorDeCuenta(segmento)` (`src/presenters/`). **PROHIBIDO** duplicar una pantalla en una carpeta por área, hardcodear rutas fuera de `src/lib/cuenta.ts`, o redefinir `VarianteCuenta` fuera de ese módulo. La paridad entre áreas está garantizada por el contrato `ContextoCuenta` (TypeScript) y por los guards (`arquitectura.test.ts`, `paridad-componentes.test.ts`, `cuenta.test.ts`, `presenters/index.test.ts`).
+
 
 > **Convención obligatoria de literales:** todo texto visible de la interfaz y los mensajes de validación deben vivir en `src/literals/` (importado como `literalesX`), **nunca** hardcodeado en un componente o server action. Incluye los marcadores de formato neutros (`formatos.vacio`, `formatos.sufijoEuro`, `formatos.importeEjemplo`) y etiquetas de accesibilidad (`app.cargando`). Esto mantiene la UI neutra y lista para la futura evolución individual.
 
@@ -94,6 +119,7 @@ El agente **DEBE** respetar estrictamente los siguientes principios al generar o
 
 ### O — Open/Closed Principle (OCP)
 - Las reglas con estados o variantes están declaradas como **tablas de reglas** (datos) en lugar de cadenas `if/else`. Ejemplo: `VentanaEdicionGastos` decide el estado de cada mes mediante una tabla `REGLAS` + `PERMISOS`; añadir un nuevo estado (p. ej. "solo_altas hasta el día 10") significa añadir una entrada en su tabla, sin modificar la función.
+- **Áreas de cuenta:** las 9 pantallas existen una sola vez y el contexto de cada área lo resuelve la tabla `ADAPTADORES_CUENTA` (`src/presenters/index.ts`); soportar una variante nueva de cuenta significa añadir una fila a esa tabla que implemente `ContextoCuenta`, no duplicar el árbol de rutas.
 
 ### L — Liskov Substitution Principle (LSP)
 - Las capas de infraestructura implementan las interfaces declaradas en `src/domain/ports/repositories.ts`. Se debe poder sustituir un repositorio de Drizzle por un mock en tests unitarios sin romper la aplicación.
@@ -429,11 +455,11 @@ Cuando el usuario te pida construir o avanzar en la aplicación, sigue esta secu
    - Crear Server Actions con esquemas de validación Zod.
    - Implementar el cálculo reactivo de `importe_aportado`.
 
-5. **Paso 5: Componentes UI y Pantallas**
-   - **Inicio (`/`):** Anillo visual de porcentaje gastado + 3 tarjetas estadísticas (Aportado / Gastado / Ahorro) + Lista de últimos 3 gastos.
-   - **Aportaciones (`/aportar`):** Formulario de sueldo + porcentaje compartido único.
-   - **Gastos (`/gastos` y `/gastos/nuevo`):** Listado filtrable por categoría + Formulario con bloque de importe grande en tipografía mono.
-   - **Histórico (`/historico`):** Tarjetas resumen de meses cerrados con badges de estado ("Editable hasta el 5" / "Cerrado").
+5. **Paso 5: Componentes UI y Pantallas** (todas bajo el árbol único `[cuenta]`: `/conjunta/...` y `/individual/...`)
+   - **Inicio (`/[cuenta]/inicio`):** Anillo visual de porcentaje gastado + 3 tarjetas estadísticas (Aportado / Gastado / Ahorro) + Lista de últimos 3 gastos.
+   - **Aportaciones (`/[cuenta]/aportar`):** Formulario de sueldo + porcentaje compartido único (en la individual se pide MI porcentaje; el servidor almacena el compartido).
+   - **Gastos (`/[cuenta]/gastos` y `/[cuenta]/gastos/nuevo`):** Listado filtrable por categoría + Formulario con bloque de importe grande en tipografía mono.
+   - **Histórico (`/[cuenta]/historico`):** Tarjetas resumen de meses cerrados con badges de estado ("Editable hasta el 5" / "Cerrado").
    - Replicar layout, espaciado y color desde los mockups de `docs/mockups/`, no solo desde la descripción textual de `docs/spec.md`.
 
 6. **Paso 6: Verificación y Testing Manual**

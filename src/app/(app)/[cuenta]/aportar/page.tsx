@@ -1,4 +1,4 @@
-import { adaptadorDeCuenta } from '@/server-actions/contexto-cuenta';
+import { adaptadorDeCuenta } from '@/presenters';
 import { PantallaAportar } from '@/components/features/pantallas/PantallaAportar';
 import { aportar, individual } from '@/literals';
 import type { VarianteCuenta } from '@/lib/cuenta';

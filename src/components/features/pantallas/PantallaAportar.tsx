@@ -2,7 +2,7 @@ import { Suspense } from 'react';
 import { Card } from '@/components/ui/Card';
 import { AportarForm } from '@/components/features/AportarForm';
 import { AportarSectionSkeleton } from '@/components/features/skeletons';
-import type { VistaPantallaAportar } from '@/components/features/vista-pantallas';
+import type { VistaPantallaAportar } from '@/vistas/pantallas';
 
 /**
  * PANTALLA DE APORTAR. Un solo componente para las dos cuentas.

@@ -5,8 +5,8 @@ import {
   ResumenInicioSkeleton,
   UltimosGastosSkeleton,
 } from '@/components/features/skeletons';
-import type { DatosUltimosGastos } from '@/components/features/vista-pantallas';
-import type { InicioResumenVista } from '@/components/features/vista-inicio';
+import type { DatosUltimosGastos } from '@/vistas/pantallas';
+import type { InicioResumenVista } from '@/vistas/inicio';
 
 /**
  * PANTALLA DE INICIO. Un solo componente para las dos cuentas.

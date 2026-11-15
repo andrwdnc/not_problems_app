@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { mapearGastosAnualesAVista } from './vista-gastos-anuales';
+import { mapearGastosAnualesAVista } from './gastos-anuales';
 import {
   calcularDevengoPrevio,
   calcularVentanaApartado,

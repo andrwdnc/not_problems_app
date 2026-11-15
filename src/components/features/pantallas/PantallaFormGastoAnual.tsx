@@ -4,7 +4,7 @@ import { ChevronLeft, AlertCircle } from 'lucide-react';
 import { NuevoGastoAnualForm } from '@/components/features/NuevoGastoAnualForm';
 import { EditarGastoAnualForm } from '@/components/features/EditarGastoAnualForm';
 import { GastoAnualFormSkeleton } from '@/components/features/skeletons';
-import type { VistaPantallaFormGastoAnual } from '@/components/features/vista-pantallas';
+import type { VistaPantallaFormGastoAnual } from '@/vistas/pantallas';
 
 /**
  * PANTALLA DE ALTA Y EDICIÓN DE GASTO ANUAL. Un componente para las cuatro rutas.

@@ -1,7 +1,7 @@
 import { Suspense } from 'react';
 import { GastosList } from '@/components/features/GastosList';
 import { GastosSectionSkeleton } from '@/components/features/skeletons';
-import type { VistaPantallaGastos } from '@/components/features/vista-pantallas';
+import type { VistaPantallaGastos } from '@/vistas/pantallas';
 
 /**
  * PANTALLA DE GASTOS. Un solo componente para las dos cuentas.

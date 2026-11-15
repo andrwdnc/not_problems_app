@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { InicioResumen } from '@/components/features/InicioResumen';
-import type { InicioResumenVista } from '@/components/features/vista-inicio';
+import type { InicioResumenVista } from '@/vistas/inicio';
 import { resumen as literalesResumen } from '@/literals';
 import { formatCurrency } from '@/lib/formatters/currency';
 import { textoExacto } from '@/test/texto';

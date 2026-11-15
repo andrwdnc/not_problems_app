@@ -1,4 +1,4 @@
-import { adaptadorDeCuenta } from '@/server-actions/contexto-cuenta';
+import { adaptadorDeCuenta } from '@/presenters';
 import { PantallaDetalleMes } from '@/components/features/pantallas/PantallaDetalleMes';
 
 export const dynamic = 'force-dynamic';

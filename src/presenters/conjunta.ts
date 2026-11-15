@@ -8,11 +8,11 @@ import {
   usuarioRepository,
   gastoAnualRepository,
 } from '@/server-actions/repositories';
-import { mapearGastosAnualesAVista } from '@/server-actions/vista-gastos-anuales';
+import { mapearGastosAnualesAVista } from '@/vistas/gastos-anuales';
 import {
   cifrasDeResumenMes,
-} from '@/server-actions/vistas/cifras-mes';
-import { derivarDetalleMesVista } from '@/server-actions/vistas/detalle-mes';
+} from '@/vistas/cifras-mes';
+import { derivarDetalleMesVista } from '@/vistas/detalle-mes';
 import {
   calcularTotalesMes,
   calcularAhorro,
@@ -35,8 +35,8 @@ import {
 } from '@/literals';
 import type { ContextoCuenta } from './contrato';
 import { avisoCongeladoDe, devengoPrevioDe } from './auxiliares';
-import type { InicioResumenVista } from '@/components/features/vista-inicio';
-import type { DetalleMesVista } from '@/components/features/vista-detalle-mes';
+import type { InicioResumenVista } from '@/vistas/inicio';
+import type { DetalleMesVista } from '@/vistas/detalle-mes';
 import type {
   DatosUltimosGastos,
   VistaPantallaAportar,
@@ -44,7 +44,7 @@ import type {
   VistaPantallaFormGastoAnual,
   VistaPantallaGastos,
   VistaPantallaHistorico,
-} from '@/components/features/vista-pantallas';
+} from '@/vistas/pantallas';
 
 /**
  * ADAPTADOR de la cuenta CONJUNTA: resuelve las vistas de las pantallas con los

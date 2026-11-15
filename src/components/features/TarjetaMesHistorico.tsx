@@ -8,7 +8,7 @@ import { historico as literalesHistorico, formatos } from '@/literals';
 import type {
   TarjetaMesHistoricoVista,
   VarianteColumna,
-} from '@/components/features/vista-historico';
+} from '@/vistas/historico';
 
 /**
  * Tarjeta de un mes en la pantalla de Histórico. UNA para las dos áreas de

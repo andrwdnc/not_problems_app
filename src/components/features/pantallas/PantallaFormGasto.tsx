@@ -4,7 +4,7 @@ import { ChevronLeft, Lock } from 'lucide-react';
 import { NuevoGastoForm } from '@/components/features/NuevoGastoForm';
 import { EditarGastoForm } from '@/components/features/EditarGastoForm';
 import { GastoFormSkeleton } from '@/components/features/skeletons';
-import type { VistaPantallaFormGasto } from '@/components/features/vista-pantallas';
+import type { VistaPantallaFormGasto } from '@/vistas/pantallas';
 
 /**
  * PANTALLA DE ALTA Y EDICIÓN DE GASTO. Un componente para las cuatro rutas.

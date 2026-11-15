@@ -28,7 +28,7 @@ import { CATEGORIAS, type Categoria } from '@/domain/value-objects/Categoria';
 // cliente NO arrastra el módulo de servidor. El tipo vive allí porque lo produce
 // la función compartida que usan las dos áreas; reexportarlo evita que cada
 // página redeclare la misma forma de datos y las dos se desincronicen.
-import type { GastoAnualVista } from '@/server-actions/vista-gastos-anuales';
+import type { GastoAnualVista } from '@/vistas/gastos-anuales';
 import { eliminarGasto } from '@/server-actions/gastos-actions';
 import { eliminarGastoIndividual } from '@/server-actions/individual-actions';
 import {

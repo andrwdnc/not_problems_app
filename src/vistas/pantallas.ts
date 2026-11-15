@@ -1,21 +1,23 @@
-import type { TarjetaMesHistoricoVista } from './vista-historico';
+import type { VarianteCuenta } from '@/lib/cuenta';
+import type { TarjetaMesHistoricoVista } from './historico';
 
 /**
  * MODELOS DE VISTA DE LAS PANTALLAS, uno por pantalla y compartidos por las dos
  * áreas de cuenta.
  *
- * Este archivo completa `vista-inicio.ts`, `vista-historico.ts` y
- * `vista-detalle-mes.ts` con el resto. El objetivo es el mismo en todos: que el
- * markup de cada pantalla viva en UN componente (`components/features/pantallas/`)
- * y que la ruta de cada área (`app/(dashboard)/...` y `app/individual/...`) solo
- * traiga datos y llame a una derivación pura.
+ * Este archivo completa `inicio.ts`, `historico.ts`, `detalle-mes.ts` y
+ * `cifras-mes.ts` con el resto. El objetivo es el mismo en todos: que el markup
+ * de cada pantalla viva en UN componente (`components/features/pantallas/`) y
+ * que la ruta única `app/(app)/[cuenta]/...` solo resuelva el contexto por el
+ * segmento y le pida la vista al presenter del área.
  *
  * Lo que queda por área es exactamente lo que tiene que quedar: qué repositorio
  * se consulta (el individual es owner-first) y con qué rótulos se nombra cada
  * cifra. Ni una etiqueta, ni una clase, ni una condición visual por duplicado.
+ *
+ * `VarianteCuenta` NO se redefine aquí: la fuente única es `@/lib/cuenta` (el
+ * esquema de URLs), que todos los consumidores ya importan.
  */
-
-export type VarianteCuenta = 'conjunta' | 'individual';
 
 /* -------------------------------------------------------------------------- */
 /* Pantalla de Inicio                                                          */

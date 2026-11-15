@@ -1,4 +1,4 @@
-import { adaptadorDeCuenta } from '@/server-actions/contexto-cuenta';
+import { adaptadorDeCuenta } from '@/presenters';
 import { PantallaFormGastoAnual } from '@/components/features/pantallas/PantallaFormGastoAnual';
 import { rutaGastos } from '@/lib/cuenta';
 import { gastosAnuales } from '@/literals';
