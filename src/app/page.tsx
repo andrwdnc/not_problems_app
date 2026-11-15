@@ -10,8 +10,13 @@ import { chooser, app } from '@/literals';
 export const dynamic = 'force-dynamic';
 
 /**
- * Pantalla de elección de cuenta (NAV-1 Chooser): "/" deja de redirigir a la
- * cuenta conjunta y ofrece las dos áreas. Si no hay sesión, se va a login.
+ * Pantalla de elección de cuenta (NAV-1 Chooser): "/" ofrece las dos áreas. Si
+ * no hay sesión, se va a login.
+ *
+ * Opción A: el header (usuario + "Cambiar de cuenta"/logout) va flotante arriba
+ * (absolute) y el grupo de tarjetas se centra en todo el viewport, para que el
+ * centro visual sea el del centro de la pantalla y no el del hueco bajo el
+ * header.
  */
 export default async function ChooserPage() {
   const user = await getCurrentUser();
@@ -21,22 +26,18 @@ export default async function ChooserPage() {
   }
 
   return (
-    // `min-h-svh`: centra en el viewport visible al cargar (no en `100dvh`, que
-    // en móvil puede medir más que el hueco real y dejar el bloque bajo).
-    <div className="mx-auto flex min-h-svh w-full max-w-md flex-col px-4 py-6">
+    <div className="relative mx-auto min-h-[100dvh] w-full max-w-md px-4">
       <NavigationShell>
-        <header className="flex items-center justify-between">
+        {/* Header flotante: no ocupa espacio en el flujo, así el bloque de
+            tarjetas se centra en el viewport completo. */}
+        <header className="absolute inset-x-4 top-4 z-10 flex items-center justify-between">
           <span className="min-w-0 truncate text-sm font-semibold text-brand-navy">
             {user.username}
           </span>
           <LogoutButton />
         </header>
 
-        {/* Centrado real en los dos ejes: `justify-center` (vertical) ya
-            existía; `items-center` pone el bloque en el eje horizontal y los
-            hijos llevan `w-full` para que sigan ocupando la columna de
-            `max-w-md` en lugar de encogerse a su contenido. */}
-        <main className="flex flex-1 flex-col items-center justify-center gap-4">
+        <main className="flex min-h-[100dvh] flex-col items-center justify-center gap-4 pt-14">
           <div className="mb-2 w-full text-center">
             <h1 className="text-2xl font-bold text-brand-navy">{app.nombre}</h1>
             <p className="mt-1 text-sm text-brand-muted">{chooser.subtitulo}</p>

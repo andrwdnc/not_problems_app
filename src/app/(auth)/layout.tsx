@@ -3,18 +3,12 @@ export default function AuthLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // Centrado robusto en el viewport real: grid + place-items-center sobre
+  // min-h-[100dvh] evita el desfase que daba `min-h-svh` + `py-8` en algunos
+  // navegadores móviles, donde el bloque quedaba por debajo del centro visible.
+  // `px-4` reserva los laterales; `max-w-md` limita el ancho de la columna.
   return (
-    // Centrado en el viewport VISIBLE, no en el del layout: en el móvil la barra
-    // del navegador (dirección / barra inferior) forma parte de `100dvh` /
-    // `100vh` en varios navegadores, así que el bloque centrado sobre esa medida
-    // aparece por DEBAJO del centro real de la pantalla. `min-h-svh` usa el
-    // viewport más pequeño, que es el que está efectivamente a la vista al
-    // cargar; por eso el contenido queda centrado de verdad. `items-center`
-    // centra en horizontal; `main` lleva `w-full` para que los hijos no se
-    // encojan al ancho de su contenido (por defecto `align-items: center` en un
-    // flex columna los ajusta a su contenido y la tarjeta dejaría de llegar a
-    // los bordes).
-    <div className="mx-auto flex min-h-svh w-full max-w-md flex-col items-center justify-center px-4 py-8">
+    <div className="mx-auto grid min-h-[100dvh] w-full max-w-md place-items-center px-4">
       <main className="w-full">{children}</main>
     </div>
   );
