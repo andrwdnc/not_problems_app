@@ -38,6 +38,8 @@ export interface ResumenIndividual {
   gastado: number;
   /** cuota - gastado; puede ser negativo (déficit). */
   disponible: number | null;
+  /** Alias de `disponible`: se muestra como "Ahorro" en la UI para homogeneidad con la cuenta conjunta. */
+  ahorro: number | null;
   /**
    * Presupuesto de gastos individual del mes en céntimos; `null` hasta que se
    * fija. Es un tope POR PERSONA (tabla `presupuestos_individuales`), a diferencia
@@ -81,6 +83,7 @@ export function derivarResumenIndividual(
       cuota: null,
       gastado: 0,
       disponible: null,
+      ahorro: null,
       presupuesto: null,
       restantePresupuesto: null,
       porcentajePresupuesto: null,
@@ -137,6 +140,7 @@ export function derivarResumenIndividual(
     cuota,
     gastado,
     disponible,
+    ahorro: disponible, // alias para UI homogeneidad (muestra "Ahorro")
     presupuesto,
     restantePresupuesto,
     porcentajePresupuesto,

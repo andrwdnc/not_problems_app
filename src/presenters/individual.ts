@@ -124,8 +124,8 @@ export const adaptadorIndividual: ContextoCuenta = {
         },
         {
           variante: 'ahorro',
-          etiqueta: literalesResumen.disponible,
-          importe: resumen.disponible,
+          etiqueta: literalesResumen.ahorro,
+          importe: resumen.ahorro,
         },
       ],
       avisoSuperado: sobrePresupuesto
