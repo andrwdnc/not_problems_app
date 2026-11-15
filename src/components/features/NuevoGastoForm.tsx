@@ -124,6 +124,7 @@ export function NuevoGastoForm({ mesId, variante = 'conjunta', prefill = null }:
         </div>
 
         <Input
+          id="nuevo-gasto-detalle"
           label={gastoForm.detalle}
           name="detalle"
           value={detalle}

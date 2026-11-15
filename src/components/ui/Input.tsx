@@ -9,11 +9,9 @@ export function Input({
   return (
     <div className="space-y-1.5">
       {label && (
-        id ? (
-          <label htmlFor={id} className="block text-sm font-medium text-brand-muted">{label}</label>
-        ) : (
-          <span className="block text-sm font-medium text-brand-muted">{label}</span>
-        )
+        <label className="block text-sm font-medium text-brand-muted" htmlFor={id}>
+          {label}
+        </label>
       )}
       <input
         id={id}
