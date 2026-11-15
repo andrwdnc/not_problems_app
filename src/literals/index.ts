@@ -138,51 +138,44 @@ export const gastosErrores = {
   errorEliminar: 'No se pudo eliminar el gasto. Inténtalo de nuevo.',
 };
 
-export const gastosAnualesValidaciones = {
+export const pagosPrevistosValidaciones = {
   detalleObligatorio: 'El detalle es obligatorio',
   importePositivo: 'El importe debe ser mayor que 0',
-  mesPagoInvalido: 'El mes de pago debe estar entre 1 y 12',
+  mesInvalido: 'El mes debe estar entre 1 y 12',
+  diaInvalido: 'El día debe estar entre 1 y 31',
 };
 
-export const gastosAnualesErrores = {
-  gastoAnualNoEncontrada: 'Gasto anual no encontrado.',
-  gastoAnualYaPagado: 'Este gasto anual ya está pagado para el ciclo actual.',
-  devengoPrevio: 'No se puede editar/eliminar: este gasto anual ya tiene meses devengados en el ciclo actual.',
-  /**
-   * Fallo sin mensaje de dominio (red caída, servidor inaccesible): quien
-   * confirma el borrado o el pago dentro de la app necesita saber que NO se ha
-   * ejecutado. Se muestran en el diálogo (borrado) o en la tarjeta (pago).
-   */
-  errorEliminar: 'No se pudo eliminar el gasto anual. Inténtalo de nuevo.',
-  errorPagar: 'No se pudo marcar como pagado. Inténtalo de nuevo.',
+export const pagosPrevistosErrores = {
+  noEncontrado: 'Pago previsto no encontrado.',
+  errorEliminar: 'No se pudo eliminar el pago previsto. Inténtalo de nuevo.',
+  errorGuardar: 'No se pudo guardar el pago previsto. Inténtalo de nuevo.',
 };
 
-export const gastosAnuales = {
-  titulo: 'Gastos anuales',
-  nuevo: 'Nuevo gasto anual',
-  detalle: 'Detalle',
-  placeholderDetalle: 'ej. Seguro hogar',
-  importeTotal: 'Importe total anual',
-  mesPago: 'Mes de pago',
-  guardar: 'Guardar gasto anual',
+export const pagosPrevistos = {
+  titulo: 'Pagos previstos',
+  gestionar: 'Gestionar',
+  nuevo: 'Nuevo pago previsto',
+  editar: 'Editar pago previsto',
+  guardar: 'Guardar pago previsto',
   guardando: 'Guardando…',
-  editar: 'Editar',
   eliminar: 'Eliminar',
-  pagar: 'Marcar como pagado',
-  sinGastosAnuales: 'Aún no hay gastos anuales registrados.',
-  nota: 'Los gastos anuales se cubren mes a mes. Al llegar el mes de pago, se marcan como pagados y empieza un nuevo ciclo.',
-  /** Progreso dentro de la ventana de apartado: "1/11" (ambos extremos incluidos). */
-  ventana: (posicion: number, numMeses: number) => `${posicion}/${numMeses}`,
-  /** Etiqueta del ciclo objetivo: "Ciclo 2027". */
-  ciclo: (anio: number) => `Ciclo ${anio}`,
-  /** Etiqueta del destino de pago: "Para julio 2027". */
-  para: (mes: string, anio: number) => `Para ${mes} ${anio}`,
-  progreso: (apartado: string, total: string) => `Apartado ${apartado}/${total}`,
+  detalle: 'Detalle',
+  placeholderDetalle: 'ej. Seguro del coche',
+  categoria: 'Categoría',
+  mes: 'Mes de pago',
+  dia: 'Día',
+  importeReferencia: 'Importe de referencia (opcional)',
+  importeReferenciaAyuda:
+    'Sugerencia para precargar el formulario. Puedes cambiarlo al registrar.',
+  sinPagosMes: 'No hay pagos previstos este mes.',
+  sinPagos: 'Aún no hay pagos previstos registrados.',
+  nota:
+    'Los pagos previstos no descuentan del mes: solo están a la vista cuando llega su mes, para que registres el gasto real con el importe de ese año.',
   pagado: 'Pagado',
-  /** Línea "apartado" dentro del listado de gastos del mes. */
-  apartadoLinea: (detalle: string) => `Apartado ${detalle}`,
-  /** Título de la sección de apartados en el listado de gastos del mes. */
-  apartadoSeccion: 'Apartado este mes',
+  pendiente: 'Pendiente',
+  registrarGasto: 'Registrar gasto',
+  cadaAnio: (mes: string, dia: number) => `Cada año el ${dia} de ${mes}`,
+  confirmarEliminar: '¿Eliminar este pago previsto?',
 };
 
 export const aportar = {

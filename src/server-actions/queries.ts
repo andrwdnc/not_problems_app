@@ -9,7 +9,6 @@ import {
   calcularRestantePresupuesto,
   calcularPorcentajePresupuestoConsumido,
   calcularTotalesMes,
-  calcularGastadoComprometido,
 } from '@/domain/rules/CalculadoraAportacion';
 import { getCurrentUserId } from '@/server/auth';
 import { auditarMovimiento } from '@/infrastructure/audit/auditarMovimiento';
@@ -19,16 +18,12 @@ import type { Mes, Aportacion, Gasto } from '@/domain/entities';
 export interface ResumenMes {
   aportado: number;
   gastado: number;
-  /** Importe apartado devengado este mes (solo para UI del ring/restante). */
-  apartado: number;
-  /** Gasto comprometido = gastado + apartado (alimenta ring, %, restante). */
-  gastadoComprometido: number;
   disponible: number;
   numeroGastos: number;
   porcentajeGastado: number;
   /** Presupuesto de gastos del mes en céntimos; null hasta que se fija. */
   presupuesto: number | null;
-  /** Ahorro real = aportado − (gastado + apartado). No usa el presupuesto. */
+  /** Ahorro real = aportado − gastado. No usa el presupuesto. */
   ahorro: number;
   /** Presupuesto restante (presupuesto − gastado); null si no hay tope. */
   restantePresupuesto: number | null;
@@ -54,27 +49,23 @@ export function calcularResumen(
   aportaciones: Aportacion[],
   gastos: Gasto[],
   presupuesto: number | null,
-  apartadoCentimos: number = 0,
 ): ResumenMes {
   const { aportado, gastado, numeroGastos } = calcularTotalesMes(
     aportaciones,
     gastos,
   );
 
-  const gastadoComprometido = calcularGastadoComprometido(gastado, apartadoCentimos);
-  const disponible = aportado - gastadoComprometido;
-  const porcentajeGastado = aportado > 0 ? (gastadoComprometido / aportado) * 100 : 0;
+  const disponible = aportado - gastado;
+  const porcentajeGastado = aportado > 0 ? (gastado / aportado) * 100 : 0;
 
   return {
     aportado,
     gastado,
-    apartado: apartadoCentimos,
-    gastadoComprometido,
     disponible,
     numeroGastos,
     porcentajeGastado,
     presupuesto,
-    ahorro: calcularAhorro(aportado, gastado, apartadoCentimos),
+    ahorro: calcularAhorro(aportado, gastado),
     restantePresupuesto: calcularRestantePresupuesto(presupuesto, gastado),
     porcentajePresupuesto: calcularPorcentajePresupuestoConsumido(
       gastado,

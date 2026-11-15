@@ -1,7 +1,7 @@
 'use server';
 
 import { gastoSchema, editarGastoSchema, eliminarGastoSchema } from './schemas/gasto';
-import { gastoRepository, mesRepository } from './repositories';
+import { gastoRepository, mesRepository, pagoPrevistoRepository } from './repositories';
 import { revalidarPantallas } from './revalidacion';
 import { auditarMovimiento } from '@/infrastructure/audit/auditarMovimiento';
 import { ventanaEdicionGastos } from '@/domain/rules/VentanaEdicionGastos';
@@ -79,6 +79,18 @@ export async function crearGasto(
     accion: 'crear',
     valorNuevo: gasto,
   });
+
+  if (data.pagoPrevistoId) {
+    try {
+      await pagoPrevistoRepository.marcarPagado(
+        data.pagoPrevistoId,
+        anio,
+        gasto.id,
+      );
+    } catch {
+      // No crítico: el gasto ya se creó; el recordatorio puede marcarse a mano.
+    }
+  }
 
   revalidarPantallas('conjunta', ['inicio', 'gastos', 'historico']);
 

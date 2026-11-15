@@ -121,64 +121,37 @@ export const presupuestosIndividuales = pgTable(
   ],
 );
 
-export const gastosAnuales = pgTable('gastos_anuales', {
+export const pagosPrevistos = pgTable('pagos_previstos', {
   id: uuid('id').primaryKey().defaultRandom(),
-  importeTotal: bigint('importe_total', { mode: 'number' }).notNull(), // céntimos
-  mesPago: integer('mes_pago').notNull(), // 1-12
-  anioCiclo: integer('anio_ciclo').notNull(),
+  /** Detalle del pago ("Seguro del coche"). */
   detalle: text('detalle').notNull(),
-  fechaUltimoPago: timestamp('fecha_ultimo_pago', { withTimezone: true }),
+  /** Categoría del gasto que se registrará cuando llegue el mes. */
+  categoria: categoriaEnum('categoria').notNull(),
+  /** Mes del año en el que vence (1-12). */
+  mes: integer('mes').notNull(),
+  /** Día del mes en el que suele pagarse (1-31). */
+  dia: integer('dia').notNull(),
+  /** Importe de referencia en céntimos; null = solo recordatorio. */
+  importeReferencia: bigint('importe_referencia', { mode: 'number' }),
+  /**
+   * Dueño en el área individual; null = cuenta conjunta (compartido).
+   * Frontiera de privacidad: solo se filtra en SQL.
+   */
+  usuarioId: uuid('usuario_id').references(() => usuarios.id),
+  /** Año del último pago registrado; null si nunca se pagó. */
+  ultimoPagoAnio: integer('ultimo_pago_anio'),
+  /** Gasto creado la última vez que se pagó desde este recordatorio. */
+  ultimoPagoGastoId: uuid('ultimo_pago_gasto_id'),
   creadoPor: uuid('creado_por').references(() => usuarios.id).notNull(),
   fechaCreacion: timestamp('fecha_creacion', { withTimezone: true }).defaultNow().notNull(),
 }, (table) => [
-  // Un gasto anual por ciclo (año de ciclo) y mes de pago.
-  uniqueIndex('gastos_anuales_anio_ciclo_mes_pago_unique').on(table.anioCiclo, table.mesPago),
+  index('pagos_previstos_usuario_idx').on(table.usuarioId),
+  index('pagos_previstos_mes_idx').on(table.mes),
 ]);
-
-/**
- * Gastos anuales del ÁREA INDIVIDUAL (paridad con `gastos_anuales`).
- *
- * Réplica owner-scoped de `gastos_anuales`: el área conjunta comparte un único
- * juego de gastos anuales entre los dos usuarios, mientras que en el área
- * individual cada usuario tiene el suyo. Por eso la clave de unicidad incluye
- * `usuario_id`: dos usuarios pueden tener un gasto anual el mismo mes.
- *
- * El `usuario_id` NUNCA viene del cliente: la Server Action lo deriva de la
- * sesión y el repositorio lo exige en el primer parámetro de cada método
- * (owner-first), igual que `gastos_individuales`.
- */
-export const gastosAnualesIndividuales = pgTable(
-  'gastos_anuales_individuales',
-  {
-    id: uuid('id').primaryKey().defaultRandom(),
-    // Dueño del gasto anual: frontera de privacidad (siempre desde sesión).
-    usuarioId: uuid('usuario_id').references(() => usuarios.id).notNull(),
-    importeTotal: bigint('importe_total', { mode: 'number' }).notNull(), // céntimos
-    mesPago: integer('mes_pago').notNull(), // 1-12
-    anioCiclo: integer('anio_ciclo').notNull(),
-    detalle: text('detalle').notNull(),
-    fechaUltimoPago: timestamp('fecha_ultimo_pago', { withTimezone: true }),
-    creadoPor: uuid('creado_por').references(() => usuarios.id).notNull(),
-    fechaCreacion: timestamp('fecha_creacion', { withTimezone: true })
-      .defaultNow()
-      .notNull(),
-  },
-  (table) => [
-    // Un gasto anual por dueño, ciclo y mes de pago. El dueño forma parte de la
-    // clave: es lo que separa esta tabla de la compartida `gastos_anuales`.
-    uniqueIndex('gastos_anuales_ind_usuario_ciclo_mes_unique').on(
-      table.usuarioId,
-      table.anioCiclo,
-      table.mesPago,
-    ),
-    // Listado del área individual: siempre por dueño, a menudo por ciclo.
-    index('gastos_anuales_ind_usuario_idx').on(table.usuarioId, table.anioCiclo),
-  ],
-);
 
 export const accionEnum = pgEnum('accion_enum', ['crear', 'editar', 'eliminar']);
 
-export const entidadEnum = pgEnum('entidad_enum', ['meses', 'aportaciones', 'gastos', 'gastos_anuales', 'gastos_individuales', 'gastos_anuales_individuales', 'presupuestos_individuales']);
+export const entidadEnum = pgEnum('entidad_enum', ['meses', 'aportaciones', 'gastos', 'pagos_previstos', 'gastos_individuales', 'presupuestos_individuales']);
 
 export const historicoMovimientos = pgTable('historico_movimientos', {
   id: uuid('id').primaryKey().defaultRandom(),

@@ -39,7 +39,7 @@ async function SeccionFormulario({ vista }: { vista: Promise<VistaPantallaFormGa
       {v.gasto != null ? (
         <EditarGastoForm gasto={v.gasto as never} variante={v.variante} />
       ) : (
-        <NuevoGastoForm mesId={v.mesId as string} variante={v.variante} />
+        <NuevoGastoForm mesId={v.mesId as string} variante={v.variante} prefill={v.prefill} />
       )}
     </>
   );

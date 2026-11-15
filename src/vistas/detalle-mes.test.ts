@@ -24,7 +24,6 @@ import {
 const SUELDO = 300_000;
 const CUOTA = 150_000;
 const GASTADO = 42_000;
-const APARTADO = 10_000;
 const PRESUPUESTO = 200_000;
 
 const ROTULOS: RotulosDetalleMes = {
@@ -33,7 +32,6 @@ const ROTULOS: RotulosDetalleMes = {
   presupuesto: 'Presupuesto',
   saldo: 'Disponible',
   deficit: 'Déficit',
-  apartado: 'Apartado',
 };
 
 const ROTULOS_INDIVIDUAL: RotulosDetalleMes = {
@@ -46,9 +44,8 @@ describe('la carta de aportación muestra la cuota en las dos áreas', () => {
   it('el área individual no muestra el sueldo íntegro', () => {
     const cifras = cifrasDeResumenIndividual({
       cuota: CUOTA,
-      disponible: CUOTA - GASTADO - APARTADO,
+      disponible: CUOTA - GASTADO,
       presupuesto: PRESUPUESTO,
-      apartado: APARTADO,
       gastado: GASTADO,
       numeroGastos: 3,
     });
@@ -66,8 +63,7 @@ describe('la carta de aportación muestra la cuota en las dos áreas', () => {
       cifrasDeResumenMes({
         aportado: CUOTA,
         presupuesto: PRESUPUESTO,
-        apartado: APARTADO,
-        ahorro: 98_000,
+          ahorro: 98_000,
         gastado: GASTADO,
         numeroGastos: 3,
       }),
@@ -76,10 +72,9 @@ describe('la carta de aportación muestra la cuota en las dos áreas', () => {
     const individual = derivarCartasDetalle(
       cifrasDeResumenIndividual({
         cuota: CUOTA,
-        disponible: CUOTA - GASTADO - APARTADO,
+        disponible: CUOTA - GASTADO,
         presupuesto: PRESUPUESTO,
-        apartado: APARTADO,
-        gastado: GASTADO,
+          gastado: GASTADO,
         numeroGastos: 3,
       }),
       ROTULOS_INDIVIDUAL,
@@ -94,14 +89,13 @@ describe('la carta de aportación muestra la cuota en las dos áreas', () => {
 describe('estructura de las cartas', () => {
   const cifras = cifrasDeResumenIndividual({
     cuota: CUOTA,
-    disponible: CUOTA - GASTADO - APARTADO,
+    disponible: CUOTA - GASTADO,
     presupuesto: PRESUPUESTO,
-    apartado: APARTADO,
     gastado: GASTADO,
     numeroGastos: 3,
   });
 
-  it('el orden es parte del contrato: aportación, gastado, presupuesto, saldo, apartado', () => {
+  it('el orden es parte del contrato: aportación, gastado, presupuesto, saldo', () => {
     const cartas = derivarCartasDetalle(cifras, ROTULOS_INDIVIDUAL);
 
     expect(cartas.map((c) => c.etiqueta)).toEqual([
@@ -109,20 +103,9 @@ describe('estructura de las cartas', () => {
       'Gastado',
       'Mi presupuesto',
       'Disponible',
-      'Apartado',
     ]);
   });
 
-  it('la quinta carta solo aparece si el apartado mueve dinero', () => {
-    // Una carta fija en "0,00 €" no informa de nada; su ausencia sí.
-    const sinApartado = derivarCartasDetalle(
-      { ...cifras, apartado: 0 },
-      ROTULOS_INDIVIDUAL,
-    );
-
-    expect(sinApartado).toHaveLength(4);
-    expect(sinApartado.map((c) => c.etiqueta)).not.toContain('Apartado');
-  });
 
   it('un saldo negativo se rotula como déficit y se pinta en positivo', () => {
     // El signo lo cuentan el rótulo y el color, no la cifra: repetir el "-" dentro

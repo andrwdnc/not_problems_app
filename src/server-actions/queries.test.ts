@@ -31,8 +31,6 @@ describe('calcularResumen', () => {
     expect(calcularResumen([], [], null)).toEqual({
       aportado: 0,
       gastado: 0,
-      apartado: 0,
-      gastadoComprometido: 0,
       disponible: 0,
       numeroGastos: 0,
       porcentajeGastado: 0,
@@ -110,101 +108,6 @@ describe('calcularResumen', () => {
     expect(resultado.porcentajePresupuesto).toBeCloseTo(125);
     // Al superar el presupuesto, el exceso reduce el ahorro (300000 - 25000).
     expect(resultado.ahorro).toBe(275000);
-  });
-
-  // --- Tests para apartado (4º parámetro) ---
-
-  it('con apartado > 0: apartado se refleja en el resumen', () => {
-    const resultado = calcularResumen(
-      [aportacion(10000)],
-      [gasto(2000)],
-      null,
-      3000, // apartado
-    );
-    expect(resultado.apartado).toBe(3000);
-    expect(resultado.gastado).toBe(2000); // gasto real sin cambios
-    expect(resultado.gastadoComprometido).toBe(5000); // 2000 + 3000
-  });
-
-  it('con apartado: disponible usa gastadoComprometido (aportado - gastado - apartado)', () => {
-    const resultado = calcularResumen(
-      [aportacion(10000)],
-      [gasto(2000)],
-      null,
-      3000,
-    );
-    expect(resultado.disponible).toBe(5000); // 10000 - 2000 - 3000
-  });
-
-  it('con apartado: porcentajeGastado usa gastadoComprometido', () => {
-    const resultado = calcularResumen(
-      [aportacion(10000)],
-      [gasto(2000)],
-      null,
-      3000,
-    );
-    expect(resultado.porcentajeGastado).toBeCloseTo(50); // 5000 / 10000 * 100
-  });
-
-  it('apartado no afecta a la tarjeta "gastado" (solo gasto real)', () => {
-    const resultado = calcularResumen(
-      [aportacion(10000)],
-      [gasto(2000)],
-      null,
-      3000,
-    );
-    expect(resultado.gastado).toBe(2000); // solo gasto real
-  });
-
-  it('el apartado descuenta del ahorro; el presupuesto se mide solo con el gasto real', () => {
-    const resultado = calcularResumen(
-      [aportacion(300000)],
-      [gasto(25000)],
-      20000,
-      30000, // apartado grande
-    );
-    // ahorro = aportado - (gastado + apartado) = 300000 - 55000
-    expect(resultado.ahorro).toBe(245000);
-    // restantePresupuesto = presupuesto - gastado real
-    expect(resultado.restantePresupuesto).toBe(-5000); // 20000 - 25000
-    // porcentajePresupuesto = gastado real / presupuesto
-    expect(resultado.porcentajePresupuesto).toBeCloseTo(125); // 25000 / 20000 * 100
-  });
-
-  it('caso espec: presupuesto 100000, gastado 80000, apartado 30000', () => {
-    const resultado = calcularResumen(
-      [aportacion(100000)],
-      [gasto(80000)],
-      100000, // presupuesto
-      30000,  // apartado
-    );
-    // gastadoComprometido = 80000 + 30000 = 110000
-    expect(resultado.gastadoComprometido).toBe(110000);
-    // porcentajeGastado = 110000 / 100000 * 100 = 110%
-    expect(resultado.porcentajeGastado).toBeCloseTo(110);
-    // disponible = 100000 - 110000 = -10000
-    expect(resultado.disponible).toBe(-10000);
-    // tarjeta "gastado" sigue mostrando 80000
-    expect(resultado.gastado).toBe(80000);
-    // ahorro = aportado - (gastado + apartado) = 100000 - 110000 = -10000
-    expect(resultado.ahorro).toBe(-10000);
-    // restantePresupuesto y porcentajePresupuesto usan solo gastado real
-    expect(resultado.restantePresupuesto).toBe(20000); // 100000 - 80000
-    expect(resultado.porcentajePresupuesto).toBeCloseTo(80); // 80000 / 100000 * 100
-  });
-
-  it('apartado con arrays vacíos', () => {
-    const resultado = calcularResumen([], [], null, 5000);
-    expect(resultado.apartado).toBe(5000);
-    expect(resultado.gastadoComprometido).toBe(5000);
-    expect(resultado.disponible).toBe(-5000);
-    expect(resultado.porcentajeGastado).toBe(0); // sin aportado
-  });
-
-  it('apartado 0 es equivalente a no pasarlo (compatibilidad hacia atrás)', () => {
-    const sinGastoAnual = calcularResumen([aportacion(1000)], [gasto(300)], null);
-    const conCero = calcularResumen([aportacion(1000)], [gasto(300)], null, 0);
-    expect(conCero).toEqual(sinGastoAnual);
   });
 });
 

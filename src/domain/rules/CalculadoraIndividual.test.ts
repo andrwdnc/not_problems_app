@@ -131,11 +131,5 @@ describe('CalculadoraIndividual', () => {
       ).toBe((cuotaEsperada as number) - 12345);
     });
 
-    it('el apartado de gastos anuales descuenta igual que en la cuenta conjunta', () => {
-      // Cuota 140000 - 15000 de gasto - 5455 de apartado = 119545.
-      expect(calcularDisponibleIndividual(200000, 30, [{ importe: 15000 }], 5455)).toBe(
-        119545,
-      );
-    });
   });
 });

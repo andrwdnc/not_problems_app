@@ -8,7 +8,7 @@ export {
   historicoRepository,
   usuarioRepository,
   authIntentosRepository,
-  gastoAnualRepository,
-  gastoAnualIndividualRepository,
+  pagoPrevistoRepository,
+  pagoPrevistoIndividualRepository,
   presupuestoIndividualRepository,
 } from '@/infrastructure/repositories/instances';

@@ -5,10 +5,10 @@ import {
   aportacionRepository,
   gastoRepository,
   mesRepository,
+  pagoPrevistoRepository,
   usuarioRepository,
-  gastoAnualRepository,
 } from '@/server-actions/repositories';
-import { mapearGastosAnualesAVista } from '@/vistas/gastos-anuales';
+import { mapearPagosPrevistosMes, mapearGestionPagosPrevistos } from '@/vistas/pagos-previstos';
 import {
   cifrasDeResumenMes,
 } from '@/vistas/cifras-mes';
@@ -17,14 +17,13 @@ import {
   calcularTotalesMes,
   calcularAhorro,
 } from '@/domain/rules/CalculadoraAportacion';
-import { calcularApartadoTotal } from '@/domain/rules/CalculadoraGastoAnual';
+import { fechaPrevista } from '@/domain/rules/PagosPrevistosAnuales';
 import { ventanaDeMes } from '@/domain/rules/VentanaEdicionGastos';
 import { formatShortDate, nombreMes } from '@/lib/formatters/date';
 import { formatCurrency } from '@/lib/formatters/currency';
 import { rutaHistorico, rutaHistoricoDetalle } from '@/lib/cuenta';
 import {
   formatos,
-  gastosAnuales as gastosAnualesLiterales,
   gastos as gastosLiterales,
   historico as literalesHistorico,
   historicoDetalle,
@@ -34,14 +33,14 @@ import {
   resumen as literalesResumen,
 } from '@/literals';
 import type { ContextoCuenta } from './contrato';
-import { avisoCongeladoDe, devengoPrevioDe } from './auxiliares';
+import { avisoCongeladoDe } from './auxiliares';
 import type { InicioResumenVista } from '@/vistas/inicio';
 import type { DetalleMesVista } from '@/vistas/detalle-mes';
 import type {
   DatosUltimosGastos,
   VistaPantallaAportar,
   VistaPantallaFormGasto,
-  VistaPantallaFormGastoAnual,
+  VistaGestionPagosPrevistos,
   VistaPantallaGastos,
   VistaPantallaHistorico,
 } from '@/vistas/pantallas';
@@ -66,21 +65,16 @@ export const adaptadorConjunta: ContextoCuenta = {
       usuarioRepository.findAll(),
     ]);
 
-    // 2º pasada en paralelo: aportaciones + gastos + gastos anuales del mes.
-    const [aportaciones, gastos, gastosAnuales] = mes
+    // 2º pasada en paralelo: aportaciones + gastos del mes.
+    const [aportaciones, gastos] = mes
       ? await Promise.all([
           aportacionRepository.findByMes(mes.id),
           gastoRepository.findByMes(mes.id),
-          gastoAnualRepository.findAll(),
         ])
-      : [[], [], []];
-
-    const apartadoMes = mes
-      ? calcularApartadoTotal(gastosAnuales, mes.anio, mes.mes)
-      : 0;
+      : [[], []];
 
     const resumen = mes
-      ? calcularResumen(aportaciones, gastos, mes.presupuesto, apartadoMes)
+      ? calcularResumen(aportaciones, gastos, mes.presupuesto)
       : null;
 
     return {
@@ -164,21 +158,18 @@ export const adaptadorConjunta: ContextoCuenta = {
   /* ---------------------------------------------------------------------- */
 
   async vistaGastos(): Promise<VistaPantallaGastos> {
-    const [mes, usuarios, gastosAnuales] = await Promise.all([
+    const [mes, usuarios, pagosPrevistos] = await Promise.all([
       obtenerMesActual(),
       usuarioRepository.findAll(),
-      gastoAnualRepository.findAll(),
+      pagoPrevistoRepository.findAll(),
     ]);
 
     if (!mes) {
-      // Sin mes abierto: se dice explícitamente. Antes esta pantalla enseñaba
-      // una lista vacía sin explicación, que es indistinguible de "no has
-      // registrado ningún gasto este mes".
       return {
         variante: 'conjunta',
         gastos: [],
         usuarios: new Map(usuarios.map((u) => [u.id, u.username])),
-        gastosAnuales: [],
+        pagosPrevistosMes: [],
         sinMes: inicio.sinMesAbierto,
       };
     }
@@ -188,10 +179,12 @@ export const adaptadorConjunta: ContextoCuenta = {
     return {
       variante: 'conjunta',
       gastos,
-      // Con nombre de creador: en la conjunta los gastos son de los dos y el pie
-      // de fila tiene que decir de quién es cada uno.
       usuarios: new Map(usuarios.map((u) => [u.id, u.username])),
-      gastosAnuales: mapearGastosAnualesAVista(gastosAnuales, mes),
+      pagosPrevistosMes: mapearPagosPrevistosMes(
+        pagosPrevistos,
+        mes,
+        new Date(),
+      ),
       sinMes: null,
     };
   },
@@ -223,8 +216,26 @@ export const adaptadorConjunta: ContextoCuenta = {
   /* Alta y edición de gasto mensual                                         */
   /* ---------------------------------------------------------------------- */
 
-  async vistaNuevoGasto(): Promise<VistaPantallaFormGasto> {
+  async vistaNuevoGasto(pagoPrevistoId?: string | null): Promise<VistaPantallaFormGasto> {
     const mes = await obtenerMesActual();
+
+    let prefill: VistaPantallaFormGasto['prefill'] = null;
+    if (pagoPrevistoId) {
+      const previsto = await pagoPrevistoRepository.findById(pagoPrevistoId);
+      if (previsto) {
+        const anio = mes?.anio ?? new Date().getFullYear();
+        prefill = {
+          detalle: previsto.detalle,
+          categoria: previsto.categoria,
+          importe:
+            previsto.importeReferencia != null
+              ? (previsto.importeReferencia / 100).toString().replace('.', ',')
+              : '',
+          fechaGasto: fechaPrevista(previsto, anio),
+          pagoPrevistoId: previsto.id,
+        };
+      }
+    }
 
     return {
       variante: 'conjunta',
@@ -232,6 +243,7 @@ export const adaptadorConjunta: ContextoCuenta = {
       avisoCongelado: null,
       gasto: null,
       mesId: mes?.id ?? null,
+      prefill,
     };
   },
 
@@ -247,41 +259,7 @@ export const adaptadorConjunta: ContextoCuenta = {
       avisoCongelado: avisoCongeladoDe(gasto.fechaGasto),
       gasto,
       mesId: null,
-    };
-  },
-
-  /* ---------------------------------------------------------------------- */
-  /* Alta y edición de gasto anual                                           */
-  /* ---------------------------------------------------------------------- */
-
-  async vistaNuevoGastoAnual(): Promise<VistaPantallaFormGastoAnual> {
-    const mes = await obtenerMesActual();
-
-    return {
-      variante: 'conjunta',
-      sinMes: mes ? null : gastoForm.sinMesAbierto,
-      avisoDevengoPrevio: null,
-      gastoAnual: null,
-      devengoPrevio: false,
-    };
-  },
-
-  async vistaEditarGastoAnual(
-    gastoAnualId: string,
-  ): Promise<VistaPantallaFormGastoAnual> {
-    const gastoAnual = await gastoAnualRepository.findById(gastoAnualId);
-    if (!gastoAnual) {
-      notFound();
-    }
-
-    const { devengoPrevio, aviso } = devengoPrevioDe(gastoAnual);
-
-    return {
-      variante: 'conjunta',
-      sinMes: null,
-      avisoDevengoPrevio: aviso,
-      gastoAnual,
-      devengoPrevio,
+      prefill: null,
     };
   },
 
@@ -335,22 +313,19 @@ export const adaptadorConjunta: ContextoCuenta = {
       notFound();
     }
 
-    const [aportaciones, gastos, gastosAnuales] = await Promise.all([
+    const [aportaciones, gastos] = await Promise.all([
       aportacionRepository.findByMes(mes.id),
       gastoRepository.findByMes(mes.id),
-      gastoAnualRepository.findAll(),
     ]);
 
     const permisos = ventanaDeMes(new Date(), mes.anio, mes.mes);
     const { aportado, gastado } = calcularTotalesMes(aportaciones, gastos);
-    const apartado = calcularApartadoTotal(gastosAnuales, mes.anio, mes.mes);
 
     return derivarDetalleMesVista({
       cifras: cifrasDeResumenMes({
         aportado,
         presupuesto: mes.presupuesto,
-        apartado,
-        ahorro: calcularAhorro(aportado, gastado, apartado),
+        ahorro: calcularAhorro(aportado, gastado),
         gastado,
         numeroGastos: gastos.length,
       }),
@@ -360,7 +335,6 @@ export const adaptadorConjunta: ContextoCuenta = {
         presupuesto: literalesResumen.presupuesto,
         saldo: literalesResumen.ahorro,
         deficit: literalesResumen.deficit,
-        apartado: gastosAnualesLiterales.titulo,
       },
       hrefVolver: rutaHistorico('conjunta'),
       titulo: `${nombreMes(mes.mes)} ${mes.anio}`,
@@ -372,5 +346,13 @@ export const adaptadorConjunta: ContextoCuenta = {
       puedeEditar: permisos.puedeEditar,
       puedeEliminar: permisos.puedeEliminar,
     });
+  },
+
+  async vistaGestionPagosPrevistos(): Promise<VistaGestionPagosPrevistos> {
+    const pagos = await pagoPrevistoRepository.findAll();
+    return {
+      variante: 'conjunta',
+      pagos: mapearGestionPagosPrevistos(pagos, new Date()),
+    };
   },
 };

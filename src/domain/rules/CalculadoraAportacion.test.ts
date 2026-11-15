@@ -127,10 +127,6 @@ describe('CalculadoraAportacion', () => {
       expect(calcularAhorro(300000, 25000)).toBe(275000);
     });
 
-    it('descuenta también el apartado de gastos anuales', () => {
-      expect(calcularAhorro(300000, 18000, 3000)).toBe(279000);
-    });
-
     it('puede ser negativo si no hay aportado suficiente', () => {
       expect(calcularAhorro(15000, 20000)).toBe(-5000);
     });

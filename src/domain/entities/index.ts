@@ -54,18 +54,37 @@ export interface Gasto {
   fechaCreacion: Date;
 }
 
-export interface GastoAnual {
+/**
+ * PAGO PREVISTO ANUAL (recordatorio): un pago que se repite cada año en una
+ * fecha fija ("seguro del coche el 30 de julio").
+ *
+ * NO es contabilidad: no aparta dinero ni descuenta cifra alguna del mes. Solo
+ * está a la vista cuando llega su mes, para que el usuario registre el gasto
+ * real —con el importe de ese año— en el formulario de gastos.
+ *
+ * `usuarioId` es null en la cuenta conjunta (el recordatorio es de los dos) y
+ * con valor en el área individual (dueño derivado de la sesión).
+ */
+export interface PagoPrevisto {
   id: string;
-  /** Importe total del gasto anual en céntimos enteros. */
-  importeTotal: number;
-  /** Mes de pago de la cuota (1-12). */
-  mesPago: number;
-  /** Año del ciclo del gasto anual. */
-  anioCiclo: number;
-  /** Detalle/descripción del gasto anual. */
+  /** Detalle del pago ("Seguro del coche"). */
   detalle: string;
-  /** Fecha del último pago realizado; null si aún no se ha pagado ninguna cuota. */
-  fechaUltimoPago: Date | null;
+  categoria: Categoria;
+  /** Mes del año en el que vence (1-12). */
+  mes: number;
+  /** Día del mes en el que suele pagarse (1-31). */
+  dia: number;
+  /**
+   * Importe de REFERENCIA en céntimos; `null` = solo recordatorio, sin importe.
+   * Es una sugerencia para precargar el formulario, nunca una cifra del mes.
+   */
+  importeReferencia: number | null;
+  /** Dueño en el área individual; `null` en la cuenta conjunta. */
+  usuarioId: string | null;
+  /** Año del último pago registrado; `null` si nunca se pagó. */
+  ultimoPagoAnio: number | null;
+  /** Gasto creado la última vez que se pagó desde este recordatorio. */
+  ultimoPagoGastoId: string | null;
   creadoPor: string;
   fechaCreacion: Date;
 }
@@ -87,20 +106,6 @@ export interface PresupuestoIndividual {
   /** Quién lo fijó; junto con `fechaRegistro` lo sella como inmutable. */
   fijadoPor: string;
   fechaRegistro: Date;
-}
-
-/**
- * Gasto anual del ÁREA INDIVIDUAL: idéntico al compartido pero con dueño.
- *
- * `GastoAnual` no lleva `usuarioId` porque en la cuenta conjunta los gastos
- * anuales son de los dos. Aquí cada usuario tiene los suyos, así que el dueño es
- * obligatorio y forma parte de la clave de unicidad. Se extiende en vez de
- * duplicar los campos para que las reglas puras del devengo (`CalculadoraGastoAnual`)
- * acepten ambos sin cambios.
- */
-export interface GastoAnualIndividual extends GastoAnual {
-  /** Dueño del gasto anual: frontera de privacidad, siempre derivado de la sesión. */
-  usuarioId: string;
 }
 
 /** Gasto individual: propiedad privada de un único usuario (IA-1). */

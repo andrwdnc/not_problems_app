@@ -11,19 +11,19 @@ import {
 import {
   aportacionRepository,
   gastoIndividualRepository,
-  gastoAnualIndividualRepository,
   mesRepository,
+  pagoPrevistoIndividualRepository,
   presupuestoIndividualRepository,
 } from '@/server-actions/repositories';
-import { mapearGastosAnualesAVista } from '@/vistas/gastos-anuales';
+import { mapearPagosPrevistosMes, mapearGestionPagosPrevistos } from '@/vistas/pagos-previstos';
 import { cifrasDeResumenIndividual } from '@/vistas/cifras-mes';
 import { derivarDetalleMesVista } from '@/vistas/detalle-mes';
+import { fechaPrevista } from '@/domain/rules/PagosPrevistosAnuales';
 import { ventanaDeMes } from '@/domain/rules/VentanaEdicionGastos';
 import { formatShortDate, nombreMes } from '@/lib/formatters/date';
 import { formatCurrency } from '@/lib/formatters/currency';
 import { rutaHistorico, rutaHistoricoDetalle } from '@/lib/cuenta';
 import {
-  gastosAnuales as gastosAnualesLiterales,
   gastos as gastosLiterales,
   historico as literalesHistorico,
   historicoDetalle,
@@ -32,14 +32,14 @@ import {
   resumen as literalesResumen,
 } from '@/literals';
 import type { ContextoCuenta } from './contrato';
-import { avisoCongeladoDe, devengoPrevioDe } from './auxiliares';
+import { avisoCongeladoDe } from './auxiliares';
 import type { InicioResumenVista } from '@/vistas/inicio';
 import type { DetalleMesVista } from '@/vistas/detalle-mes';
 import type {
   DatosUltimosGastos,
   VistaPantallaAportar,
   VistaPantallaFormGasto,
-  VistaPantallaFormGastoAnual,
+  VistaGestionPagosPrevistos,
   VistaPantallaGastos,
   VistaPantallaHistorico,
 } from '@/vistas/pantallas';
@@ -81,14 +81,13 @@ export const adaptadorIndividual: ContextoCuenta = {
       resumen.restantePresupuesto != null && resumen.restantePresupuesto < 0;
     const hayPresupuesto = resumen.presupuesto != null;
 
-    // Sin presupuesto (aún sin fijar) el anillo mide lo COMPROMETIDO (gasto +
-    // apartado) sobre mi cuota, igual que en la conjunta mide
-    // `gastadoComprometido / aportado`: si un gasto anual no bajara la barra en una
-    // de las dos cuentas, la paridad se rompería en la cifra que el usuario usa
-    // para decidir.
+    // Sin presupuesto (aún sin fijar) el anillo mide lo gastado sobre mi cuota,
+    // igual que en la conjunta mide `gastado / aportado`: si un gasto no bajara
+    // la barra en una de las dos cuentas, la paridad se rompería en la cifra que
+    // el usuario usa para decidir.
     const porcentajeSobreCuota =
       resumen.cuota != null && resumen.cuota > 0
-        ? Math.round((resumen.gastadoComprometido / resumen.cuota) * 100)
+        ? Math.round((resumen.gastado / resumen.cuota) * 100)
         : 0;
 
     return {
@@ -175,21 +174,17 @@ export const adaptadorIndividual: ContextoCuenta = {
 
     const mes = await obtenerMesActual();
 
-    // Ambas consultas son owner-first: solo se ven los datos del usuario de la
-    // sesión (D8). Los anuales van en paralelo porque no dependen del mes (el
-    // cálculo de ventana lo recibe como parámetro).
-    const [gastos, gastosAnuales] = await Promise.all([
-      mes
-        ? gastoIndividualRepository.findByMes(user.id, mes.id)
-        : Promise.resolve([]),
-      gastoAnualIndividualRepository.findAll(user.id),
-    ]);
+    const gastos = mes
+      ? await gastoIndividualRepository.findByMes(user.id, mes.id)
+      : [];
+
+    const pagosPrevistos = await pagoPrevistoIndividualRepository.findAll(user.id);
 
     if (!mes) {
       return {
         variante: 'individual',
         gastos: [],
-        gastosAnuales: [],
+        pagosPrevistosMes: [],
         sinMes: inicio.sinMesAbierto,
       };
     }
@@ -197,7 +192,11 @@ export const adaptadorIndividual: ContextoCuenta = {
     return {
       variante: 'individual',
       gastos,
-      gastosAnuales: mapearGastosAnualesAVista(gastosAnuales, mes),
+      pagosPrevistosMes: mapearPagosPrevistosMes(
+        pagosPrevistos,
+        mes,
+        new Date(),
+      ),
       sinMes: null,
     };
   },
@@ -243,10 +242,29 @@ export const adaptadorIndividual: ContextoCuenta = {
   /* Alta y edición de gasto mensual                                         */
   /* ---------------------------------------------------------------------- */
 
-  async vistaNuevoGasto(): Promise<VistaPantallaFormGasto> {
+  async vistaNuevoGasto(pagoPrevistoId?: string | null): Promise<VistaPantallaFormGasto> {
     await usuarioDeSesion();
 
     const mes = await obtenerMesActual();
+
+    let prefill: VistaPantallaFormGasto['prefill'] = null;
+    if (pagoPrevistoId) {
+      const user = await usuarioDeSesion();
+      const previsto = await pagoPrevistoIndividualRepository.findById(user.id, pagoPrevistoId);
+      if (previsto) {
+        const anio = mes?.anio ?? new Date().getFullYear();
+        prefill = {
+          detalle: previsto.detalle,
+          categoria: previsto.categoria,
+          importe:
+            previsto.importeReferencia != null
+              ? (previsto.importeReferencia / 100).toString().replace('.', ',')
+              : '',
+          fechaGasto: fechaPrevista(previsto, anio),
+          pagoPrevistoId: previsto.id,
+        };
+      }
+    }
 
     return {
       variante: 'individual',
@@ -254,6 +272,7 @@ export const adaptadorIndividual: ContextoCuenta = {
       avisoCongelado: null,
       gasto: null,
       mesId: mes?.id ?? null,
+      prefill,
     };
   },
 
@@ -275,50 +294,7 @@ export const adaptadorIndividual: ContextoCuenta = {
       avisoCongelado: avisoCongeladoDe(gasto.fechaGasto),
       gasto,
       mesId: null,
-    };
-  },
-
-  /* ---------------------------------------------------------------------- */
-  /* Alta y edición de gasto anual                                           */
-  /* ---------------------------------------------------------------------- */
-
-  async vistaNuevoGastoAnual(): Promise<VistaPantallaFormGastoAnual> {
-    await usuarioDeSesion();
-
-    const mes = await obtenerMesActual();
-
-    return {
-      variante: 'individual',
-      sinMes: mes ? null : inicio.sinMesAbierto,
-      avisoDevengoPrevio: null,
-      gastoAnual: null,
-      devengoPrevio: false,
-    };
-  },
-
-  async vistaEditarGastoAnual(
-    gastoAnualId: string,
-  ): Promise<VistaPantallaFormGastoAnual> {
-    const user = await usuarioDeSesion();
-
-    // Lectura owner-first: si el id pertenece a otra persona devuelve `null` y
-    // la pantalla responde 404, sin revelar que el dato existe.
-    const gastoAnual = await gastoAnualIndividualRepository.findById(
-      user.id,
-      gastoAnualId,
-    );
-    if (!gastoAnual) {
-      notFound();
-    }
-
-    const { devengoPrevio, aviso } = devengoPrevioDe(gastoAnual);
-
-    return {
-      variante: 'individual',
-      sinMes: null,
-      avisoDevengoPrevio: aviso,
-      gastoAnual,
-      devengoPrevio,
+      prefill: null,
     };
   },
 
@@ -387,11 +363,10 @@ export const adaptadorIndividual: ContextoCuenta = {
       notFound();
     }
 
-    const [aportacion, gastos, presupuesto, gastosAnuales] = await Promise.all([
+    const [aportacion, gastos, presupuesto] = await Promise.all([
       aportacionRepository.findByMesAndUsuario(mes.id, user.id),
       gastoIndividualRepository.findByMes(user.id, mes.id),
       presupuestoIndividualRepository.findByMes(user.id, mes.id),
-      gastoAnualIndividualRepository.findAll(user.id),
     ]);
 
     const permisos = ventanaDeMes(new Date(), mes.anio, mes.mes);
@@ -400,7 +375,6 @@ export const adaptadorIndividual: ContextoCuenta = {
       aportacion,
       gastos,
       presupuesto?.presupuesto ?? null,
-      gastosAnuales,
     );
 
     return derivarDetalleMesVista({
@@ -411,7 +385,6 @@ export const adaptadorIndividual: ContextoCuenta = {
         presupuesto: individual.miPresupuesto,
         saldo: literalesResumen.disponible,
         deficit: literalesResumen.deficit,
-        apartado: gastosAnualesLiterales.titulo,
       },
       hrefVolver: rutaHistorico('individual'),
       titulo: `${nombreMes(mes.mes)} ${mes.anio}`,
@@ -423,5 +396,14 @@ export const adaptadorIndividual: ContextoCuenta = {
       puedeEditar: permisos.puedeEditar,
       puedeEliminar: permisos.puedeEliminar,
     });
+  },
+
+  async vistaGestionPagosPrevistos(): Promise<VistaGestionPagosPrevistos> {
+    const user = await usuarioDeSesion();
+    const pagos = await pagoPrevistoIndividualRepository.findAll(user.id);
+    return {
+      variante: 'individual',
+      pagos: mapearGestionPagosPrevistos(pagos, new Date()),
+    };
   },
 };

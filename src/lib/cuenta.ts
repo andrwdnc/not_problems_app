@@ -106,17 +106,9 @@ export function rutaGastoDetalle(variante: VarianteCuenta, gastoId: string): str
   return `${rutaGastos(variante)}/${gastoId}`;
 }
 
-/** Ruta de alta de un gasto anual según la variante. */
-export function rutaGastoAnualNuevo(variante: VarianteCuenta): string {
-  return `${rutaGastos(variante)}/anuales/nueva`;
-}
-
-/** Ruta de detalle de un gasto anual según la variante. */
-export function rutaGastoAnualDetalle(
-  variante: VarianteCuenta,
-  gastoAnualId: string,
-): string {
-  return `${rutaGastos(variante)}/anuales/${gastoAnualId}`;
+/** Ruta de la página de gestión de pagos previstos. */
+export function rutaPagosPrevistos(variante: VarianteCuenta): string {
+  return `${rutaGastos(variante)}/previstos`;
 }
 
 /** Campos comunes del formulario de gasto (conjunto e individual). */

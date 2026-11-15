@@ -1,5 +1,6 @@
 import type { VarianteCuenta } from '@/lib/cuenta';
 import type { TarjetaMesHistoricoVista } from './historico';
+import type { FilaPagoPrevistoMesVista } from './pagos-previstos';
 
 /**
  * MODELOS DE VISTA DE LAS PANTALLAS, uno por pantalla y compartidos por las dos
@@ -50,7 +51,7 @@ export type DatosUltimosGastos = {
 export interface VistaPantallaGastos {
   gastos: unknown[];
   usuarios?: Map<string, string>;
-  gastosAnuales: unknown[];
+  pagosPrevistosMes: FilaPagoPrevistoMesVista[];
   variante: VarianteCuenta;
   /** Sin mes abierto: se pinta este texto en vez de la lista. */
   sinMes: string | null;
@@ -102,22 +103,13 @@ export interface VistaPantallaFormGasto {
   gasto: unknown | null;
   /** Id del mes de destino del alta; `null` si no hay mes. */
   mesId: string | null;
+  /** Valores precargados (p. ej. desde un pago previsto). `null` si no hay. */
+  prefill: {
+    detalle: string;
+    categoria: string;
+    importe: string;
+    fechaGasto: string;
+    pagoPrevistoId: string;
+  } | null;
 }
-
-/**
- * Estado común de las pantallas de alta y edición de un gasto anual. Igual que
- * arriba: un componente, cuatro rutas.
- */
-export interface VistaPantallaFormGastoAnual {
-  variante: VarianteCuenta;
-  /** Sin mes abierto (solo en el alta): texto a mostrar en vez del formulario. */
-  sinMes: string | null;
-  /**
-   * Aviso de devengo previo: el gasto ya empezó a devengarse y sus cuotas ya
-   * entraron en meses anteriores, así que su importe ya no es editable.
-   */
-  avisoDevengoPrevio: string | null;
-  /** El gasto anual en edición, o `null` en el alta. */
-  gastoAnual: unknown | null;
-  devengoPrevio: boolean;
-}
+export type { VistaGestionPagosPrevistos } from "./pagos-previstos";

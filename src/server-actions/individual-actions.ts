@@ -14,6 +14,7 @@ import { fijarSueldoCore, fijarPorcentajeCore } from './aportaciones-core';
 import {
   gastoIndividualRepository,
   mesRepository,
+  pagoPrevistoIndividualRepository,
   presupuestoIndividualRepository,
 } from './repositories';
 import { auditarMovimiento } from '@/infrastructure/audit/auditarMovimiento';
@@ -190,6 +191,19 @@ export async function crearGastoIndividual(
     accion: 'crear',
     valorNuevo: gasto,
   });
+
+  if (data.pagoPrevistoId) {
+    try {
+      await pagoPrevistoIndividualRepository.marcarPagado(
+        usuarioId,
+        data.pagoPrevistoId,
+        anio,
+        gasto.id,
+      );
+    } catch {
+      // No crítico.
+    }
+  }
 
   revalidarIndividual();
 

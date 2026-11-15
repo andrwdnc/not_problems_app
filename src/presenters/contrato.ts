@@ -5,9 +5,9 @@ import type {
   DatosUltimosGastos,
   VistaPantallaAportar,
   VistaPantallaFormGasto,
-  VistaPantallaFormGastoAnual,
   VistaPantallaGastos,
   VistaPantallaHistorico,
+  VistaGestionPagosPrevistos,
 } from '@/vistas/pantallas';
 
 /**
@@ -39,16 +39,15 @@ export interface ContextoCuenta {
   /* --- Listado de gastos --- */
   vistaGastos(): Promise<VistaPantallaGastos>;
 
+  /* --- Gestión de pagos previstos --- */
+  vistaGestionPagosPrevistos(): Promise<VistaGestionPagosPrevistos>;
+
   /* --- Aportar --- */
   vistaAportar(): Promise<VistaPantallaAportar>;
 
   /* --- Alta y edición de gasto mensual --- */
-  vistaNuevoGasto(): Promise<VistaPantallaFormGasto>;
+  vistaNuevoGasto(pagoPrevistoId?: string | null): Promise<VistaPantallaFormGasto>;
   vistaEditarGasto(gastoId: string): Promise<VistaPantallaFormGasto>;
-
-  /* --- Alta y edición de gasto anual --- */
-  vistaNuevoGastoAnual(): Promise<VistaPantallaFormGastoAnual>;
-  vistaEditarGastoAnual(gastoAnualId: string): Promise<VistaPantallaFormGastoAnual>;
 
   /* --- Histórico y detalle de mes --- */
   vistaHistorico(): Promise<VistaPantallaHistorico>;

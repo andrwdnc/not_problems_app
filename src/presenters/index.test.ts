@@ -21,11 +21,10 @@ const METODOS_DEL_CONTRATO = [
   'vistaAportar',
   'vistaDetalleMes',
   'vistaEditarGasto',
-  'vistaEditarGastoAnual',
   'vistaGastos',
+  'vistaGestionPagosPrevistos',
   'vistaHistorico',
   'vistaNuevoGasto',
-  'vistaNuevoGastoAnual',
 ].sort();
 
 describe('tabla de adaptadores de cuenta', () => {

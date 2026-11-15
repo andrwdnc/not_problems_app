@@ -21,6 +21,7 @@ export const gastoSchema = z.object({
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/, gastoValidaciones.fechaInvalida),
   esRecurrente: z.boolean().default(false),
+  pagoPrevistoId: z.string().uuid().optional(),
 });
 
 export const editarGastoSchema = z.object({

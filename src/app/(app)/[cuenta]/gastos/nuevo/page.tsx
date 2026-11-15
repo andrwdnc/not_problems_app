@@ -14,15 +14,17 @@ export const dynamic = 'force-dynamic';
  */
 export default function NuevoGastoPage({
   params,
+  searchParams,
 }: {
   params: { cuenta: string };
+  searchParams?: { previsto?: string };
 }) {
   const contexto = adaptadorDeCuenta(params.cuenta);
   return (
     <PantallaFormGasto
       hrefVolver={rutaGastos(contexto.variante)}
       titulo={gastoForm.nuevoGasto}
-      vista={contexto.vistaNuevoGasto()}
+      vista={contexto.vistaNuevoGasto(searchParams?.previsto ?? null)}
     />
   );
 }

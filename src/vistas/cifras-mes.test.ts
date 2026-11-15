@@ -30,7 +30,6 @@ import {
 const SUELDO = 300_000;
 const CUOTA = 150_000; // 3.000,00 x 50 %
 const GASTADO = 42_000;
-const APARTADO = 10_000;
 const PRESUPUESTO = 200_000;
 const NUMERO_GASTOS = 7;
 
@@ -40,7 +39,6 @@ function resumenMes(): ResumenMesLike {
     // con una sola persona aportante, es mi cuota y nada más.
     aportado: CUOTA,
     presupuesto: PRESUPUESTO,
-    apartado: APARTADO,
     ahorro: 98_000,
     gastado: GASTADO,
     numeroGastos: NUMERO_GASTOS,
@@ -50,9 +48,8 @@ function resumenMes(): ResumenMesLike {
 function resumenIndividual(): ResumenIndividualLike {
   return {
     cuota: CUOTA,
-    disponible: CUOTA - GASTADO - APARTADO,
+    disponible: CUOTA - GASTADO,
     presupuesto: PRESUPUESTO,
-    apartado: APARTADO,
     gastado: GASTADO,
     numeroGastos: NUMERO_GASTOS,
   };
@@ -82,7 +79,7 @@ describe('cifrasDeResumenIndividual', () => {
 
     expect(cifras.aportacion).not.toBeNull();
     expect(cifras.saldo).toBe(
-      (cifras.aportacion as number) - GASTADO - APARTADO,
+      (cifras.aportacion as number) - GASTADO,
     );
     expect(cifras.cuota).toBe(cifras.aportacion);
   });
@@ -105,7 +102,6 @@ describe('cifrasDeResumenIndividual', () => {
 
     expect(cifras.gastado).toBe(GASTADO);
     expect(cifras.presupuesto).toBe(PRESUPUESTO);
-    expect(cifras.apartado).toBe(APARTADO);
     expect(cifras.numeroGastos).toBe(NUMERO_GASTOS);
   });
 });
@@ -132,7 +128,6 @@ describe('paridad entre las dos áreas', () => {
       'aportacion',
       'gastado',
       'presupuesto',
-      'apartado',
       'numeroGastos',
     ] as const) {
       expect(individual[campo], `el campo "${campo}" diverge entre áreas`).toBe(

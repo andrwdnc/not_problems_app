@@ -45,8 +45,6 @@ export interface CifrasMes {
   presupuesto: number | null;
   /** Resultado: ahorro (conjunta) o disponible (individual). Puede ser negativo. */
   saldo: number | null;
-  /** Cuotas de gastos anuales devengadas este mes. */
-  apartado: number;
   numeroGastos: number;
 }
 
@@ -54,9 +52,7 @@ export interface CifrasMes {
 export interface ResumenMesLike {
   aportado: number;
   presupuesto: number | null;
-  /** No existe cuota por persona en la conjunta: la aportación ES la cuota. */
-  apartado: number;
-  /** `ahorro` = aportado − (gastado + apartado): el dinero real que queda. */
+  /** `ahorro` = aportado − gastado: el dinero real que queda. */
   ahorro: number;
   gastado: number;
   numeroGastos: number;
@@ -76,7 +72,6 @@ export interface ResumenIndividualLike {
   cuota: number | null;
   disponible: number | null;
   presupuesto: number | null;
-  apartado: number;
   gastado: number;
   numeroGastos: number;
 }
@@ -88,7 +83,6 @@ export function cifrasDeResumenMes(r: ResumenMesLike): CifrasMes {
     gastado: r.gastado,
     presupuesto: r.presupuesto,
     saldo: r.ahorro,
-    apartado: r.apartado,
     numeroGastos: r.numeroGastos,
   };
 }
@@ -104,7 +98,6 @@ export function cifrasDeResumenIndividual(r: ResumenIndividualLike): CifrasMes {
     gastado: r.gastado,
     presupuesto: r.presupuesto,
     saldo: r.disponible,
-    apartado: r.apartado,
     numeroGastos: r.numeroGastos,
   };
 }

@@ -46,7 +46,7 @@ src/
 │   │   │                       #   individual): /conjunta/inicio, /individual/gastos, …
 │   │   ├── layout.tsx          # Valida el segmento, sesión, cabecera y BottomNav
 │   │   ├── inicio/             # Cada pantalla existe UNA sola vez
-│   │   ├── gastos/             # (+ nuevo, [id], anuales/nueva, anuales/[id])
+│   │   ├── gastos/             # (+ nuevo, [id], previstos)
 │   │   ├── aportar/
 │   │   └── historico/          # (+ [id] detalle de mes)
 │   ├── layout.tsx              # Layout principal con navegación inferior móvil
@@ -336,9 +336,8 @@ export const historicoMovimientos = pgTable('historico_movimientos', {
 | `npm run db:push` | Aplicar el schema Drizzle a la Supabase (única: dev y prod comparten instancia) |
 | `npm run db:migrate` | Aplicar las migraciones SQL generadas (producción) |
 | `npm run db:studio` | Abrir Drizzle Studio |
-| `npm run db:migrate:gastos-anuales` | Migrar el esquema de gastos anuales (idempotente) |
+| `npm run db:migrate:pagos-previstos` | Crear la tabla pagos_previstos y eliminar las antiguas de gastos anuales (idempotente) |
 | `npm run db:migrate:individual-accounts` | Migrar el esquema de gastos individuales (idempotente) |
-| `npm run db:migrate:gastos-anuales-individuales` | Migrar gastos anuales del área individual (idempotente) |
 | `npm run db:migrate:presupuestos-individuales` | Migrar presupuestos individuales (idempotente) |
 | `npm run db:migrate:auth-seguridad` | Contador de intentos + trigger de máximo 2 usuarios (idempotente) |
 | `npm run db:migrate:categorias-viajes` | `Suministros` → `Viajes` y recrea `categoria_enum` sin `Suministros` (idempotente) |

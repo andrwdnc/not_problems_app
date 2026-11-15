@@ -4,8 +4,8 @@ import {
   GastoIndividualDrizzleRepository,
   HistoricoDrizzleRepository,
   MesDrizzleRepository,
-  GastoAnualDrizzleRepository,
-  GastoAnualIndividualDrizzleRepository,
+  PagoPrevistoDrizzleRepository,
+  PagoPrevistoIndividualDrizzleRepository,
   PresupuestoIndividualDrizzleRepository,
   UsuarioDrizzleRepository,
   AuthIntentosDrizzleRepository,
@@ -23,7 +23,7 @@ export const gastoRepository = new GastoDrizzleRepository();
 export const gastoIndividualRepository = new GastoIndividualDrizzleRepository();
 export const historicoRepository = new HistoricoDrizzleRepository();
 export const usuarioRepository = new UsuarioDrizzleRepository();
-export const gastoAnualRepository = new GastoAnualDrizzleRepository();
-export const gastoAnualIndividualRepository = new GastoAnualIndividualDrizzleRepository();
+export const pagoPrevistoRepository = new PagoPrevistoDrizzleRepository();
+export const pagoPrevistoIndividualRepository = new PagoPrevistoIndividualDrizzleRepository();
 export const presupuestoIndividualRepository = new PresupuestoIndividualDrizzleRepository();
 export const authIntentosRepository = new AuthIntentosDrizzleRepository();

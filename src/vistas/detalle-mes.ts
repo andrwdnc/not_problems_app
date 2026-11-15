@@ -15,7 +15,6 @@ import type { CifrasMes } from './cifras-mes';
  *   2. gastado
  *   3. presupuesto
  *   4. saldo (Ahorro / Disponible), que puede ser déficit
- *   5. apartado de gastos anuales, solo si es mayor que 0
  *
  * Esa lista la construye `derivarDetalleMesVista`, no el componente: así el orden
  * y la presencia de la quinta carta son comprobables con un test, sin renderizar.
@@ -109,8 +108,6 @@ export interface RotulosDetalleMes {
   saldo: string;
   /** "Déficit" en las dos áreas: el mismo término para el mismo hecho. */
   deficit: string;
-  /** "Apartado": rótulo de la tarjeta de gastos anuales. */
-  apartado: string;
 }
 
 /** Fila de gasto mínima para la lista del detalle. */
@@ -140,7 +137,7 @@ export interface EntradaDetalleMes {
 
 /**
  * Construye las cartas del detalle. El orden es PARTE DEL CONTRATO: aportación,
- * gastado, presupuesto, saldo y, solo si aparta algo, el apartado.
+ * gastado, presupuesto y saldo.
  *
  * La quinta carta es condicional a propósito y no un "0 €" fijo: en la cuenta
  * conjunta ya era condicional, y en la individual desaparece cuando el usuario
@@ -164,15 +161,6 @@ export function derivarCartasDetalle(
       absoluto: true,
     },
   ];
-
-  if (cifras.apartado > 0) {
-    cartas.push({
-      etiqueta: rotulos.apartado,
-      valor: cifras.apartado,
-      tono: 'aportado',
-      absoluto: false,
-    });
-  }
 
   return cartas;
 }

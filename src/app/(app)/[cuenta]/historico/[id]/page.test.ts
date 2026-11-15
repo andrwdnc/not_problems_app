@@ -35,7 +35,6 @@ vi.mock('@/server-actions/repositories', () => ({
   presupuestoIndividualRepository: {
     findByMes: (...args: unknown[]) => findByMesPresupuesto(...args),
   },
-  gastoAnualIndividualRepository: { findAll: vi.fn(async () => []) },
 }));
 
 // Se conserva la implementación real de la regla pura y solo se envuelve para
