@@ -26,7 +26,7 @@ export function Input({ label, className, id, type, ...props }: InputProps) {
           // `min-w-0` + `max-w-full`: el input no puede ensancharse por su ancho
           // intrínseco (los nativos —fechas, números— traen un `size` propio) ni
           // empujar a su contenedor fuera de la pantalla.
-          'w-full max-w-full min-w-0 rounded-xl border border-brand-border bg-brand-surface px-4 py-3 text-base text-brand-ink outline-none transition-colors placeholder:text-brand-muted/60 focus:border-brand-primary',
+          'w-full max-w-full min-w-0 rounded-xl border border-brand-border bg-brand-surface px-4 py-3 text-base text-brand-ink outline-none transition-colors placeholder:text-brand-ink/70 focus:border-brand-primary',
           // `type="date"`: sin `appearance-none`, WebKit pinta el campo nativo
           // con su estructura interna (día/mes/año + botón) y eso desborda el
           // ancho disponible, sacando la etiqueta de la pantalla.
