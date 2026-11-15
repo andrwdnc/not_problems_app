@@ -129,17 +129,3 @@ export function GastoFormSkeleton() {
     </div>
   );
 }
-
-/**
- * Formulario de gasto anual (alta o edición). Es más corto que el mensual: solo
- * detalle, importe y mes de pago.
- */
-export function GastoAnualFormSkeleton() {
-  return (
-    <div className="space-y-4" role="status" aria-label={app.cargando}>
-      <Pulso className="h-12 rounded-full" />
-      <Pulso className="h-40 rounded-2xl" />
-      <Pulso className="h-12 rounded-2xl" />
-    </div>
-  );
-}
