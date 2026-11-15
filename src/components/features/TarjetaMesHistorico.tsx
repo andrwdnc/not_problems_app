@@ -41,7 +41,7 @@ export function TarjetaMesHistorico({ vista }: { vista: TarjetaMesHistoricoVista
         <div className="mt-3 grid grid-cols-4 gap-2 text-center">
           {vista.columnas.map((columna) => (
             <div key={columna.etiqueta}>
-              <p className="text-xs text-brand-muted">{columna.etiqueta}</p>
+              <p className="font-medium text-sm text-brand-ink">{columna.etiqueta}</p>
               {columna.variante === 'saldo' ? (
                 // El saldo es la única cifra que puede ser negativa: se muestra en
                 // valor absoluto y el color lo decide el signo (verde si queda
