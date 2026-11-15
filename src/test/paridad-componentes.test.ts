@@ -3,18 +3,21 @@ import { dirname, join } from 'path';
 import { describe, expect, it } from 'vitest';
 
 /**
- * Guarda de paridad de componentes entre las dos áreas de cuenta.
+ * Guarda de componentes compartidos del árbol único de rutas.
  *
- * Las áreas conjunta (`src/app/(dashboard)`) e individual (`src/app/individual`)
- * son dos navegaciones que ofrecen el mismo producto. Cada componente de
- * `components/features/` que usa una debe usarse también en la otra; si no, una
- * de las dos ha perdido una capacidad y nadie se entera hasta que un usuario la
- * echa de menos.
+ * Antes las dos áreas de cuenta eran DOS navegaciones paralelas
+ * (`src/app/(dashboard)` y `src/app/individual`) y este guard comparaba lo que
+ * usaba cada una para detectar divergencias silenciosas. Desde que las 9 rutas
+ * viven UNA sola vez bajo `src/app/(app)/[cuenta]`, la paridad de pantallas es
+ * estructural (una sola copia no puede divergir) y lo que queda vigilado son
+ * dos cosas:
  *
- * Este test es deliberadamente DURO: añadir un componente nuevo para una sola
- * área hace fallar la suite y obliga a usarlo en la otra en el mismo commit.
- * Esa fricción es el objetivo; una lista de excepciones que crece sin resistencia
- * es exactamente el agujero que este guard cierra.
+ *   1. Que el árbol de rutas siga usando DE VERDAD los componentes compartidos
+ *      declarados (ninguno muerto): si una pantalla deja de renderizar uno, el
+ *      guard avisa en vez de dejar el componente huérfano.
+ *   2. Que las dos variantes sigan exponiendo el MISMO conjunto de vistas: eso
+ *      lo fija `src/server-actions/contexto-cuenta/index.test.ts` sobre la
+ *      tabla de adaptadores y los tipos `Vista*` en compilación.
  *
  * Lo que NO se comprueba aquí: el comportamiento. Eso es responsabilidad de los
  * tests de cada componente.
@@ -22,14 +25,11 @@ import { describe, expect, it } from 'vitest';
 
 const RAIZ = join(process.cwd(), 'src');
 
-const AREA_CONJUNTA = join(RAIZ, 'app/(dashboard)');
-const AREA_INDIVIDUAL = join(RAIZ, 'app/individual');
+const ARBOL_RUTAS = join(RAIZ, 'app/(app)');
 
 /**
- * Componentes compartidos que el área conjunta usa y la individual no.
- *
- * No es una lista de "los que nos gustan": es la foto real de lo que ambas
- * áreas importan hoy, comprobada por los tests de este mismo fichero.
+ * Componentes compartidos que la app declara: todos los de `components/features/`
+ * que sirven a las dos cuentas (los de pantalla, listas, formularios y vistas).
  */
 const COMPONENTES_COMPARTIDOS = [
   'AnilloProgreso',
@@ -53,17 +53,6 @@ const COMPONENTES_COMPARTIDOS = [
   'TarjetaMesHistorico',
   'UltimosGastos',
 ];
-
-/**
- * Componentes compartidos exentos de la regla. Solo deben entrar aquí casos
- * cuya omisión en una de las dos áreas sea intencionada y esté justificada.
- */
-const EXENTOS: Record<string, string> = {
-  // `LoginForm` y `SignupForm` viven en el flujo de autenticación, que es
-  // común a las dos áreas y no se duplica.
-  LoginForm: 'Autenticación: pantalla común previa a la elección de cuenta.',
-  SignupForm: 'Autenticación: pantalla común previa a la elección de cuenta.',
-};
 
 /**
  * Import de un componente de `features/`, con o sin subcarpeta: los componentes
@@ -116,17 +105,15 @@ function resolver(importPath: string): string | null {
 }
 
 /**
- * Componentes de `features/` que un área usa DE VERDAD: los que importan sus
- * páginas más los que importan los componentes a los que esas páginas delegan.
+ * Componentes de `features/` que el árbol de rutas usa DE VERDAD: los que
+ * importan sus páginas más los que importan los componentes a los que esas
+ * páginas delegan.
  *
- * Sin este cierre transitivo el guard miente. Cuando una pantalla pasó a ser un
- * componente compartido (`pantallas/PantallaDetalleMes`), las páginas dejaron de
- * importar `GastoMesAcciones` directamente y el guard la habría dado por muerta
- * o por usada solo en un área. Un guard que solo mira el primer nivel deja de
- * proteger la paridad justo cuando las páginas empiezan a delegar, que es
- * cuando más hace falta.
+ * Sin este cierre transitivo el guard miente: cuando una pantalla pasa a ser un
+ * componente compartido (`pantallas/PantallaDetalleMes`), las páginas dejan de
+ * importar `GastoMesAcciones` directamente y el guard la daría por muerta.
  */
-function componentesEnUso(raizArea: string): Set<string> {
+function componentesEnUso(raizArbol: string): Set<string> {
   const usados = new Set<string>();
   const visitados = new Set<string>();
 
@@ -144,81 +131,25 @@ function componentesEnUso(raizArea: string): Set<string> {
     }
   };
 
-  visitar(raizArea);
+  visitar(raizArbol);
   return usados;
 }
 
-describe('paridad de componentes entre áreas de cuenta', () => {
-  const conjunta = componentesEnUso(AREA_CONJUNTA);
-  const individual = componentesEnUso(AREA_INDIVIDUAL);
+describe('componentes compartidos del árbol único de rutas', () => {
+  const usados = componentesEnUso(ARBOL_RUTAS);
 
-  it('las dos áreas tienen componentes que comparar (si no, el guard es inútil)', () => {
-    expect(conjunta.size).toBeGreaterThan(0);
-    expect(individual.size).toBeGreaterThan(0);
+  it('el árbol de rutas existe y usa componentes (si no, el guard es inútil)', () => {
+    expect(usados.size).toBeGreaterThan(0);
   });
 
-  it('ningún componente compartido se usa solo en el área conjunta', () => {
-    const huerfanos = Array.from(conjunta)
-      .filter((c) => !individual.has(c))
-      .filter((c) => !(c in EXENTOS))
-      .sort();
-
-    expect(
-      huerfanos,
-      `Estos componentes los usa solo el área conjunta:\n` +
-        `  ${huerfanos.join('\n  ')}\n\n` +
-        `Cada uno debería usarse también en el área individual (suavemente con ` +
-        `una prop \`variante\`, o sin ella si la diferencia es de datos). Si de ` +
-        `verdad no aplica, decláralo en EXENTOS con su motivo.`,
-    ).toEqual([]);
-  });
-
-  it('ningún componente compartido se usa solo en el área individual', () => {
-    const huerfanos = Array.from(individual)
-      .filter((c) => !conjunta.has(c))
-      .filter((c) => !(c in EXENTOS))
-      .sort();
-
-    expect(
-      huerfanos,
-      `Estos componentes los usa solo el área individual:\n` +
-        `  ${huerfanos.join('\n  ')}\n\n` +
-        `Por simetría deben existir también en la conjunta.`,
-    ).toEqual([]);
-  });
-
-  it('la lista de componentes compartidos refleja el uso real', () => {
-    // Detecta el caso contrario: que COMPONENTES_COMPARTIDOS se quede corto y
-    // el guard deje de mirar algo que sí se usa en las dos áreas.
-    const declarados = new Set(COMPONENTES_COMPARTIDOS);
-    const reales = new Set(Array.from(conjunta).filter((c) => individual.has(c)));
-
-    expect(
-      Array.from(reales).filter((c) => !declarados.has(c)).sort(),
-      `Componentes usados por AMBAS áreas pero ausentes de COMPONENTES_COMPARTIDOS. ` +
-        `Añádelos a la lista para que el guard los vigile.`,
-    ).toEqual([]);
-  });
-
-  it('ningún componente declarado está muerto (o sin usar, o exento)', () => {
-    const muertos = COMPONENTES_COMPARTIDOS.filter(
-      (c) => !conjunta.has(c) && !individual.has(c),
-    );
+  it('ningún componente compartido declarado está muerto (o sin usar, o borrado)', () => {
+    const muertos = COMPONENTES_COMPARTIDOS.filter((c) => !usados.has(c));
 
     expect(
       muertos.sort(),
-      `Componentes de COMPONENTES_COMPARTIDOS que no usa ninguna de las dos áreas: ` +
-        `o se han borrado, o la lista está desactualizada.`,
+      `Componentes de COMPONENTES_COMPARTIDOS que el árbol de rutas no usa: ` +
+        `o se han borrado, o una pantalla dejó de renderizarlos, o la lista está ` +
+        `desactualizada.`,
     ).toEqual([]);
-  });
-
-  it('las excepciones son un contrato, no un cajón de sastre', () => {
-    // Cada excepción debe seguir teniendo su justificación escrita: es lo que
-    // hace auditable la lista en una revisión de código.
-    const sinMotivo = Object.entries(EXENTOS)
-      .filter(([, motivo]) => !motivo || motivo.trim().length < 20)
-      .map(([nombre]) => nombre);
-
-    expect(sinMotivo.sort()).toEqual([]);
   });
 });

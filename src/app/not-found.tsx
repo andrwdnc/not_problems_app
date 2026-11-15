@@ -13,7 +13,7 @@ export default function NotFound() {
         <p className="mt-2 text-sm text-brand-muted">
           {errores.noEncontradoDescripcion}
         </p>
-        <Link href="/inicio" className="mt-6 block w-full">
+        <Link href="/" className="mt-6 block w-full">
           <Button fullWidth>{errores.volverInicio}</Button>
         </Link>
       </Card>

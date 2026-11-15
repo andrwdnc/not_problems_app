@@ -11,7 +11,7 @@ import type { GastoAnualVista } from '@/server-actions/vista-gastos-anuales';
 
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ refresh: vi.fn() }),
-  usePathname: () => '/gastos',
+  usePathname: () => '/conjunta/gastos',
 }));
 
 vi.mock('@/server-actions/gastos-actions', () => ({ eliminarGasto: vi.fn() }));
@@ -52,7 +52,7 @@ describe('GastosList', () => {
   });
 
   describe('área conjunta (por defecto)', () => {
-    it('muestra el autor y enlaza sin prefijo', () => {
+    it('muestra el autor y enlaza al detalle de la cuenta conjunta', () => {
       render(
         <GastosList gastos={[GASTO]} usuarios={new Map([['u1', 'ana']])} />,
       );
@@ -66,16 +66,16 @@ describe('GastosList', () => {
       ).toBeInTheDocument();
       expect(screen.getByLabelText(gastosLiterales.editar)).toHaveAttribute(
         'href',
-        '/gastos/g1',
+        '/conjunta/gastos/g1',
       );
     });
 
-    it('el botón flotante apunta a /gastos/nuevo', () => {
+    it('el botón flotante apunta a /conjunta/gastos/nuevo', () => {
       render(<GastosList gastos={[GASTO]} />);
 
       expect(
         screen.getByLabelText(gastosLiterales.nuevoGasto),
-      ).toHaveAttribute('href', '/gastos/nuevo');
+      ).toHaveAttribute('href', '/conjunta/gastos/nuevo');
     });
 
     it('muestra la sección de gastos anuales aunque esté vacía', () => {

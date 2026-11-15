@@ -1,12 +1,12 @@
 'use server';
 
-import { revalidatePath } from 'next/cache';
 import {
   gastoAnualIndividualSchema,
   editarGastoAnualIndividualSchema,
   marcarPagadoGastoAnualIndividualSchema,
   eliminarGastoAnualIndividualSchema,
 } from './schemas/gasto-anual-individual';
+import { revalidarPantallas } from './revalidacion';
 import { gastoAnualIndividualRepository } from './repositories';
 import { auditarMovimiento } from '@/infrastructure/audit/auditarMovimiento';
 import {
@@ -105,9 +105,7 @@ async function cobrarSiCorresponde(
  * pantalla nueva al área, se toca un sitio y no cuatro.
  */
 function revalidarArbolIndividual() {
-  revalidatePath('/individual/inicio');
-  revalidatePath('/individual/gastos');
-  revalidatePath('/individual/historico');
+  revalidarPantallas('individual', ['inicio', 'gastos', 'historico']);
 }
 
 /** Valida sesión y esquema; devuelve el usuario o el error ya formateado. */

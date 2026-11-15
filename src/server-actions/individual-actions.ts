@@ -1,6 +1,5 @@
 'use server';
 
-import { revalidatePath } from 'next/cache';
 import {
   gastoIndividualSchema,
   editarGastoIndividualSchema,
@@ -21,6 +20,7 @@ import { auditarMovimiento } from '@/infrastructure/audit/auditarMovimiento';
 import { calcularPorcentajeCompartido } from '@/domain/value-objects/Porcentaje';
 import { ventanaEdicionGastos } from '@/domain/rules/VentanaEdicionGastos';
 import { getCurrentUserId } from '@/server/auth';
+import { revalidarPantallas } from './revalidacion';
 import type {
   Aportacion,
   GastoIndividual,
@@ -40,22 +40,17 @@ import { aportacionErrores, authErrores, gastosErrores } from '@/literals';
 
 /**
  * Revalida las rutas que muestran datos individuales o derivados de ellos
- * (el sueldo/% individuales alimentan también importe_aportado conjunto).
+ * (el sueldo/% individuales alimentan también importe_aportado conjunto, así
+ * que las pantallas de la conjunta que lo enseñan se refrescan también).
  */
 function revalidarAmbasAreas(): void {
-  revalidatePath('/individual/inicio');
-  revalidatePath('/individual/aportar');
-  revalidatePath('/individual/historico');
-  revalidatePath('/');
-  revalidatePath('/aportar');
-  revalidatePath('/historico');
+  revalidarPantallas('individual', ['inicio', 'aportar', 'historico']);
+  revalidarPantallas('conjunta', ['inicio', 'aportar', 'historico']);
 }
 
 /** Revalida únicamente las rutas individuales (mutaciones de gastos). */
 function revalidarIndividual(): void {
-  revalidatePath('/individual/inicio');
-  revalidatePath('/individual/gastos');
-  revalidatePath('/individual/historico');
+  revalidarPantallas('individual', ['inicio', 'gastos', 'historico']);
 }
 
 function mesDeFecha(fecha: string): { anio: number; mes: number } {

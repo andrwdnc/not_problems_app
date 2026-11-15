@@ -1,8 +1,8 @@
 'use server';
 
-import { revalidatePath } from 'next/cache';
 import { gastoSchema, editarGastoSchema, eliminarGastoSchema } from './schemas/gasto';
 import { gastoRepository, mesRepository } from './repositories';
+import { revalidarPantallas } from './revalidacion';
 import { auditarMovimiento } from '@/infrastructure/audit/auditarMovimiento';
 import { ventanaEdicionGastos } from '@/domain/rules/VentanaEdicionGastos';
 import { getCurrentUserId } from '@/server/auth';
@@ -80,9 +80,7 @@ export async function crearGasto(
     valorNuevo: gasto,
   });
 
-  revalidatePath('/');
-  revalidatePath('/gastos');
-  revalidatePath('/historico');
+  revalidarPantallas('conjunta', ['inicio', 'gastos', 'historico']);
 
   return { ok: true, data: gasto };
 }
@@ -134,9 +132,7 @@ export async function editarGasto(
     valorNuevo: actualizado,
   });
 
-  revalidatePath('/');
-  revalidatePath('/gastos');
-  revalidatePath('/historico');
+  revalidarPantallas('conjunta', ['inicio', 'gastos', 'historico']);
 
   return { ok: true, data: actualizado };
 }
@@ -181,9 +177,7 @@ export async function eliminarGasto(
     valorAnterior: existente,
   });
 
-  revalidatePath('/');
-  revalidatePath('/gastos');
-  revalidatePath('/historico');
+  revalidarPantallas('conjunta', ['inicio', 'gastos', 'historico']);
 
   return { ok: true, data: undefined };
 }

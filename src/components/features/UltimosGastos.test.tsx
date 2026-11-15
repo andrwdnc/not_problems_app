@@ -72,7 +72,7 @@ describe('UltimosGastos', () => {
     );
     expect(
       screen.getByRole('link', { name: inicio.verTodos }),
-    ).toHaveAttribute('href', '/gastos');
+    ).toHaveAttribute('href', '/conjunta/gastos');
     unmount();
 
     render(<UltimosGastos gastos={GASTOS} variante="individual" />);

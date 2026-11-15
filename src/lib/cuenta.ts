@@ -6,18 +6,26 @@ import type { Categoria } from '@/domain/value-objects/Categoria';
  * Centralizan el esquema de URLs de las dos áreas para que el BottomNav, los
  * formularios y las páginas compartan UNA sola fuente de verdad y no haya rutas
  * hardcodeadas dispersas. La variante NO afecta a las etiquetas (viven en
- * literals): solo al prefijo de ruta y a la forma de los payloads.
+ * literals): solo al segmento de ruta y a la forma de los payloads.
  */
 
 export type VarianteCuenta = 'conjunta' | 'individual';
 
-export type PrefijoRuta = '' | '/individual';
+/**
+ * Segmento de URL de cada variante. Las 9 rutas de la app viven UNA sola vez
+ * bajo el segmento dinámico `[cuenta]`; el segmento de la URL es lo único que
+ * distingue a las dos áreas.
+ */
+export type SegmentoCuenta = '/conjunta' | '/individual';
 
-const PREFIJO_INDIVIDUAL = '/individual' as const;
+const SEGMENTO_POR_VARIANTE: Record<VarianteCuenta, SegmentoCuenta> = {
+  conjunta: '/conjunta',
+  individual: '/individual',
+};
 
-/** Prefijo de ruta según la variante: '' (conjunta) o '/individual'. */
-export function prefijoDe(variante: VarianteCuenta): PrefijoRuta {
-  return variante === 'individual' ? PREFIJO_INDIVIDUAL : '';
+/** Segmento de URL según la variante. */
+export function segmentoDe(variante: VarianteCuenta): SegmentoCuenta {
+  return SEGMENTO_POR_VARIANTE[variante];
 }
 
 /**
@@ -57,12 +65,12 @@ const RUTA_POR_PANTALLA: Record<PantallaNav, string> = {
 
 /** Ruta de una pantalla del nav dentro del área indicada. */
 export function rutaPantalla(variante: VarianteCuenta, pantalla: PantallaNav): string {
-  return `${prefijoDe(variante)}${RUTA_POR_PANTALLA[pantalla]}`;
+  return `${segmentoDe(variante)}${RUTA_POR_PANTALLA[pantalla]}`;
 }
 
-/** Hrefs del BottomNav con el prefijo aplicado, preservando el orden. */
-export function rutasConPrefijo(prefijo: PrefijoRuta): string[] {
-  return PANTALLAS_NAV.map((pantalla) => `${prefijo}${RUTA_POR_PANTALLA[pantalla]}`);
+/** Hrefs del BottomNav para una variante, preservando el orden canónico. */
+export function rutasNav(variante: VarianteCuenta): string[] {
+  return PANTALLAS_NAV.map((pantalla) => rutaPantalla(variante, pantalla));
 }
 
 /** Ruta de la pantalla de inicio según la variante. */
@@ -85,22 +93,22 @@ export function rutaHistoricoDetalle(
 
 /** Ruta de la lista de gastos según la variante. */
 export function rutaGastos(variante: VarianteCuenta): string {
-  return `${prefijoDe(variante)}/gastos`;
+  return rutaPantalla(variante, 'gastos');
 }
 
 /** Ruta del formulario de nuevo gasto según la variante. */
 export function rutaGastosNuevo(variante: VarianteCuenta): string {
-  return `${prefijoDe(variante)}/gastos/nuevo`;
+  return `${rutaGastos(variante)}/nuevo`;
 }
 
 /** Ruta del detalle de un gasto según la variante. */
 export function rutaGastoDetalle(variante: VarianteCuenta, gastoId: string): string {
-  return `${prefijoDe(variante)}/gastos/${gastoId}`;
+  return `${rutaGastos(variante)}/${gastoId}`;
 }
 
 /** Ruta de alta de un gasto anual según la variante. */
 export function rutaGastoAnualNuevo(variante: VarianteCuenta): string {
-  return `${prefijoDe(variante)}/gastos/anuales/nueva`;
+  return `${rutaGastos(variante)}/anuales/nueva`;
 }
 
 /** Ruta de detalle de un gasto anual según la variante. */
@@ -108,7 +116,7 @@ export function rutaGastoAnualDetalle(
   variante: VarianteCuenta,
   gastoAnualId: string,
 ): string {
-  return `${prefijoDe(variante)}/gastos/anuales/${gastoAnualId}`;
+  return `${rutaGastos(variante)}/anuales/${gastoAnualId}`;
 }
 
 /** Campos comunes del formulario de gasto (conjunto e individual). */

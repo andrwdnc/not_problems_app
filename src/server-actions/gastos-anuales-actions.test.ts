@@ -112,7 +112,7 @@ describe('crearGastoAnual', () => {
       entidadId: gastoId,
       accion: 'crear',
     });
-    expect(revalidatePathMock).toHaveBeenCalledWith('/gastos');
+    expect(revalidatePathMock).toHaveBeenCalledWith('/conjunta/gastos');
   });
 
   it('el ciclo inicial nunca es anterior al año en curso', async () => {

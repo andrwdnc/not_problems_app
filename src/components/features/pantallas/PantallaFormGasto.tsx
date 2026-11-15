@@ -9,9 +9,9 @@ import type { VistaPantallaFormGasto } from '@/components/features/vista-pantall
 /**
  * PANTALLA DE ALTA Y EDICIÓN DE GASTO. Un componente para las cuatro rutas.
  *
- * `/gastos/nuevo`, `/gastos/[id]`, `/individual/gastos/nuevo` y
- * `/individual/gastos/[id]` pintaban cuatro veces la misma cabecera y el mismo
- * aviso de gasto congelado. Aquí hay una sola versión de las dos cosas.
+ * `/[cuenta]/gastos/nuevo` y `/[cuenta]/gastos/[id]` con `cuenta` conjunta o
+ * individual pintaban cuatro veces la misma cabecera y el mismo aviso de gasto
+ * congelado. Aquí hay una sola versión de las dos cosas.
  *
  * El componente no distingue "alta" de "edición": decide por la presencia de
  * `gasto` en el modelo de vista, que es la única diferencia real entre las dos

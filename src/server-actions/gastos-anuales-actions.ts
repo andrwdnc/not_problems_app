@@ -1,12 +1,12 @@
 'use server';
 
-import { revalidatePath } from 'next/cache';
 import {
   gastoAnualSchema,
   editarGastoAnualSchema,
   marcarPagadoGastoAnualSchema,
   eliminarGastoAnualSchema,
 } from './schemas/gasto-anual';
+import { revalidarPantallas } from './revalidacion';
 import { gastoAnualRepository, mesRepository } from './repositories';
 import { auditarMovimiento } from '@/infrastructure/audit/auditarMovimiento';
 import { calcularAnioCicloInicial } from '@/domain/rules/CalculadoraGastoAnual';
@@ -54,9 +54,7 @@ export async function crearGastoAnual(
     valorNuevo: { ...gastoAnual, detalle: data.detalle },
   });
 
-  revalidatePath('/');
-  revalidatePath('/gastos');
-  revalidatePath('/historico');
+  revalidarPantallas('conjunta', ['inicio', 'gastos', 'historico']);
 
   return { ok: true, data: gastoAnual };
 }
@@ -124,9 +122,7 @@ export async function marcarPagadoGastoAnual(
     valorNuevo: actualizada,
   });
 
-  revalidatePath('/');
-  revalidatePath('/gastos');
-  revalidatePath('/historico');
+  revalidarPantallas('conjunta', ['inicio', 'gastos', 'historico']);
 
   return { ok: true, data: actualizada };
 }
@@ -179,9 +175,7 @@ export async function editarGastoAnual(
     valorNuevo: { ...actualizada, devengoPrevio },
   });
 
-  revalidatePath('/');
-  revalidatePath('/gastos');
-  revalidatePath('/historico');
+  revalidarPantallas('conjunta', ['inicio', 'gastos', 'historico']);
 
   return { ok: true, data: actualizada };
 }
@@ -231,9 +225,7 @@ export async function eliminarGastoAnual(
     valorAnterior: { ...existente, devengoPrevio },
   });
 
-  revalidatePath('/');
-  revalidatePath('/gastos');
-  revalidatePath('/historico');
+  revalidarPantallas('conjunta', ['inicio', 'gastos', 'historico']);
 
   return { ok: true, data: undefined };
 }
