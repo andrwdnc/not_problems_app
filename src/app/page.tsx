@@ -38,9 +38,9 @@ export default async function ChooserPage() {
         </header>
 
         <main className="flex min-h-[100dvh] flex-col items-center justify-center gap-4 pt-14 pb-32">
-          <div className="mb-2 w-full text-center">
+          <div className="mb-2 w-full px-4 text-center">
             <h1 className="text-2xl font-bold text-brand-navy">{app.nombre}</h1>
-            <p className="mt-1 text-sm text-brand-muted">{chooser.subtitulo}</p>
+            <p className="mt-1 max-w-xs mx-auto text-sm text-brand-muted">{chooser.subtitulo}</p>
           </div>
 
           <p className="w-full text-center text-base font-semibold text-brand-navy">

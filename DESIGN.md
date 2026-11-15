@@ -9,7 +9,7 @@ colors:
   brand-bg: "#EEF4FA"
   brand-surface: "#FFFFFF"
   brand-ink: "#12293F"
-  brand-muted: "#6B8299"
+  brand-muted: "#56687A"
   brand-border: "#D7E4F0"
   financial-positive: "#1F9E6D"
   financial-positive-bg: "#E4F5EE"
@@ -106,7 +106,7 @@ three semantic financial colors.
 - **Canvas** (#EEF4FA): app background.
 - **Surface** (#FFFFFF): cards and containers.
 - **Ink** (#12293F): primary text.
-- **Muted** (#6B8299): secondary text, labels, captions.
+- **Muted** (#56687A): secondary text, labels, captions.
 - **Border** (#D7E4F0): soft borders and dividers.
 
 ### Financial (semantic — never decoration)
