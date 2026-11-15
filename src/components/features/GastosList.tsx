@@ -112,7 +112,7 @@ export function GastosList({
                     <p className="truncate text-sm font-medium text-brand-ink">
                       {g.detalle}
                     </p>
-                    <p className="text-xxs text-brand-muted">
+                    <p className="text-[0.55rem] text-brand-muted">
                       {autor
                         ? `${g.categoria} · ${autor} · ${formatShortDate(g.fechaGasto)}`
                         : `${g.categoria} · ${formatShortDate(g.fechaGasto)}`}
