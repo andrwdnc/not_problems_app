@@ -21,14 +21,66 @@ export function prefijoDe(variante: VarianteCuenta): PrefijoRuta {
 }
 
 /**
- * Orden canónico de las 4 rutas del BottomNav (NAV-1). Los labels/iconos se
- * alinean 1:1 con este orden tanto en la navegación conjunta como individual.
+ * Guard de la variante a partir del segmento de URL. Con el árbol único de
+ * rutas, el segmento dinámico `[cuenta]` ES la variante: este guard es lo que
+ * valida ese parámetro (un valor desconocido no puede resolver contexto).
  */
-const RUTAS_NAV = ['/inicio', '/gastos', '/aportar', '/historico'] as const;
+export function esVarianteCuenta(valor: string): valor is VarianteCuenta {
+  return valor === 'conjunta' || valor === 'individual';
+}
+
+/** La otra variante: alimenta el enlace "Cambiar de cuenta" de la cabecera. */
+export function varianteContraria(variante: VarianteCuenta): VarianteCuenta {
+  return variante === 'individual' ? 'conjunta' : 'individual';
+}
+
+/**
+ * Orden canónico de las pantallas del BottomNav (NAV-1) y de su ruta dentro
+ * del área. Los labels/iconos de `BottomNav` se alinean 1:1 con este orden
+ * (contrato pinado en src/lib/cuenta.test.ts).
+ */
+export const PANTALLAS_NAV = [
+  'inicio',
+  'gastos',
+  'aportar',
+  'historico',
+] as const;
+
+export type PantallaNav = (typeof PANTALLAS_NAV)[number];
+
+const RUTA_POR_PANTALLA: Record<PantallaNav, string> = {
+  inicio: '/inicio',
+  gastos: '/gastos',
+  aportar: '/aportar',
+  historico: '/historico',
+};
+
+/** Ruta de una pantalla del nav dentro del área indicada. */
+export function rutaPantalla(variante: VarianteCuenta, pantalla: PantallaNav): string {
+  return `${prefijoDe(variante)}${RUTA_POR_PANTALLA[pantalla]}`;
+}
 
 /** Hrefs del BottomNav con el prefijo aplicado, preservando el orden. */
 export function rutasConPrefijo(prefijo: PrefijoRuta): string[] {
-  return RUTAS_NAV.map((ruta) => `${prefijo}${ruta}`);
+  return PANTALLAS_NAV.map((pantalla) => `${prefijo}${RUTA_POR_PANTALLA[pantalla]}`);
+}
+
+/** Ruta de la pantalla de inicio según la variante. */
+export function rutaInicio(variante: VarianteCuenta): string {
+  return rutaPantalla(variante, 'inicio');
+}
+
+/** Ruta del histórico según la variante (enlace de vuelta del detalle). */
+export function rutaHistorico(variante: VarianteCuenta): string {
+  return rutaPantalla(variante, 'historico');
+}
+
+/** Ruta del detalle de un mes del histórico según la variante. */
+export function rutaHistoricoDetalle(
+  variante: VarianteCuenta,
+  mesId: string,
+): string {
+  return `${rutaHistorico(variante)}/${mesId}`;
 }
 
 /** Ruta de la lista de gastos según la variante. */

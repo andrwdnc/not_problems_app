@@ -31,6 +31,16 @@ export interface FilaUltimosGastosVista {
   creador?: string;
 }
 
+/**
+ * Datos de la sección de últimos gastos del Inicio. `null` = no hay mes abierto.
+ * (Vivía en `PantallaInicio`; junto al resto de modelos de vista es donde las
+ * dos áreas y los adaptadores de contexto comparten una sola fuente.)
+ */
+export type DatosUltimosGastos = {
+  gastos: FilaUltimosGastosVista[];
+  variante: VarianteCuenta;
+} | null;
+
 /* -------------------------------------------------------------------------- */
 /* Pantalla de Gastos                                                          */
 /* -------------------------------------------------------------------------- */

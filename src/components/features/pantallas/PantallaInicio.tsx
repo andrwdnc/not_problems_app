@@ -5,16 +5,8 @@ import {
   ResumenInicioSkeleton,
   UltimosGastosSkeleton,
 } from '@/components/features/skeletons';
-import type { FilaUltimosGastosVista } from '@/components/features/vista-pantallas';
+import type { DatosUltimosGastos } from '@/components/features/vista-pantallas';
 import type { InicioResumenVista } from '@/components/features/vista-inicio';
-
-/**
- * Datos de la sección de últimos gastos. `null` = no hay mes abierto.
- */
-export type DatosUltimosGastos = {
-  gastos: FilaUltimosGastosVista[];
-  variante: 'conjunta' | 'individual';
-} | null;
 
 /**
  * PANTALLA DE INICIO. Un solo componente para las dos cuentas.

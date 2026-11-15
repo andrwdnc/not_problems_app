@@ -7,7 +7,7 @@ import {
   gastoAnualRepository,
 } from '@/server-actions/repositories';
 import { PantallaInicio } from '@/components/features/pantallas/PantallaInicio';
-import type { DatosUltimosGastos } from '@/components/features/pantallas/PantallaInicio';
+import type { DatosUltimosGastos } from '@/components/features/vista-pantallas';
 import { nombreMes } from '@/lib/formatters/date';
 import { formatCurrency } from '@/lib/formatters/currency';
 import { inicio, resumen as literalesResumen, formatos } from '@/literals';
