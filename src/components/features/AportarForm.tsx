@@ -522,7 +522,7 @@ export function AportarForm({
           área individual la única aportación ES la cuota, así que la tarjeta
           repetiría la cifra de arriba con un rótulo engañoso: se omite. */}
       {variante === 'conjunta' && mes.porcentaje != null && (
-        <Card className="bg-brand-navy">
+        <Card glass={false} className="bg-brand-navy">
           <p className="text-xs text-brand-sky">{aportar.totalCuentaConjunta}</p>
           <p className="font-mono text-2xl font-bold text-white">
             {formatCurrency(
