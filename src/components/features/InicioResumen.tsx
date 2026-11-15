@@ -30,7 +30,7 @@ export function InicioResumen({ vista }: { vista: InicioResumenVista }) {
   return (
     <>
       <header className="flex items-center justify-between">
-        <h1 className="text-xl font-bold text-brand-navy">{vista.titulo}</h1>
+        <h1 className="text-2xl font-bold text-brand-navy">{vista.titulo}</h1>
       </header>
 
       {vista.hayDatos ? (

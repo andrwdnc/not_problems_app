@@ -2,20 +2,20 @@
 name: Nest
 description: Shared household finances for two people — mobile-first PWA
 colors:
-  brand-navy: "#0B3D66"
-  brand-primary: "#1B6FD1"
-  brand-sky: "#6FB1F0"
-  brand-pale: "#DCEBFB"
-  brand-bg: "#EEF4FA"
+  brand-navy: "#0F172A"
+  brand-primary: "#2563EB"
+  brand-sky: "#60A5FA"
+  brand-pale: "#EFF6FF"
+  brand-bg: "#F8FAFC"
   brand-surface: "#FFFFFF"
-  brand-ink: "#12293F"
+  brand-ink: "#0F172A"
   brand-muted: "#56687A"
-  brand-border: "#D7E4F0"
-  financial-positive: "#1F9E6D"
-  financial-positive-bg: "#E4F5EE"
-  financial-negative: "#E2574C"
-  financial-negative-bg: "#FCEAE8"
-  financial-amber: "#D98E1B"
+  brand-border: "#E2E8F0"
+  financial-positive: "#10B981"
+  financial-positive-bg: "#ECFDF5"
+  financial-negative: "#EF4444"
+  financial-negative-bg: "#FEF2F2"
+  financial-amber: "#F59E0B"
 typography:
   body:
     fontFamily: "system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif"
@@ -96,24 +96,24 @@ A restrained palette: one brand blue for actions, a soft blue-gray canvas, and
 three semantic financial colors.
 
 ### Primary
-- **Deep Navy** (#0B3D66): headers, card titles, navigation bar background.
-- **Trust Blue** (#1B6FD1): primary buttons, "contributed" figures, active
+- **Deep Navy** (#0F172A): headers, card titles, navigation bar background.
+- **Trust Blue** (#2563EB): primary buttons, "contributed" figures, active
   nav item, links.
-- **Sky Blue** (#6FB1F0): secondary accents and focus rings.
+- **Sky Blue** (#60A5FA): secondary accents and focus rings.
 
 ### Neutral
-- **Pale Blue** (#DCEBFB): soft backgrounds, inactive chips, icon tiles.
-- **Canvas** (#EEF4FA): app background.
+- **Pale Blue** (#EFF6FF): soft backgrounds, inactive chips, icon tiles.
+- **Canvas** (#F8FAFC): app background.
 - **Surface** (#FFFFFF): cards and containers.
-- **Ink** (#12293F): primary text.
+- **Ink** (#0F172A): primary text.
 - **Muted** (#56687A): secondary text, labels, captions.
-- **Border** (#D7E4F0): soft borders and dividers.
+- **Border** (#E2E8F0): soft borders and dividers.
 
 ### Financial (semantic — never decoration)
-- **Positive** (#1F9E6D) / **Positive Bg** (#E4F5EE): money available, savings,
+- **Positive** (#10B981) / **Positive Bg** (#ECFDF5): money available, savings,
   paid state.
-- **Negative** (#E2574C) / **Negative Bg** (#FCEAE8): money spent, deficit.
-- **Amber** (#D98E1B): grace window "editable until day 5".
+- **Negative** (#EF4444) / **Negative Bg** (#FEF2F2): money spent, deficit.
+- **Amber** (#F59E0B): grace window "editable until day 5".
 
 ### Named Rules
 **The Reserved Color Rule.** `financial.positive` and `financial.negative` are

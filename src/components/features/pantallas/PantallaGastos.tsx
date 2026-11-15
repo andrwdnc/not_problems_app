@@ -34,7 +34,7 @@ export function PantallaGastos({
   vista: Promise<VistaPantallaGastos>;
 }) {
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <h1 className="text-xl font-bold text-brand-navy">{titulo}</h1>
       <Suspense fallback={<GastosSectionSkeleton />}>
         <SeccionGastos vista={vista} />

@@ -33,15 +33,15 @@ export function AnilloProgreso({
           r={radio}
           fill="none"
           stroke="var(--color-brand-pale)"
-          strokeWidth="18"
+          strokeWidth="14"
         />
         <circle
           cx="100"
           cy="100"
           r={radio}
           fill="none"
-          stroke="var(--color-financial-negative)"
-          strokeWidth="18"
+          stroke={superada ? 'var(--color-financial-negative)' : 'var(--color-brand-primary)'}
+          strokeWidth="14"
           strokeLinecap="round"
           strokeDasharray={circunferencia}
           strokeDashoffset={circunferencia - progreso}
