@@ -10,3 +10,6 @@ next-env.d.ts
 .vercel
 .idea/
 .atl/
+
+# impeccable engine binary (auto-downloaded)
+.opencode/skills/impeccable/scripts/bin/
