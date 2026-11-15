@@ -149,8 +149,8 @@ reevalúa al saltar a 15/16.
 El área individual nunca confía en el `usuarioId` del cliente: los esquemas Zod son
 `.strict()` y lo rechazan; el propietario se deriva **siempre** de la sesión; y
 los repositorios son *owner-first* (`findById(usuarioId, id)` devuelve `null` si la
-fila no es suya). Los gastos anuales y el presupuesto individual son exclusivos
-del área conjunta.
+fila no es suya). Los pagos previstos y el presupuesto individual son exclusivos
+del área a la que pertenecen.
 
 ### El hash de la contraseña no sale de la capa de autenticación
 

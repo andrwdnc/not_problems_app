@@ -79,23 +79,6 @@ export function sumarAportado(
 }
 
 /**
- * Regla pura: gasto comprometido = gasto real + apartado devengado del gasto anual.
- *
- * Este valor alimenta ÚNICAMENTE el anillo de progreso, el porcentaje gastado
- * y el "restante" del resumen mensual. NO afecta a `calcularTotalesMes`,
- * `calcularAhorro`, ni a la tarjeta de "Gastado" (que sigue mostrando solo
- * el gasto real).
- *
- * Cifras en céntimos enteros.
- */
-export function calcularGastadoComprometido(
-  gastadoCentimos: number,
-  apartadoCentimos: number,
-): number {
-  return gastadoCentimos + apartadoCentimos;
-}
-
-/**
  * Suma los importes de un conjunto de gastos (en céntimos).
  */
 export function sumarGastado(gastos: Array<{ importe: number }>): number {
@@ -119,22 +102,20 @@ export function calcularTotalesMes(
 }
 
 /**
- * Regla pura: ahorro del mes = aportado − (gastado + apartado).
+ * Regla pura: ahorro del mes = aportado − gastado.
  *
- * El ahorro es el dinero real que queda en la cuenta: se descuenta todo lo
- * comprometido, el gasto real del mes y las cuotas devengadas de los gastos
- * anuales. El presupuesto fijado NO interviene aquí: solo gobierna el anillo, el
- * restante y el porcentaje consumido, de modo que pasarse del tope reduce el
- * ahorro en lugar de dejar la cifra intacta.
+ * El ahorro es el dinero real que queda en la cuenta: lo que entró menos lo que
+ * salió de verdad. El presupuesto fijado NO interviene aquí: solo gobierna el
+ * anillo, el restante y el porcentaje consumido, de modo que pasarse del tope
+ * reduce el ahorro en lugar de dejar la cifra intacta.
  *
  * Cifras en céntimos enteros.
  */
 export function calcularAhorro(
   aportadoCentimos: number,
   gastadoCentimos: number,
-  apartadoCentimos: number = 0,
 ): number {
-  return aportadoCentimos - calcularGastadoComprometido(gastadoCentimos, apartadoCentimos);
+  return aportadoCentimos - gastadoCentimos;
 }
 
 /**

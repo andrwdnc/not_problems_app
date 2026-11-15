@@ -5,12 +5,10 @@ export async function middleware(request: NextRequest) {
   const token = request.cookies.get(COOKIE_NAME)?.value;
   const user = token ? await verificarToken(token) : null;
 
+  // Las dos áreas de cuenta viven bajo su segmento ([cuenta]): /conjunta/...
+  // e /individual/....
   const isDashboard =
-    request.nextUrl.pathname.startsWith('/inicio') ||
-    request.nextUrl.pathname.startsWith('/gastos') ||
-    request.nextUrl.pathname.startsWith('/aportar') ||
-    request.nextUrl.pathname.startsWith('/historico') ||
-    // Área individual (NAV-1): misma protección que la conjunta.
+    request.nextUrl.pathname.startsWith('/conjunta') ||
     request.nextUrl.pathname.startsWith('/individual');
 
   // Rutas protegidas: redirigir a login si no hay sesión.
@@ -34,10 +32,7 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    '/inicio/:path*',
-    '/gastos/:path*',
-    '/aportar/:path*',
-    '/historico/:path*',
+    '/conjunta/:path*',
     '/individual/:path*',
     '/login',
     '/signup',

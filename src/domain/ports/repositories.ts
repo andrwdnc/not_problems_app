@@ -2,14 +2,14 @@ import type {
   Accion,
   Aportacion,
   Gasto,
-  GastoAnual,
-  GastoAnualIndividual,
   GastoIndividual,
   Mes,
   MovimientoAuditoria,
+  PagoPrevisto,
   PresupuestoIndividual,
   Usuario,
 } from '../entities';
+import type { Categoria } from '../value-objects/Categoria';
 
 /**
  * Puertos de la capa de dominio (DIP): contratos de persistencia que la capa de
@@ -131,45 +131,35 @@ export interface HistoricoRepository {
   registrar(data: Omit<MovimientoAuditoria, 'id' | 'fecha'>): Promise<MovimientoAuditoria>;
 }
 
-export interface CrearGastoAnualInput {
-  /** Importe total en céntimos enteros. */
-  importeTotal: number;
-  /** Mes de pago (1-12). */
-  mesPago: number;
-  /** Año del ciclo. */
-  anioCiclo: number;
-  /** Detalle/descripción del gasto anual. */
+export interface CrearPagoPrevistoInput {
+  /** Detalle del pago. */
   detalle: string;
-  /** Usuario que crea el gasto anual. */
+  /** Categoría del gasto que se registrará. */
+  categoria: Categoria;
+  /** Mes del año (1-12). */
+  mes: number;
+  /** Día del mes (1-31). */
+  dia: number;
+  /** Importe de referencia en céntimos, o null si es solo recordatorio. */
+  importeReferencia: number | null;
+  /** Dueño: null en la cuenta conjunta. */
+  usuarioId: string | null;
+  /** Usuario que crea el recordatorio. */
   creadoPor: string;
 }
 
-export interface GastoAnualRepository {
-  findById(id: string): Promise<GastoAnual | null>;
-  findAll(): Promise<GastoAnual[]>;
-  findByCiclo(anioCiclo: number): Promise<GastoAnual[]>;
-  create(data: CrearGastoAnualInput): Promise<GastoAnual>;
-  update(id: string, data: Partial<GastoAnual>): Promise<GastoAnual>;
+export interface PagoPrevistoRepository {
+  findById(id: string): Promise<PagoPrevisto | null>;
+  findAll(): Promise<PagoPrevisto[]>;
+  /** Todos los pagos previstos del ciclo del mes indicado (mes del año). */
+  findByMes(mes: number): Promise<PagoPrevisto[]>;
+  create(data: CrearPagoPrevistoInput): Promise<PagoPrevisto>;
+  update(id: string, data: Partial<PagoPrevisto>): Promise<PagoPrevisto>;
   delete(id: string): Promise<void>;
-  /**
-   * Actualiza la fecha del último pago del gasto anual.
-   */
-  actualizarFechaUltimoPago(id: string, fecha: Date): Promise<GastoAnual | null>;
+  /** Marca el pago como realizado en el año indicado, enlazándolo al gasto creado. */
+  marcarPagado(id: string, anio: number, gastoId: string | null): Promise<PagoPrevisto | null>;
 }
 
-/**
- * Presupuesto de gastos del área individual (owner-scoped).
- *
- * Réplica de la parte de presupuesto de `MesRepository`, con la diferencia
- * esencial: TODOS los métodos reciben `usuarioId` como PRIMER parámetro y lo
- * aplican al WHERE. No es una convención, es la frontera de privacidad: hace
- * imposible, desde el contrato, leer o pisar el presupuesto de otra persona.
- *
- * `fijarSiNoExiste` es la operación clave de la inmutabilidad (§5.2): el
- * presupuesto se escribe UNA vez y no se puede cambiar después, así que la
- * escritura es condicional y devuelve `null` si ya había uno. Quien pierda esa
- * carrera recibe `null` y la Server Action lo traduce a "ya está fijado".
- */
 export interface PresupuestoIndividualRepository {
   findByMes(usuarioId: string, mesId: string): Promise<PresupuestoIndividual | null>;
   findByMesIds(
@@ -187,50 +177,20 @@ export interface PresupuestoIndividualRepository {
   ): Promise<PresupuestoIndividual | null>;
 }
 
-/** Datos para dar de alta un gasto anual del área individual. */
-export interface CrearGastoAnualIndividualInput {
-  /**
-   * Dueño. Lo fija la Server Action a partir de la sesión; nunca llega del
-   * cliente (los esquemas lo rechazan con `.strict()`).
-   */
-  usuarioId: string;
-  /** Importe total en céntimos enteros. */
-  importeTotal: number;
-  /** Mes de pago (1-12). */
-  mesPago: number;
-  /** Año del ciclo. */
-  anioCiclo: number;
-  /** Detalle/descripción del gasto anual. */
-  detalle: string;
-}
-
 /**
- * Gastos anuales del área individual (owner-scoped).
+ * Pagos previstos del área individual (owner-scoped).
  *
- * Réplica de `GastoAnualRepository` con la diferencia esencial: TODOS los
- * métodos reciben `usuarioId` como PRIMER parámetro y lo aplican al WHERE. No es
- * una convención, es la frontera de privacidad: hace imposible, desde el
- * contrato, leer o modificar el gasto anual de otra persona. Es el mismo patrón
- * que `GastoIndividualRepository`.
+ * Réplica de `PagoPrevistoRepository` con la diferencia esencial: TODOS los
+ * métodos reciben `usuarioId` como PRIMER parámetro y lo aplican al WHERE.
  */
-export interface GastoAnualIndividualRepository {
-  findById(usuarioId: string, id: string): Promise<GastoAnualIndividual | null>;
-  findAll(usuarioId: string): Promise<GastoAnualIndividual[]>;
-  findByCiclo(usuarioId: string, anioCiclo: number): Promise<GastoAnualIndividual[]>;
-  create(data: CrearGastoAnualIndividualInput): Promise<GastoAnualIndividual>;
-  update(
-    usuarioId: string,
-    id: string,
-    data: Partial<GastoAnualIndividual>,
-  ): Promise<GastoAnualIndividual | null>;
+export interface PagoPrevistoIndividualRepository {
+  findById(usuarioId: string, id: string): Promise<PagoPrevisto | null>;
+  findAll(usuarioId: string): Promise<PagoPrevisto[]>;
+  findByMes(usuarioId: string, mes: number): Promise<PagoPrevisto[]>;
+  create(data: CrearPagoPrevistoInput): Promise<PagoPrevisto>;
+  update(usuarioId: string, id: string, data: Partial<PagoPrevisto>): Promise<PagoPrevisto | null>;
   delete(usuarioId: string, id: string): Promise<void>;
-  /** Avanza el ciclo y registra el pago; devuelve null si el registro ya no existe. */
-  registrarPago(
-    usuarioId: string,
-    id: string,
-    anioCiclo: number,
-    fecha: Date,
-  ): Promise<GastoAnualIndividual | null>;
+  marcarPagado(usuarioId: string, id: string, anio: number, gastoId: string | null): Promise<PagoPrevisto | null>;
 }
 
 /** Credenciales internas de autenticación; nunca deben salir del servidor. */

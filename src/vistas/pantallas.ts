@@ -1,0 +1,115 @@
+import type { VarianteCuenta } from '@/lib/cuenta';
+import type { TarjetaMesHistoricoVista } from './historico';
+import type { FilaPagoPrevistoMesVista } from './pagos-previstos';
+
+/**
+ * MODELOS DE VISTA DE LAS PANTALLAS, uno por pantalla y compartidos por las dos
+ * áreas de cuenta.
+ *
+ * Este archivo completa `inicio.ts`, `historico.ts`, `detalle-mes.ts` y
+ * `cifras-mes.ts` con el resto. El objetivo es el mismo en todos: que el markup
+ * de cada pantalla viva en UN componente (`components/features/pantallas/`) y
+ * que la ruta única `app/(app)/[cuenta]/...` solo resuelva el contexto por el
+ * segmento y le pida la vista al presenter del área.
+ *
+ * Lo que queda por área es exactamente lo que tiene que quedar: qué repositorio
+ * se consulta (el individual es owner-first) y con qué rótulos se nombra cada
+ * cifra. Ni una etiqueta, ni una clase, ni una condición visual por duplicado.
+ *
+ * `VarianteCuenta` NO se redefine aquí: la fuente única es `@/lib/cuenta` (el
+ * esquema de URLs), que todos los consumidores ya importan.
+ */
+
+/* -------------------------------------------------------------------------- */
+/* Pantalla de Inicio                                                          */
+/* -------------------------------------------------------------------------- */
+
+/** Fila de la lista de últimos gastos del Inicio. */
+export interface FilaUltimosGastosVista {
+  id: string;
+  detalle: string;
+  categoria: string;
+  importe: number;
+  /** Nombre del creador; en el área individual es siempre `undefined`. */
+  creador?: string;
+}
+
+/**
+ * Datos de la sección de últimos gastos del Inicio. `null` = no hay mes abierto.
+ * (Vivía en `PantallaInicio`; junto al resto de modelos de vista es donde las
+ * dos áreas y los adaptadores de contexto comparten una sola fuente.)
+ */
+export type DatosUltimosGastos = {
+  gastos: FilaUltimosGastosVista[];
+  variante: VarianteCuenta;
+} | null;
+
+/* -------------------------------------------------------------------------- */
+/* Pantalla de Gastos                                                          */
+/* -------------------------------------------------------------------------- */
+
+export interface VistaPantallaGastos {
+  gastos: unknown[];
+  usuarios?: Map<string, string>;
+  pagosPrevistosMes: FilaPagoPrevistoMesVista[];
+  variante: VarianteCuenta;
+  /** Sin mes abierto: se pinta este texto en vez de la lista. */
+  sinMes: string | null;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Pantalla de Aportar                                                         */
+/* -------------------------------------------------------------------------- */
+
+export interface VistaPantallaAportar {
+  variante: VarianteCuenta;
+  /** Sin mes abierto: se pinta este aviso y no el formulario. */
+  sinMes: string | null;
+  mes: unknown | null;
+  usuarios: unknown[];
+  aportaciones: unknown[];
+  presupuestoIndividual: unknown | null;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Pantalla de Histórico                                                       */
+/* -------------------------------------------------------------------------- */
+
+export interface VistaPantallaHistorico {
+  /** `true` = todavía no hay meses cerrados: se pinta el estado vacío. */
+  vacio: boolean;
+  sinMeses: string;
+  tarjetas: TarjetaMesHistoricoVista[];
+}
+
+/* -------------------------------------------------------------------------- */
+/* Pantallas de formulario de gasto                                            */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Estado común de las pantallas de alta y edición de un gasto mensual. Las usan
+ * las cuatro rutas (`/gastos/nuevo`, `/gastos/[id]` y sus equivalentes
+ * individuales) sin distinguir el caso: la diferencia real —qué Server Action
+ * dispara el formulario— ya viaja dentro del propio `formulario`, que es un
+ * componente compartido.
+ */
+export interface VistaPantallaFormGasto {
+  variante: VarianteCuenta;
+  /** Sin mes abierto: solo se pinta este texto, sin formulario. */
+  sinMes: string | null;
+  /** Aviso de gasto congelado por la ventana de edición; `null` = editable. */
+  avisoCongelado: string | null;
+  /** El gasto en edición, o `null` en el alta. */
+  gasto: unknown | null;
+  /** Id del mes de destino del alta; `null` si no hay mes. */
+  mesId: string | null;
+  /** Valores precargados (p. ej. desde un pago previsto). `null` si no hay. */
+  prefill: {
+    detalle: string;
+    categoria: string;
+    importe: string;
+    fechaGasto: string;
+    pagoPrevistoId: string;
+  } | null;
+}
+export type { VistaGestionPagosPrevistos } from "./pagos-previstos";

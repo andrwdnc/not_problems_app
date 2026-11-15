@@ -8,8 +8,8 @@ import { GastoMesAcciones } from '@/components/features/GastoMesAcciones';
 import type {
   CartaDetalleMesVista,
   DetalleMesVista,
-} from '@/components/features/vista-detalle-mes';
-import type { TonoCartaDetalle } from '@/components/features/vista-detalle-mes';
+} from '@/vistas/detalle-mes';
+import type { TonoCartaDetalle } from '@/vistas/detalle-mes';
 
 /**
  * PANTALLA DE DETALLE DE MES. Un solo componente para las dos cuentas.

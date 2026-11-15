@@ -1,39 +1,18 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import { Plus, RotateCcw, Trash2, Pencil } from 'lucide-react';
 import Link from 'next/link';
-import {
-  Plus,
-  RotateCcw,
-  Trash2,
-  Pencil,
-  Home,
-  Apple,
-  PartyPopper,
-  Car,
-  HeartPulse,
-  Package,
-  Plane,
-  CreditCard,
-  type LucideIcon,
-} from 'lucide-react';
 import { Chip } from '@/components/ui/Chip';
 import { Badge } from '@/components/ui/Badge';
 import { Card } from '@/components/ui/Card';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { formatCurrency } from '@/lib/formatters/currency';
-import { formatShortDate, nombreMes } from '@/lib/formatters/date';
+import { formatShortDate } from '@/lib/formatters/date';
 import { CATEGORIAS, type Categoria } from '@/domain/value-objects/Categoria';
-// `import type` puro: el tipo se borra al compilar, así que este componente
-// cliente NO arrastra el módulo de servidor. El tipo vive allí porque lo produce
-// la función compartida que usan las dos áreas; reexportarlo evita que cada
-// página redeclare la misma forma de datos y las dos se desincronicen.
-import type { GastoAnualVista } from '@/server-actions/vista-gastos-anuales';
 import { eliminarGasto } from '@/server-actions/gastos-actions';
 import { eliminarGastoIndividual } from '@/server-actions/individual-actions';
 import {
-  rutaGastoAnualDetalle,
-  rutaGastoAnualNuevo,
   rutaGastoDetalle,
   rutaGastosNuevo,
   type VarianteCuenta,
@@ -41,126 +20,51 @@ import {
 import {
   gastos as gastosLiterales,
   gastoForm,
-  formatos,
-  gastosAnuales as gastosAnualesLiterales,
-  gastosAnualesErrores,
   dialogo,
   gastosErrores,
 } from '@/literals';
 
-/**
- * Gasto tal y como lo necesita la LISTA. Se declara estructuralmente (ISP) en
- * vez de reutilizar `Gasto` o `GastoIndividual`: el componente solo consume estos
- * campos, así que ambas entidades —y cualquier futuro tipo— encajan sin
- * cambiarlo. Las dos áreas de cuenta pintan exactamente la misma fila.
- */
 export interface GastoListable {
   id: string;
   categoria: Categoria;
   detalle: string;
-  /** Importe en céntimos enteros. */
   importe: number;
-  /** Fecha del gasto en ISO (`YYYY-MM-DD`); determina el mes al que pertenece. */
   fechaGasto: string;
   esRecurrente: boolean;
-  /** Actor que registró el gasto; se resuelve contra el mapa `usuarios`. */
   creadoPor: string;
 }
 
 interface GastosListProps {
   gastos: GastoListable[];
-  /**
-   * Área de cuenta. Decide las Server Actions (la individual es owner-scoped) y
-   * el prefijo de rutas. El markup y los literales son los mismos.
-   */
   variante?: VarianteCuenta;
-  /**
-   * Nombre del creador por `creadoPor`. Opcional: el área individual solo
-   * muestra gastos propios, así que omitirlo quita el nombre del pie de fila.
-   */
   usuarios?: Map<string, string>;
-  /**
-   * Gastos anuales del mes.
-   *
-   * `undefined` = el área no tiene sección de gastos anuales (y no se pinta).
-   * `[]` = sí la tiene, pero vacía (se pinta el estado vacío con su nota).
-   *
-   * El gate es la DEFINICIÓN, no el tamaño: un array vacío en la conjunta debe
-   * seguir mostrando la tarjeta que explica cómo funciona el apartado.
-   */
-  gastosAnuales?: GastoAnualVista[];
 }
 
-const ICONOS: Record<Categoria, LucideIcon> = {
-  Ocio: PartyPopper,
-  Alimentacion: Apple,
-  Vivienda: Home,
-  Transporte: Car,
-  Viajes: Plane,
-  Salud: HeartPulse,
-  Otros: Package,
-};
-
-export type { GastoAnualVista };
+const ICONOS = {} as Record<Categoria, unknown>;
 
 export function GastosList({
   gastos,
   variante = 'conjunta',
   usuarios,
-  gastosAnuales,
 }: GastosListProps) {
-  // Filtro "Todos" se modela como null (intervalor/dead-state de instancia)
-  // en vez de un magic string, cumpliendo ISP/OCP.
   const [filtro, setFiltro] = useState<Categoria | null>(null);
-
-  // Borrado de gasto: el diálogo de confirmación es ÚNICO para la lista (una
-  // sola ventana por pantalla) y se queda abierto si la acción falla, para que
-  // el error se lea en contexto y se pueda reintentar o cancelar.
-  const [gastoAEliminar, setGastoAEliminar] = useState<GastoListable | null>(
-    null,
-  );
+  const [gastoAEliminar, setGastoAEliminar] = useState<GastoListable | null>(null);
   const [eliminando, setEliminando] = useState(false);
   const [errorEliminacion, setErrorEliminacion] = useState<string | null>(null);
-
-  // Borrado de un gasto anual: mismo `ConfirmDialog` que el gasto del mes. En
-  // la pantalla solo puede haber UNA ventana abierta, así que al pedir un
-  // borrado se cierra el otro (y viceversa). El error de "marcar como pagado"
-  // no es una confirmación: se pinta dentro de la propia sección.
-  const [anualAEliminar, setAnualAEliminar] = useState<GastoAnualVista | null>(
-    null,
-  );
-  const [eliminandoAnual, setEliminandoAnual] = useState(false);
-  const [errorEliminacionAnual, setErrorEliminacionAnual] = useState<
-    string | null
-  >(null);
-  const [errorAnual, setErrorAnual] = useState<string | null>(null);
 
   const filtrados = useMemo(() => {
     if (filtro === null) return gastos;
     return gastos.filter((g) => g.categoria === filtro);
   }, [gastos, filtro]);
 
-  const apartadosActivos = useMemo(
-    () => (gastosAnuales ?? []).filter((p) => p.cuotaMes > 0),
-    [gastosAnuales],
-  );
-
   function pedirEliminacion(gasto: GastoListable) {
     setErrorEliminacion(null);
-    setAnualAEliminar(null);
     setGastoAEliminar(gasto);
   }
 
-  /**
-   * Confirmación del borrado. La ventaja de gracia, la congelación del mes y
-   * la escritura en `historico_movimientos` siguen viviendo en la Server
-   * Action: aquí solo se pide confirmación y se traduce su respuesta (o su
-   * fallo de red) al diálogo.
-   */
   async function eliminarGastoHandler() {
     const gasto = gastoAEliminar;
     if (!gasto || eliminando) return;
-
     setEliminando(true);
     setErrorEliminacion(null);
     try {
@@ -172,67 +76,11 @@ export function GastosList({
         setErrorEliminacion(resultado.error);
         return;
       }
-      // La acción ya ha hecho `revalidatePath`, así que la fila desaparece con
-      // los datos frescos del servidor.
       setGastoAEliminar(null);
     } catch {
       setErrorEliminacion(gastosErrores.errorEliminar);
     } finally {
       setEliminando(false);
-    }
-  }
-
-  function pedirEliminacionAnual(apartado: GastoAnualVista) {
-    setErrorAnual(null);
-    setErrorEliminacionAnual(null);
-    setGastoAEliminar(null);
-    setAnualAEliminar(apartado);
-  }
-
-  async function marcarPagadoGastoAnual(id: string) {
-    setErrorAnual(null);
-    try {
-      const { marcarPagadoGastoAnual } = await import(
-        '@/server-actions/gastos-anuales-actions'
-      );
-      const resultado = await marcarPagadoGastoAnual({ id });
-      if (!resultado.ok) {
-        // Sin alert: el error se queda en la sección, debajo del listado.
-        setErrorAnual(resultado.error);
-        return;
-      }
-      window.location.reload();
-    } catch {
-      setErrorAnual(gastosAnualesErrores.errorPagar);
-    }
-  }
-
-  /**
-   * Confirmación del borrado de un gasto anual. Igual que en los gastos del
-   * mes: sin `window.confirm` ni `alert`, con el error dentro del diálogo y
-   * bloqueado mientras la Server Action está en curso.
-   */
-  async function eliminarGastoAnualHandler() {
-    const apartado = anualAEliminar;
-    if (!apartado || eliminandoAnual) return;
-
-    setEliminandoAnual(true);
-    setErrorEliminacionAnual(null);
-    try {
-      const { eliminarGastoAnual } = await import(
-        '@/server-actions/gastos-anuales-actions'
-      );
-      const resultado = await eliminarGastoAnual({ id: apartado.id });
-      if (!resultado.ok) {
-        setErrorEliminacionAnual(resultado.error);
-        return;
-      }
-      setAnualAEliminar(null);
-      window.location.reload();
-    } catch {
-      setErrorEliminacionAnual(gastosAnualesErrores.errorEliminar);
-    } finally {
-      setEliminandoAnual(false);
     }
   }
 
@@ -249,33 +97,6 @@ export function GastosList({
         ))}
       </div>
 
-      {/* Apartado este mes: línea no editable por cada gasto anual con cuota > 0 */}
-      {apartadosActivos.length > 0 && (
-        <section className="space-y-2">
-          <p className="text-xs font-medium text-brand-muted uppercase tracking-wide">
-            {gastosAnualesLiterales.apartadoSeccion}
-          </p>
-          {apartadosActivos.map((p) => (
-            <Card key={`apartado-${p.id}`} className="flex items-center gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-pale text-brand-primary">
-                <CreditCard size={20} />
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium text-brand-ink">
-                  {gastosAnualesLiterales.apartadoLinea(p.detalle)}
-                </p>
-                <p className="text-xs text-brand-muted">
-                  {gastosAnualesLiterales.ventana(p.posicion, p.numMeses)}
-                </p>
-              </div>
-              <span className="font-mono text-sm font-semibold text-brand-primary">
-                {formatCurrency(p.cuotaMes)}
-              </span>
-            </Card>
-          ))}
-        </section>
-      )}
-
       {filtrados.length === 0 ? (
         <Card>
           <p className="text-sm text-brand-muted">{gastosLiterales.sinGastosCategoria}</p>
@@ -283,16 +104,10 @@ export function GastosList({
       ) : (
         <div className="space-y-2">
           {filtrados.map((g) => {
-            const Icono = ICONOS[g.categoria];
-            // El nombre del creador solo aparece si la página aporta el mapa:
-            // en el área individual todos los gastos son del propio usuario.
             const autor = usuarios?.get(g.creadoPor) ?? null;
             return (
               <Card key={g.id}>
                 <div className="flex items-start gap-3">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-pale text-brand-navy">
-                    <Icono size={20} />
-                  </div>
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-medium text-brand-ink">
                       {g.detalle}
@@ -336,147 +151,10 @@ export function GastosList({
         </div>
       )}
 
-      {/* Gastos anuales: solo en las áreas que los tienen. El gate es
-          `gastosAnuales !== undefined`, NO su tamaño: un array vacío debe pintar
-          la tarjeta vacía con su nota explicativa. */}
-      {gastosAnuales !== undefined && (
-        <section className="space-y-2 pt-4 border-t border-brand-border">
-          <div className="flex items-center justify-between">
-            <h2 className="text-base font-semibold text-brand-navy">
-              {gastosAnualesLiterales.titulo}
-            </h2>
-            <Link
-              href={rutaGastoAnualNuevo(variante)}
-              className="text-sm font-medium text-brand-primary"
-            >
-              {gastosAnualesLiterales.nuevo}
-            </Link>
-          </div>
-
-          {errorAnual && (
-            <p className="rounded-xl bg-financial-negativeBg p-3 text-center text-sm text-financial-negative">
-              {errorAnual}
-            </p>
-          )}
-
-          {gastosAnuales.length === 0 ? (
-            <Card>
-              <p className="text-sm text-brand-muted">
-                {gastosAnualesLiterales.sinGastosAnuales}
-              </p>
-              <p className="mt-1 text-xs text-brand-muted">
-                {gastosAnualesLiterales.nota}
-              </p>
-            </Card>
-          ) : (
-            gastosAnuales.map((p) => {
-              const porcentaje =
-                p.importeTotal > 0
-                  ? Math.round((p.totalDevengado / p.importeTotal) * 100)
-                  : 0;
-              const dentroVentana = p.posicion > 0 && p.posicion <= p.numMeses;
-              return (
-                <Card key={p.id} className="space-y-3">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-pale text-brand-navy">
-                      <CreditCard size={20} />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-medium text-brand-ink">
-                        {p.detalle}
-                      </p>
-                      <div className="mt-1 flex flex-wrap gap-1">
-                        <Badge tone="muted">
-                          {gastosAnualesLiterales.ciclo(p.anioCiclo)}
-                        </Badge>
-                        {dentroVentana && (
-                          <Badge tone="primary">
-                            {gastosAnualesLiterales.ventana(p.posicion, p.numMeses)}
-                          </Badge>
-                        )}
-                      </div>
-                      {p.estaPagadaEsteCiclo && (
-                        <Badge tone="positive" className="mt-1">
-                          {gastosAnualesLiterales.pagado}
-                        </Badge>
-                      )}
-                    </div>
-                    <div className="flex flex-col items-end gap-1">
-                      <span className="font-mono text-sm font-semibold text-brand-primary">
-                        {formatCurrency(p.cuotaMes)}
-                      </span>
-                      <div className="flex gap-1">
-                        {p.puedeEditar && !p.estaPagadaEsteCiclo && (
-                          <Link
-                            href={rutaGastoAnualDetalle(variante, p.id)}
-                            className="text-brand-muted hover:text-brand-primary"
-                            aria-label={gastosAnualesLiterales.editar}
-                          >
-                            <Pencil size={16} />
-                          </Link>
-                        )}
-                        {p.puedeEliminar && !p.estaPagadaEsteCiclo && (
-                          <button
-                            onClick={() => pedirEliminacionAnual(p)}
-                            className="text-brand-muted hover:text-financial-negative"
-                            aria-label={gastosAnualesLiterales.eliminar}
-                          >
-                            <Trash2 size={16} />
-                          </button>
-                        )}
-                        {p.puedeEditar && !p.estaPagadaEsteCiclo && (
-                          <button
-                            onClick={() => marcarPagadoGastoAnual(p.id)}
-                            className="text-brand-primary hover:text-brand-navy font-medium text-sm"
-                            aria-label={gastosAnualesLiterales.pagar}
-                          >
-                            {gastosAnualesLiterales.pagar}
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="space-y-1">
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="text-brand-muted">
-                        {gastosAnualesLiterales.progreso(
-                          formatCurrency(p.totalDevengado),
-                          formatCurrency(p.importeTotal),
-                        )}
-                      </span>
-                      <span className="font-mono text-brand-muted">
-                        {porcentaje}%
-                      </span>
-                    </div>
-                    <div className="h-2 w-full rounded-full bg-brand-pale overflow-hidden">
-                      <div
-                        className="h-full bg-brand-primary transition-all duration-700"
-                        style={{ width: `${Math.min(porcentaje, 100)}%` }}
-                      />
-                    </div>
-                    <p className="text-xs text-brand-muted">
-                      {gastosAnualesLiterales.para(
-                        nombreMes(p.mesPago),
-                        p.anioCiclo,
-                      )}
-                    </p>
-                  </div>
-                </Card>
-              );
-            })
-          )}
-        </section>
-      )}
-
       <Link
         href={rutaGastosNuevo(variante)}
         className="fixed right-4 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-brand-primary text-white shadow-lg transition-transform active:scale-95"
         style={{
-          // Altura real de la navegación inferior (la publica <BottomNav/>) +
-          // el safe-area del dispositivo + 16px de aire. Sin este cálculo el
-          // botón caía encima de los iconos del menú (`bottom-20` fijo ignoraba
-          // tanto la altura real como la barra de home de iOS).
           bottom:
             'calc(var(--bottom-nav-altura) + env(safe-area-inset-bottom) + 16px)',
         }}
@@ -499,26 +177,6 @@ export function GastosList({
         error={errorEliminacion}
         onConfirmar={eliminarGastoHandler}
         onCancelar={() => setGastoAEliminar(null)}
-      />
-
-      {/* Segunda (y última) ventana de la pantalla: el borrado de un gasto
-          anual. Solo una puede estar abierta a la vez —`pedirEliminacion` y
-          `pedirEliminacionAnual` se cierran mutuamente—, así que no hay dos
-          diálogos superpuestos. */}
-      <ConfirmDialog
-        abierto={anualAEliminar !== null}
-        titulo={gastoForm.confirmarEliminar}
-        descripcion={
-          anualAEliminar
-            ? `${anualAEliminar.detalle} · ${formatCurrency(anualAEliminar.importeTotal)}`
-            : undefined
-        }
-        textoCancelar={dialogo.cancelar}
-        textoConfirmar={dialogo.eliminar}
-        cargando={eliminandoAnual}
-        error={errorEliminacionAnual}
-        onConfirmar={eliminarGastoAnualHandler}
-        onCancelar={() => setAnualAEliminar(null)}
       />
     </div>
   );

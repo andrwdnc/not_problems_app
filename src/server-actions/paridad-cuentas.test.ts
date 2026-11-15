@@ -81,7 +81,6 @@ describe('reparto del sueldo entre las dos cuentas', () => {
       [{ importeAportado: calcularImporteAportado(sueldo, porcentaje) }] as never,
       gastos as never,
       null,
-      0,
     );
     const individual = derivarResumenIndividual(mes, aportacion, gastos as never);
 
@@ -151,51 +150,26 @@ describe('paridad aritmética conjunta ↔ individual', () => {
     // iguales, es que la regla del reparto se ha perdido.
     const { aportaciones, gastos, mes, aportacion } = escenario(200000, 30, [15000]);
 
-    const conjunto = calcularResumen(aportaciones, gastos, null, 0);
+    const conjunto = calcularResumen(aportaciones, gastos, null);
     const individual = derivarResumenIndividual(mes, aportacion, gastos as never);
 
     expect(individual.gastado).toBe(conjunto.gastado);
-    expect(individual.apartado).toBe(conjunto.apartado);
-    expect(individual.gastadoComprometido).toBe(conjunto.gastadoComprometido);
     expect(individual.numeroGastos).toBe(conjunto.numeroGastos);
 
-    // Cada disponible sale de SU base menos el mismo comprometido.
-    expect(conjunto.disponible).toBe(conjunto.aportado - conjunto.gastadoComprometido);
+    expect(conjunto.disponible).toBe(conjunto.aportado - conjunto.gastado);
     expect(individual.disponible).toBe(
-      (individual.cuota as number) - individual.gastadoComprometido,
+      (individual.cuota as number) - individual.gastado,
     );
     expect(individual.disponible).not.toBe(conjunto.disponible);
   });
 
-  it('con apartado de gastos anuales, ambas cuentas discount igual', () => {
-    const { aportaciones, gastos, mes, aportacion } = escenario(200000, 30, [15000]);
-    const anual = {
-      importeTotal: 60000,
-      fechaCreacion: new Date('2026-09-01T00:00:00.000Z'),
-      fechaUltimoPago: null,
-      anioCiclo: 2027,
-      mesPago: 7,
-    };
-
-    const conjunto = calcularResumen(aportaciones, gastos, null, 5455);
-    const individual = derivarResumenIndividual(mes, aportacion, gastos as never, null, [anual]);
-
-    // El apartado es el término que la individual NO tenía: si mañana se rompe
-    // en un área, esta aserción lo dice.
-    expect(conjunto.apartado).toBe(5455);
-    expect(individual.apartado).toBe(5455);
-    expect(individual.gastadoComprometido).toBe(conjunto.gastadoComprometido);
-    expect(individual.disponible).toBe(
-      (individual.cuota as number) - individual.gastadoComprometido,
-    );
-  });
 
   it('el presupuesto mide lo mismo en las dos cuentas', () => {
     // El presupuesto no depende del porcentaje repartido, así que aquí sí tiene
     // que dar exactamente lo mismo en las dos áreas.
     const { aportaciones, gastos, mes, aportacion } = escenario(200000, 30, [15000, 2500]);
 
-    const conjunto = calcularResumen(aportaciones, gastos, 40000, 0);
+    const conjunto = calcularResumen(aportaciones, gastos, 40000);
     const individual = derivarResumenIndividual(mes, aportacion, gastos as never, 40000);
 
     expect(individual.presupuesto).toBe(conjunto.presupuesto);
@@ -203,30 +177,6 @@ describe('paridad aritmética conjunta ↔ individual', () => {
     expect(individual.porcentajePresupuesto).toBe(conjunto.porcentajePresupuesto);
   });
 
-  it('el reparto de las cuotas anuales es idéntico en las dos áreas', () => {
-    // El reparto del residuo (cuántos céntimos exactos caen en cada mes) es la
-    // parte donde es más fácil que dos implementaciones difieran en 1 céntimo.
-    // Se recorren los 4 meses de la ventana de un gasto de 600 € en 12.
-    const anual = {
-      importeTotal: 60000,
-      fechaCreacion: new Date('2026-09-01T00:00:00.000Z'),
-      fechaUltimoPago: null,
-      anioCiclo: 2027,
-      mesPago: 7,
-    };
-
-    let sumaIndividual = 0;
-    for (let mesNumero = 9; mesNumero <= 12; mesNumero++) {
-      const mes = { id: 'm1', anio: 2026, mes: mesNumero, porcentaje: 30 } as never;
-      const resumen = derivarResumenIndividual(mes, null, [], null, [anual]);
-      sumaIndividual += resumen.apartado;
-    }
-
-    expect(sumaIndividual).toBeGreaterThan(0);
-    // 4 meses * 5455 = 21820 exactos (posiciones 1..4 de una ventana de 11;
-    // 60000 / 11 = 5454 con residuo 6 repartido en los 6 primeros meses).
-    expect(sumaIndividual).toBe(21820);
-  });
 
   it('sin sueldo, el área individual no inventa cifras', () => {
     const { mes, gastos } = escenario(200000, 30, [15000]);

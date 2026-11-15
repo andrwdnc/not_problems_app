@@ -6,9 +6,9 @@ import { usePathname } from 'next/navigation';
 import { Home, Receipt, HandCoins, History } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { nav } from '@/literals';
-import { rutasConPrefijo, type PrefijoRuta } from '@/lib/cuenta';
+import { rutasNav, type VarianteCuenta } from '@/lib/cuenta';
 
-// Orden canónico de labels/iconos; las HREFS vienen de rutasConPrefijo con el
+// Orden canónico de labels/iconos; las HREFS vienen de rutasNav con el
 // MISMO orden (contrato pinado en src/lib/cuenta.test.ts). Los labels son
 // idénticos en ambas áreas (NAV-1 Joint untouched).
 const itemsBase = [
@@ -19,14 +19,14 @@ const itemsBase = [
 ];
 
 interface BottomNavProps {
-  /** Prefijo de ruta: '' (conjunta, por defecto) o '/individual'. */
-  prefijo?: PrefijoRuta;
+  /** Variante de cuenta: decide el segmento de las 4 rutas del nav. */
+  variante: VarianteCuenta;
 }
 
-export function BottomNav({ prefijo = '' }: BottomNavProps) {
+export function BottomNav({ variante }: BottomNavProps) {
   const pathname = usePathname();
   const navRef = useRef<HTMLElement | null>(null);
-  const items = rutasConPrefijo(prefijo).map((href, i) => ({
+  const items = rutasNav(variante).map((href, i) => ({
     href,
     ...itemsBase[i]!,
   }));

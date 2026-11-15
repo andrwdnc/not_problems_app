@@ -3,7 +3,7 @@ import { TarjetaEstado } from '@/components/features/TarjetaEstado';
 import { Card } from '@/components/ui/Card';
 import { formatCurrency } from '@/lib/formatters/currency';
 import { formatos } from '@/literals';
-import type { InicioResumenVista } from '@/components/features/vista-inicio';
+import type { InicioResumenVista } from '@/vistas/inicio';
 
 /**
  * Bloque de resumen de la pantalla de Inicio. UNO para las dos áreas de cuenta.

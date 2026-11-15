@@ -1,9 +1,9 @@
 'use server';
 
-import { revalidatePath } from 'next/cache';
 import { sueldoSchema, porcentajeSchema, presupuestoSchema } from './schemas/aportacion';
 import { fijarSueldoCore, fijarPorcentajeCore } from './aportaciones-core';
 import { aportacionRepository, mesRepository } from './repositories';
+import { revalidarPantallas } from './revalidacion';
 import { auditarMovimiento } from '@/infrastructure/audit/auditarMovimiento';
 import { getCurrentUserId } from '@/server/auth';
 import type { Aportacion, Mes } from '@/domain/entities';
@@ -34,9 +34,7 @@ export async function fijarSueldo(
   const resultado = await fijarSueldoCore(usuarioId, usuarioObjetivo, datos);
 
   if (resultado.ok) {
-    revalidatePath('/aportar');
-    revalidatePath('/');
-    revalidatePath('/historico');
+    revalidarPantallas('conjunta', ['inicio', 'aportar', 'historico']);
   }
 
   return resultado;
@@ -65,9 +63,7 @@ export async function fijarPorcentaje(
   const resultado = await fijarPorcentajeCore(usuarioId, mesId, porcentaje);
 
   if (resultado.ok) {
-    revalidatePath('/aportar');
-    revalidatePath('/');
-    revalidatePath('/historico');
+    revalidarPantallas('conjunta', ['inicio', 'aportar', 'historico']);
   }
 
   return resultado;
@@ -119,9 +115,7 @@ export async function fijarPresupuesto(
     valorNuevo: actualizado,
   });
 
-  revalidatePath('/aportar');
-  revalidatePath('/');
-  revalidatePath('/historico');
+  revalidarPantallas('conjunta', ['inicio', 'aportar', 'historico']);
 
   return { ok: true, data: actualizado };
 }

@@ -109,7 +109,7 @@ describe('fijarPorcentajeIndividual (IA-4, MP-1, MP-2)', () => {
     expect(resultado).toEqual({ ok: true, data: { id: mesId, porcentaje: 70 } });
     // Revalida el área individual y la conjunta (ambas leen % e importe_aportado).
     expect(revalidatePathMock).toHaveBeenCalledWith('/individual/aportar');
-    expect(revalidatePathMock).toHaveBeenCalledWith('/aportar');
+    expect(revalidatePathMock).toHaveBeenCalledWith('/conjunta/aportar');
   });
 
   it('invierte en los dos sentidos del reparto: 60 tecleado -> 40 compartido', async () => {

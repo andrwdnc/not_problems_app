@@ -20,19 +20,30 @@ interface GastoFormProps {
   mesId: string;
   /** Variante de cuenta: conjunta (por defecto) o individual (IA-1). */
   variante?: VarianteCuenta;
+  /** Valores precargados (p. ej. desde un pago previsto). */
+  prefill?: {
+    detalle: string;
+    categoria: string;
+    importe: string;
+    fechaGasto: string;
+    pagoPrevistoId: string;
+  } | null;
 }
 
-export function NuevoGastoForm({ mesId, variante = 'conjunta' }: GastoFormProps) {
+export function NuevoGastoForm({ mesId, variante = 'conjunta', prefill = null }: GastoFormProps) {
   const router = useRouter();
-  const [importe, setImporte] = useState('');
-  const [categoria, setCategoria] = useState<Categoria>('Vivienda');
-  const [detalle, setDetalle] = useState('');
+  const [importe, setImporte] = useState(prefill?.importe ?? '');
+  const [categoria, setCategoria] = useState<Categoria>(
+    (prefill?.categoria as Categoria) ?? 'Vivienda',
+  );
+  const [detalle, setDetalle] = useState(prefill?.detalle ?? '');
   const [fecha, setFecha] = useState(
-    () => new Date().toISOString().slice(0, 10),
+    prefill?.fechaGasto ?? new Date().toISOString().slice(0, 10),
   );
   const [recurrente, setRecurrente] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
+  const pagoPrevistoId = prefill?.pagoPrevistoId;
 
   // POR QUÉ `onSubmit` Y NO `action={guardar}`.
   //
@@ -61,6 +72,7 @@ export function NuevoGastoForm({ mesId, variante = 'conjunta' }: GastoFormProps)
       importe: formData.get('importe') as string,
       fechaGasto: fecha,
       esRecurrente: recurrente,
+      ...(pagoPrevistoId ? { pagoPrevistoId } : {}),
     };
     // En variante individual el payload NO lleva mesId (el esquema .strict()
     // lo rechazaría y el mes se deriva de fechaGasto); en conjunta se conserva.

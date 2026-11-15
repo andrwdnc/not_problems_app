@@ -47,7 +47,7 @@ describe('GastoMesAcciones', () => {
   });
 
   describe('variante conjunta (por defecto)', () => {
-    it('enlaza al detalle sin prefijo', () => {
+    it('enlaza al detalle de la cuenta conjunta', () => {
       render(
         <GastoMesAcciones
           gastoId="g1"
@@ -58,7 +58,7 @@ describe('GastoMesAcciones', () => {
 
       expect(screen.getByLabelText(literalesGastos.editar)).toHaveAttribute(
         'href',
-        '/gastos/g1',
+        '/conjunta/gastos/g1',
       );
     });
 

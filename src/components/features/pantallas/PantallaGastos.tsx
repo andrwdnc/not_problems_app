@@ -1,18 +1,8 @@
 import { Suspense } from 'react';
 import { GastosList } from '@/components/features/GastosList';
+import { PagosPrevistosMes } from '@/components/features/PagosPrevistosMes';
 import { GastosSectionSkeleton } from '@/components/features/skeletons';
-import type { VistaPantallaGastos } from '@/components/features/vista-pantallas';
-
-/**
- * PANTALLA DE GASTOS. Un solo componente para las dos cuentas.
- *
- * Título, esqueleto, lista y estado "no hay mes abierto" existían por duplicado en
- * las dos páginas. Ahora hay un solo sitio donde se deciden esas cosas.
- *
- * Lo que sí cambia entre áreas viaja en los datos: el `variante` (las Server
- * Actions del listado son owner-scoped en la individual) y `usuarios` (la conjunta
- * muestra quién creó cada gasto; en la individual no hay nadie más que preguntar).
- */
+import type { VistaPantallaGastos } from '@/vistas/pantallas';
 
 async function SeccionGastos({ vista }: { vista: Promise<VistaPantallaGastos> }) {
   const v = await vista;
@@ -22,12 +12,17 @@ async function SeccionGastos({ vista }: { vista: Promise<VistaPantallaGastos> })
   }
 
   return (
-    <GastosList
-      gastos={v.gastos as never}
-      usuarios={v.usuarios}
-      gastosAnuales={v.gastosAnuales as never}
-      variante={v.variante}
-    />
+    <>
+      <PagosPrevistosMes
+        pagos={v.pagosPrevistosMes}
+        variante={v.variante}
+      />
+      <GastosList
+        gastos={v.gastos as never}
+        usuarios={v.usuarios}
+        variante={v.variante}
+      />
+    </>
   );
 }
 

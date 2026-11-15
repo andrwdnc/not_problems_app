@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { TarjetaMesHistorico } from '@/components/features/TarjetaMesHistorico';
-import type { TarjetaMesHistoricoVista } from '@/components/features/vista-historico';
+import type { TarjetaMesHistoricoVista } from '@/vistas/historico';
 import {
   resumen as literalesResumen,
   historico as literalesHistorico,

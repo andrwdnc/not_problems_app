@@ -2,11 +2,11 @@ export { AportacionDrizzleRepository } from './AportacionRepository';
 export { MesDrizzleRepository } from './MesRepository';
 export { GastoDrizzleRepository } from './GastoRepository';
 export { GastoIndividualDrizzleRepository } from './GastoIndividualRepository';
+export { PagoPrevistoDrizzleRepository } from './PagoPrevistoRepository';
+export { PagoPrevistoIndividualDrizzleRepository } from './PagoPrevistoIndividualRepository';
 export { HistoricoDrizzleRepository } from './HistoricoRepository';
 export { UsuarioDrizzleRepository } from './UsuarioRepository';
 export { AuthIntentosDrizzleRepository } from './AuthIntentosRepository';
-export { GastoAnualDrizzleRepository } from './GastoAnualRepository';
-export { GastoAnualIndividualDrizzleRepository } from './GastoAnualIndividualRepository';
 export { PresupuestoIndividualDrizzleRepository } from './PresupuestoIndividualRepository';
 
 // Puertos (interfaces) declarados en la capa de dominio (DIP): la
@@ -24,11 +24,10 @@ export type {
   ResultadoFindOrCreate,
   UsuarioConCredenciales,
   UsuarioRepository,
-  CrearGastoAnualInput,
-  GastoAnualRepository,
-  CrearGastoAnualIndividualInput,
-  GastoAnualIndividualRepository,
   PresupuestoIndividualRepository,
+  CrearPagoPrevistoInput,
+  PagoPrevistoRepository,
+  PagoPrevistoIndividualRepository,
 } from '@/domain/ports/repositories';
 
 // Entidades canónicas del dominio: re-exportadas aquí para que los
@@ -40,8 +39,7 @@ export type {
   Mes,
   MovimientoAuditoria,
   Usuario,
-  GastoAnual,
-  GastoAnualIndividual,
+  PagoPrevisto,
   PresupuestoIndividual,
   Accion,
 } from '@/domain/entities';

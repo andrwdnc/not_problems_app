@@ -84,7 +84,7 @@ describe('NuevoGastoForm', () => {
     await waitFor(() => {
       expect(crearGasto).toHaveBeenCalledTimes(1);
     });
-    expect(push).toHaveBeenCalledWith('/gastos');
+    expect(push).toHaveBeenCalledWith('/conjunta/gastos');
     expect(refresh).toHaveBeenCalled();
   });
 

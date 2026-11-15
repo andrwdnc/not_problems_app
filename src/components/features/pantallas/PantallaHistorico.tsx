@@ -3,7 +3,7 @@ import { Info } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { TarjetaMesHistorico } from '@/components/features/TarjetaMesHistorico';
 import { HistoricoSectionSkeleton } from '@/components/features/skeletons';
-import type { VistaPantallaHistorico } from '@/components/features/vista-pantallas';
+import type { VistaPantallaHistorico } from '@/vistas/pantallas';
 
 /**
  * PANTALLA DE HISTÓRICO. Un solo componente para las dos cuentas.
