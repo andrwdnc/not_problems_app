@@ -106,41 +106,41 @@ export function GastosList({
           {filtrados.map((g) => {
             const autor = usuarios?.get(g.creadoPor) ?? null;
             return (
-              <Card key={g.id}>
-                <div className="flex items-start gap-3">
+              <Card key={g.id} className="p-3">
+                <div className="flex items-start gap-2">
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-medium text-brand-ink">
                       {g.detalle}
                     </p>
-                    <p className="text-xs text-brand-muted">
+                    <p className="text-xxs text-brand-muted">
                       {autor
                         ? `${g.categoria} · ${autor} · ${formatShortDate(g.fechaGasto)}`
                         : `${g.categoria} · ${formatShortDate(g.fechaGasto)}`}
                     </p>
                     {g.esRecurrente && (
-                      <Badge tone="primary" className="mt-1">
-                        <RotateCcw size={11} /> {gastosLiterales.recurrente}
+                      <Badge tone="primary" className="-mt-0.5">
+                        <RotateCcw size={9} /> {gastosLiterales.recurrente}
                       </Badge>
                     )}
                   </div>
-                  <div className="flex flex-col items-end gap-1">
-                    <span className="font-mono text-sm font-semibold text-financial-negative">
+                  <div className="flex flex-col items-end gap-0.5">
+                    <span className="font-mono text-xs font-semibold text-financial-negative">
                       {formatCurrency(g.importe)}
                     </span>
-                    <div className="flex gap-1">
+                    <div className="flex gap-0.5">
                       <Link
                         href={rutaGastoDetalle(variante, g.id)}
-                        className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg text-brand-muted hover:text-brand-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary"
+                        className="inline-flex min-h-[36px] min-w-[36px] items-center justify-center rounded-md text-sm text-brand-muted hover:text-brand-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary"
                         aria-label={gastosLiterales.editar}
                       >
-                        <Pencil size={16} />
+                        <Pencil size={12} />
                       </Link>
                       <button
                         onClick={() => pedirEliminacion(g)}
-                        className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg text-brand-muted hover:text-financial-negative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-financial-negative"
+                        className="inline-flex min-h-[36px] min-w-[36px] items-center justify-center rounded-md text-sm text-brand-muted hover:text-financial-negative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-financial-negative"
                         aria-label={gastosLiterales.eliminar}
                       >
-                        <Trash2 size={16} />
+                        <Trash2 size={12} />
                       </button>
                     </div>
                   </div>

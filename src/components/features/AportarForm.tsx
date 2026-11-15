@@ -373,6 +373,7 @@ export function AportarForm({
                 }}
               >
                 <Input
+                  id="sueldo-form"
                   label={aportar.sueldoIntegro}
                   name="sueldo"
                   type="text"
@@ -417,6 +418,7 @@ export function AportarForm({
             }}
           >
             <Input
+              id={variante === 'individual' ? 'porcentaje-individual' : 'porcentaje-conjunta'}
               // En la conjunta se pide el % de lo común; en la individual se
               // pide MI % (el servidor lo traduce al compartido, ver
               // `fijarPorcentajeIndividual`).
@@ -492,6 +494,7 @@ export function AportarForm({
             }}
           >
             <Input
+              id="presupuesto-conjunta"
               label={aportar.presupuestoUnicoMes}
               name="presupuesto"
               type="text"
